@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='1.6.3';
+const VERSION='1.6.4';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');

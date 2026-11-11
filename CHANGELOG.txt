@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.6.4  (11/11/2026)
+--------------------
+- Arreglado el fallo "ENOTEMPTY" al actualizar (no se podia borrar la
+  descarga anterior) y que "Reintentar" no hiciera nada.
+- La descarga de una version nueva se ve en la barra de abajo con su
+  porcentaje, y en la ventana de actualizacion con los MB.
+
 v1.6.3  (11/11/2026)
 --------------------
 - Aspecto de aplicacion: barra de titulo integrada con los botones de

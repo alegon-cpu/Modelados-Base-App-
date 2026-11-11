@@ -202,6 +202,7 @@ const CONTROLS=[
 ];
 const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL: el script CREATE TABLE se genera desde el DED o el relacional, se puede editar, y también al revés: de un SQL dibuja las tablas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
 const NOVEDADES=[
+  '1.6.4: arreglado el fallo «ENOTEMPTY» al actualizar. La descarga de las versiones nuevas se ve abajo, con su porcentaje.',
   '1.6.3: aspecto de aplicación, con la barra de título integrada y los botones de Windows.',
   '1.6.3: Ajustes (rueda dentada arriba a la derecha o Ctrl+,): tema y color, ventana (al abrir, siempre encima, pantalla completa), accesibilidad (tamaño, alto contraste, líneas gruesas, colores para daltonismo), lienzo y actualizaciones.',
   '1.6.3: Teoría completa dentro de la app (botón del libro o Ajustes › Teoría), con buscador.',
@@ -276,17 +277,26 @@ const App={
     show();
   },
   bindProgress(){
-    if(this._dlBound)return;
-    {{this._dlBound=true;window.api.onUpdateProgress(({got,total,phase})=>{const f=document.getElementById('dlfill'),t=document.getElementById('dltxt');if(!f)return;
-      if(phase==='extract'){f.style.width='100%';t.textContent='Preparando la instalación…';return;}
-      const pc=total?Math.min(100,got/total*100):0;f.style.width=pc.toFixed(1)+'%';t.textContent=`${(got/1048576).toFixed(1)} MB${total?' de '+(total/1048576).toFixed(1)+' MB':''}`;});}}
+    if(this._dlBound)return;this._dlBound=true;
+    window.api.onUpdateProgress(({got,total,phase})=>{
+      const pc=total?Math.min(100,got/total*100):0,mb=`${(got/1048576).toFixed(1)}${total?' de '+(total/1048576).toFixed(1):''} MB`;
+      // Ventana de actualización
+      const f=document.getElementById('dlfill'),t=document.getElementById('dltxt');
+      if(f&&t){if(phase==='extract'){f.style.width='100%';t.textContent='Preparando la instalación…';}else{f.style.width=pc.toFixed(1)+'%';t.textContent=`Descargando… ${Math.floor(pc)} % (${mb})`;}}
+      // Barra de abajo (descarga en segundo plano)
+      const st=document.getElementById('updtxt'),bar=document.getElementById('updfill');
+      if(st&&this._bgVer){if(phase==='extract'){st.textContent=`Preparando la versión ${this._bgVer}…`;if(bar)bar.style.width='100%';}
+        else{st.textContent=`Descargando la versión ${this._bgVer}… ${Math.floor(pc)} %`;if(bar)bar.style.width=pc.toFixed(1)+'%';st.title=mb;}}
+    });
   },
   async prepareSilently(r){
-    try{await window.api.updatePrepare(r.asset.url);}catch(e){return;}
     const el=document.getElementById('updready');if(!el)return;
-    const ver=String(r.tag).replace(/^v/i,'');
+    const ver=this._bgVer=String(r.tag).replace(/^v/i,'');
+    el.innerHTML=`<span class="sb-sep"></span><span class="upd-mini"><span class="upd-fill" id="updfill"></span></span><span id="updtxt">Descargando la versión ${esc(ver)}…</span>`;el.hidden=false;
+    this.bindProgress();
+    try{await window.api.updatePrepare(r.asset.url);}
+    catch(e){el.innerHTML=`<span class="sb-sep"></span><span class="upd-dot bad"></span><span title="${escA(e.message)}">No se pudo descargar la versión ${esc(ver)}</span><button class="sbtn" data-act="upd-retry">Reintentar</button>`;return;}
     el.innerHTML=`<span class="sb-sep"></span><span class="upd-dot"></span><span>Versión ${esc(ver)} lista: se instalará al cerrar</span><button class="sbtn" data-act="upd-now" title="Cierra la app, instala la versión nueva y la vuelve a abrir">Reiniciar y actualizar</button>`;
-    el.hidden=false;
   },
   async installUpdate(btn){
     const r=this._upd;if(!r||!r.asset)return;
@@ -311,7 +321,7 @@ const App={
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6.2)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
+  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6.3)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showSettings(sec){this._sec=sec||this._sec||'apariencia';this.settingsOpen=true;
     this.modal(`<div class="set-wrap"><nav class="set-nav" aria-label="Ajustes"><p class="set-title">Ajustes</p>${SET_SECS.map(([k,t,ic])=>`<button class="set-nb" data-sec="${k}">${ic}<span>${t}</span></button>`).join('')}</nav><div class="set-body" id="setbody"></div><button class="set-x" data-m="close" aria-label="Cerrar ajustes" title="Cerrar (Esc)">✕</button></div>`,'settings');
     this.renderSettings();},
@@ -493,6 +503,7 @@ const App={
     if(a==='theory'){this.showSettings('teoria');return;}
     if(a==='news'){this.showNews();return;}
     if(a==='save'){this.saveNow();return;}
+    if(a==='upd-retry'){if(this._upd)this.prepareSilently(this._upd);return;}
     if(a==='upd-now'){b.disabled=true;b.textContent='Actualizando…';try{await this.flushAll();await window.api.updateInstall(this._upd.asset.url);}catch(e){b.disabled=false;b.textContent='Reiniciar y actualizar';toast('No se pudo actualizar: '+e.message,'warn');}return;}
     if(a==='setup-choose'||a==='setup-default'){
       const r=await this.run(()=>window.api.baseSetup(a==='setup-default'));if(!r)return;

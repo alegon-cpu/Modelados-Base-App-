@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.6.3';
+const VERSION = '1.6.4';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -257,22 +257,19 @@ function findAppDir(dir, depth = 0) {
 }
 // Descarga y descomprime la versión nueva en una carpeta temporal (no toca el programa todavía)
 let prepared = null, prepPromise = null;
+// Electron trata los .asar como carpetas: para tocar la versión descargada hay que desactivarlo un momento
+function noAsar(fn) { const prev = process.noAsar; process.noAsar = true; try { return fn(); } finally { process.noAsar = prev; } }
 async function prepareUpdate(url, sender) {
   if (!canSelfUpdate()) throw new Error('Esta copia no se puede actualizar sola.');
-  if (prepared && prepared.url === url && fs.existsSync(prepared.src)) return prepared;
+  if (prepared && prepared.url === url && noAsar(() => fs.existsSync(prepared.src))) return prepared;
   const work = path.join(app.getPath('temp'), 'modelado-bases-update');
-  fs.rmSync(work, { recursive: true, force: true });
+  noAsar(() => fs.rmSync(work, { recursive: true, force: true }));
   fs.mkdirSync(work, { recursive: true });
   const zip = path.join(work, 'update.zip');
   await downloadTo(url, zip, sender);
   if (!sender.isDestroyed()) sender.send('update:progress', { phase: 'extract' });
   const AdmZip = require('adm-zip');
-  // Electron trata los .asar como carpetas: se desactiva mientras se descomprime para copiar app.asar tal cual
-  const prevNoAsar = process.noAsar;
-  process.noAsar = true;
-  let src;
-  try { new AdmZip(zip).extractAllTo(path.join(work, 'x'), true); src = findAppDir(path.join(work, 'x')); }
-  finally { process.noAsar = prevNoAsar; }
+  const src = noAsar(() => { new AdmZip(zip).extractAllTo(path.join(work, 'x'), true); return findAppDir(path.join(work, 'x')); });
   if (!src) throw new Error('El zip descargado no contiene el programa.');
   prepared = { url, work, zip, src };
   return prepared;
@@ -319,7 +316,7 @@ h('update:install', async (url, e) => {
   return true;
 });
 app.on('will-quit', () => {
-  if (installing || !prepared || !fs.existsSync(prepared.src)) return;
+  if (installing || !prepared || !noAsar(() => fs.existsSync(prepared.src))) return;
   installing = true;
   launchInstaller(prepared, false).catch(() => {});
 });
