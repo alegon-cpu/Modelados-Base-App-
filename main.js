@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.6.1';
+const VERSION = '1.6.2';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -230,15 +230,17 @@ function findAppDir(dir, depth = 0) {
   for (const d of fs.readdirSync(dir, { withFileTypes: true })) if (d.isDirectory()) { const r = findAppDir(path.join(dir, d.name), depth + 1); if (r) return r; }
   return null;
 }
-// Descarga, descomprime y deja un script que, cuando la app se cierra, copia la versión nueva encima y la vuelve a abrir
-h('update:install', async (url, e) => {
+// Descarga y descomprime la versión nueva en una carpeta temporal (no toca el programa todavía)
+let prepared = null, prepPromise = null;
+async function prepareUpdate(url, sender) {
   if (!canSelfUpdate()) throw new Error('Esta copia no se puede actualizar sola.');
+  if (prepared && prepared.url === url && fs.existsSync(prepared.src)) return prepared;
   const work = path.join(app.getPath('temp'), 'modelado-bases-update');
   fs.rmSync(work, { recursive: true, force: true });
   fs.mkdirSync(work, { recursive: true });
   const zip = path.join(work, 'update.zip');
-  await downloadTo(url, zip, e.sender);
-  if (!e.sender.isDestroyed()) e.sender.send('update:progress', { phase: 'extract' });
+  await downloadTo(url, zip, sender);
+  if (!sender.isDestroyed()) sender.send('update:progress', { phase: 'extract' });
   const AdmZip = require('adm-zip');
   // Electron trata los .asar como carpetas: se desactiva mientras se descomprime para copiar app.asar tal cual
   const prevNoAsar = process.noAsar;
@@ -247,31 +249,54 @@ h('update:install', async (url, e) => {
   try { new AdmZip(zip).extractAllTo(path.join(work, 'x'), true); src = findAppDir(path.join(work, 'x')); }
   finally { process.noAsar = prevNoAsar; }
   if (!src) throw new Error('El zip descargado no contiene el programa.');
+  prepared = { url, work, zip, src };
+  return prepared;
+}
+// Script que espera a que la app se cierre, copia la versión nueva encima y (si se pide) la vuelve a abrir
+function launchInstaller(p, relaunch) {
   const q = s => "'" + String(s).replace(/'/g, "''") + "'";
-  const dst = installDir(), log = path.join(work, 'update.log');
+  const dst = installDir(), log = path.join(p.work, 'update.log');
   const ps = [
     "$ErrorActionPreference = 'SilentlyContinue'",
     `$pidApp = ${process.pid}`,
     'for ($i = 0; $i -lt 240; $i++) { if (-not (Get-Process -Id $pidApp -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 }',
     'Start-Sleep -Milliseconds 1200',
-    `$src = ${q(src)}`, `$dst = ${q(dst)}`, `$log = ${q(log)}`,
+    `$src = ${q(p.src)}`, `$dst = ${q(dst)}`, `$log = ${q(log)}`,
     '$ok = $false',
     'for ($t = 0; $t -lt 8; $t++) { robocopy $src $dst /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null; if ($LASTEXITCODE -lt 8) { $ok = $true; break }; Start-Sleep -Seconds 2 }',
     "if ($ok) { 'ok' | Out-File $log } else { 'robocopy fallo: ' + $LASTEXITCODE | Out-File $log }",
-    "Start-Process -FilePath (Join-Path $dst 'Modelado Bases.exe')",
-    `if ($ok) { Start-Sleep -Seconds 3; Remove-Item -LiteralPath ${q(path.join(work, 'x'))} -Recurse -Force; Remove-Item -LiteralPath ${q(zip)} -Force }`
+    relaunch ? "Start-Process -FilePath (Join-Path $dst 'Modelado Bases.exe')" : '',
+    `if ($ok) { Start-Sleep -Seconds 3; Remove-Item -LiteralPath ${q(path.join(p.work, 'x'))} -Recurse -Force; Remove-Item -LiteralPath ${q(p.zip)} -Force }`
   ].join('\r\n');
-  const script = path.join(work, 'update.ps1');
+  const script = path.join(p.work, 'update.ps1');
   fs.writeFileSync(script, '﻿' + ps, 'utf8');
   const { spawn } = require('child_process');
-  await new Promise((res, rej) => {
+  return new Promise((res, rej) => {
     const c = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', script],
       { detached: true, stdio: 'ignore', windowsHide: true });
     c.once('error', err => rej(new Error('No se pudo iniciar el instalador (' + err.message + ').')));
     c.once('spawn', () => { c.unref(); res(); });
   });
+}
+// En segundo plano: se deja preparada y se instala sola al cerrar la app
+h('update:prepare', async (url, e) => {
+  if (!prepPromise) prepPromise = prepareUpdate(url, e.sender).catch(err => { prepPromise = null; throw err; });
+  await prepPromise;
+  return true;
+});
+// "Reiniciar y actualizar": se instala ya y se vuelve a abrir
+let installing = false;
+h('update:install', async (url, e) => {
+  const p = await (prepPromise || prepareUpdate(url, e.sender));
+  await launchInstaller(p, true);
+  installing = true;
   setTimeout(() => app.quit(), 300);
   return true;
+});
+app.on('will-quit', () => {
+  if (installing || !prepared || !fs.existsSync(prepared.src)) return;
+  installing = true;
+  launchInstaller(prepared, false).catch(() => {});
 });
 h('update:page', () => shell.openExternal(`https://github.com/${REPO}/releases/latest`));
 h('theme:set', mode => {

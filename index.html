@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Modelado Bases 1.6.1</title>
+<title>Modelado Bases 1.6.2</title>
 <style>@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
@@ -291,6 +291,7 @@ body.tooldrag,body.tooldrag *{cursor:grabbing!important;user-select:none}
 .older{margin-top:8px;font-size:12.5px}.older summary{cursor:pointer;color:var(--muted);font-weight:600}.older summary:hover{color:var(--ink)}
 .relnotes{white-space:pre-wrap;font-size:12.5px;line-height:1.55;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px 12px;max-height:260px;overflow:auto;margin:4px 0}
 .dlbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:10px}.dlfill{height:100%;width:0;background:var(--accent);transition:width .15s}
+.sb-upd{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}.upd-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
 .news-h{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:12px 0 2px}
 .toast{position:fixed;right:16px;bottom:40px;background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:4px;font-size:12.5px;z-index:60;max-width:min(520px,calc(100% - 32px))}
 .toast.warn{background:var(--bad);color:#fff}
@@ -354,7 +355,7 @@ svg .emp{font:14px var(--f-ui);fill:var(--muted)}
 </style></head><body>
 <div class="app" id="app">
   <aside class="side" aria-label="Proyectos">
-    <div class="brand"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Ver las novedades de esta versión">v1.6.1</button></div>
+    <div class="brand"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Ver las novedades de esta versión">v1.6.2</button></div>
     <div class="side-acts"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import">Importar código</button></div>
     <div class="tree" id="tree"></div>
     <div class="split" data-split="side" role="separator" aria-orientation="vertical" aria-label="Ancho de la lista de proyectos" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>
@@ -362,6 +363,7 @@ svg .emp{font:14px var(--f-ui);fill:var(--muted)}
   </aside>
   <main class="mainv" id="mainv"></main>
   <footer class="statusbar" id="statusbar"><span class="dot" id="sdot"></span><span id="stxt">Cargando…</span><button class="sbtn" id="savebtn" data-act="save" title="Guardar (Ctrl+S)" disabled>Guardar</button>
+    <span class="sb-upd" id="updready" hidden></span>
     <span class="sb-base"><span class="sb-sep"></span><span class="sb-path">Carpeta: <code id="bpath">…</code></span><button class="lnk" data-act="basereveal">Abrir</button><button class="lnk" data-act="basechoose" title="Mover la carpeta Modelados BDD a otro sitio">Cambiar…</button></span>
     <span class="sb-right"><button class="sbtn" data-act="controls" title="Todos los atajos (F1)">Controles</button><span class="theme" role="group" aria-label="Tema"><button data-theme-set="light" title="Tema claro"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.6" fill="currentColor"/><path d="M6 .5v1.6M6 9.9v1.6M.5 6h1.6M9.9 6h1.6M2.1 2.1l1.1 1.1M8.8 8.8l1.1 1.1M2.1 9.9l1.1-1.1M8.8 3.2l1.1-1.1" stroke="currentColor" stroke-width="1.1"/></svg>Claro</button><button data-theme-set="dark" title="Tema oscuro"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8.5 7.8A4.6 4.6 0 0 1 4.2 1.5a4.6 4.6 0 1 0 6.3 6.3 4.6 4.6 0 0 1-2 0z" fill="currentColor"/></svg>Oscuro</button><button data-theme-set="system" title="Igual que Windows">Auto</button></span></span></footer>
 </div>

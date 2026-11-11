@@ -33,11 +33,18 @@ ejercicio de bases de datos, todo en el mismo proyecto.
   los proyectos a otra persona. Exportar el E-R a ERDPlus.
 - Abrir un proyecto en su propia ventana. Tema claro, oscuro o automatico.
 - Todos los atajos: boton "Controles" (o F1).
-- Se actualiza sola: avisa cuando hay una version nueva y la instala con
-  un boton ("Actualizar ahora").
+- Se actualiza sola: descarga las versiones nuevas en segundo plano y las
+  instala al cerrar la app.
 
 HISTORIAL DE VERSIONES
 ======================
+
+v1.6.2  (11/11/2026)
+--------------------
+- Se actualiza sola: cuando hay una version nueva, se descarga mientras
+  usas la app y se instala al cerrarla. La proxima vez que la abras ya
+  esta al dia. Si no quieres esperar, "Reiniciar y actualizar" en la
+  barra de abajo.
 
 v1.6.1  (11/11/2026)
 --------------------

@@ -188,8 +188,9 @@ const CONTROLS=[
   ['Panel',[['Enter en un atributo','Crea otro atributo en la misma entidad'],['Enter en una columna','Crea otra columna debajo'],['Enter en el nombre de la tabla','Añade una columna']]],
   ['General',[['Ctrl+S','Guardar'],['Ctrl+1 … Ctrl+5','Enunciado, E-R, Relacional, DED, SQL'],['F1','Ver estos controles']]]
 ];
-const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL: el script CREATE TABLE se genera desde el DED o el relacional, y se puede editar.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir y arrastrar los botones hasta donde quieras.", "Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Avisa de las versiones nuevas."];
+const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL: el script CREATE TABLE se genera desde el DED o el relacional, y se puede editar.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir y arrastrar los botones hasta donde quieras.", "Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
 const NOVEDADES=[
+  '1.6.2: se actualiza sola. Cuando hay una versión nueva se descarga mientras usas la app y se instala al cerrarla; la próxima vez que la abras ya está al día. Si tienes prisa, «Reiniciar y actualizar» en la barra de abajo.',
   '1.6.1: «Actualizar ahora»: la app descarga la versión nueva, se cierra y se vuelve a abrir ya actualizada, sin descomprimir nada.',
   '1.6: avisa cuando hay una versión nueva y la descarga con un solo botón (a tu carpeta Descargas). También puedes buscarla tú desde «Buscar actualizaciones» (pulsando la versión, arriba a la izquierda).',
   '1.5.7: vuelve «Exportar ejercicio»: guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura. Y «Capturas de todos» en la barra lateral.',
@@ -241,6 +242,8 @@ const App={
     if(this.solo)return;
     let r;try{r=await window.api.updateCheck();}catch(e){if(manual)toast('No se ha podido comprobar: no hay conexión o GitHub no responde.','warn');return;}
     if(!r.tag||!r.newer){if(manual)toast(`Ya tienes la última versión (${VERSION}).`);return;}
+    // Lo normal: se descarga sola en segundo plano y se instala al cerrar la app
+    if(!manual&&r.canInstall){this._upd=r;this.prepareSilently(r);return;}
     let skip=null,later=0;try{skip=localStorage.getItem('mb:upd:skip');later=+localStorage.getItem('mb:upd:later')||0;}catch(e){}
     if(!manual&&(skip===r.tag||Date.now()-later<20*3600e3))return;
     const show=()=>{
@@ -258,6 +261,13 @@ const App={
     {{this._dlBound=true;window.api.onUpdateProgress(({got,total,phase})=>{const f=document.getElementById('dlfill'),t=document.getElementById('dltxt');if(!f)return;
       if(phase==='extract'){f.style.width='100%';t.textContent='Preparando la instalación…';return;}
       const pc=total?Math.min(100,got/total*100):0;f.style.width=pc.toFixed(1)+'%';t.textContent=`${(got/1048576).toFixed(1)} MB${total?' de '+(total/1048576).toFixed(1)+' MB':''}`;});}}
+  },
+  async prepareSilently(r){
+    try{await window.api.updatePrepare(r.asset.url);}catch(e){return;}
+    const el=document.getElementById('updready');if(!el)return;
+    const ver=String(r.tag).replace(/^v/i,'');
+    el.innerHTML=`<span class="sb-sep"></span><span class="upd-dot"></span><span>Versión ${esc(ver)} lista: se instalará al cerrar</span><button class="sbtn" data-act="upd-now" title="Cierra la app, instala la versión nueva y la vuelve a abrir">Reiniciar y actualizar</button>`;
+    el.hidden=false;
   },
   async installUpdate(btn){
     const r=this._upd;if(!r||!r.asset)return;
@@ -282,7 +292,7 @@ const App={
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
+  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6.1)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showControls(){this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+5'):esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><div class="mrow"><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
   async reload(selectFolder){
     // Conserva en memoria los proyectos con cambios sin guardar
@@ -418,6 +428,7 @@ const App={
     if(a==='controls'){this.showControls();return;}
     if(a==='news'){this.showNews();return;}
     if(a==='save'){this.saveNow();return;}
+    if(a==='upd-now'){b.disabled=true;b.textContent='Actualizando…';try{await this.flushAll();await window.api.updateInstall(this._upd.asset.url);}catch(e){b.disabled=false;b.textContent='Reiniciar y actualizar';toast('No se pudo actualizar: '+e.message,'warn');}return;}
     if(a==='setup-choose'||a==='setup-default'){
       const r=await this.run(()=>window.api.baseSetup(a==='setup-default'));if(!r)return;
       this.base=r.dir;this.renderFoot();await this.reload();

@@ -10,7 +10,8 @@ awk -v a="v$VER" -v b="v$SHORT" '
   on { print }' CHANGELOG.txt | sed -e '/^[[:space:]]*$/d'
 cat <<'TXT'
 
-Si ya tienes Modelado Bases 1.6.1 o posterior, la propia app te avisa y se actualiza sola con «Actualizar ahora».
+Si ya tienes Modelado Bases 1.6.2 o posterior, no tienes que hacer nada: la app se actualiza sola al cerrarla.
+Si tienes la 1.6.1, la app te avisa y basta con pulsar «Actualizar ahora».
 
 Si es la primera vez:
 1. Descarga el zip de abajo (Assets).
