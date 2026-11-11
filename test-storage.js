@@ -1,7 +1,7 @@
 const S=require('./storage'),fs=require('fs'),path=require('path'),os=require('os');
 const base=fs.mkdtempSync(path.join(os.tmpdir(),'base-'));const assert=require('assert');
 const p=S.create(base,'proyecto 1');p.er.nodes.push({id:'a',k:'ent',n:'pizzeria',x:1,y:2,f:{}});p.enun='Hola';S.save(base,p,{er:'<svg/>'});
-assert.deepStrictEqual(fs.readdirSync(path.join(base,'proyecto 1')).sort(),['DED','E-R','Enunciado.txt','Relacional','proyecto.json']);
+assert.deepStrictEqual(fs.readdirSync(path.join(base,'proyecto 1')).sort(),['Boceto','DED','E-R','Enunciado.txt','Relacional','proyecto.json']);
 assert(fs.existsSync(path.join(base,'proyecto 1','E-R','diagrama.svg')));
 let nf=S.rename(base,'proyecto 1','Proyecto 1');assert.strictEqual(nf,'Proyecto 1');
 nf=S.rename(base,nf,'Mi BD: pizzas?');assert.strictEqual(nf,'Mi BD- pizzas-');
