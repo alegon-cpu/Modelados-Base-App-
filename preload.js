@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   saveERDPlus: (f, n, t) => call('file:erdplus', f, n, t), saveCapture: (f, n, b64) => call('proj:saveCapture', f, n, b64), showFile: f => call('file:show', f),
   setTheme: m => call('theme:set', m), sqlWasm: () => call('sqljs:wasm'), setLang: l => call('app:lang', l), reload: () => call('win:reload'),
   winPref: p => call('win:pref', p), winZoom: f => call('win:zoom', f), winFullscreen: () => call('win:fullscreen'), openText: o => call('file:openText', o), saveText: o => call('file:saveText', o),
-  updateCheck: () => call('update:check'), updateDownload: u => call('update:download', u), updateInstall: u => call('update:install', u), updatePrepare: u => call('update:prepare', u), updatePage: () => call('update:page'),
+  updateCheck: () => call('update:check'), updateDownload: u => call('update:download', u), updateInstall: u => call('update:install', u), updatePrepare: u => call('update:prepare', u), updatePage: () => call('update:page'), fromArchive: () => call('app:fromArchive'),
   onUpdateProgress: cb => ipcRenderer.on('update:progress', (e, d) => cb(d)),
   solo: () => call('app:solo'), openWindow: (f, n) => call('win:open', f, n), windows: () => call('win:list'), focusWindow: f => call('win:focus', f), setTitle: t => call('win:title', t),
   onWindows: cb => ipcRenderer.on('win:list', (e, l) => cb(l)), onWindowClosed: cb => ipcRenderer.on('win:closed', (e, f) => cb(f)),

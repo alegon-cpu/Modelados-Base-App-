@@ -165,7 +165,9 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=["Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
+const NOVEDADES_EN=["The app now closes completely, and «Restart and update» opens it again with the new version.",
+  "If you open the app from inside the .zip (or .rar) without extracting it, it warns you and explains how to extract it.",
+  "Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
   "Find in the diagram with Ctrl+F: entities, relationships, attributes, tables, columns and notes.",
   "The app is now also in English (Settings › Appearance › Language).",
   "New Test tab in every project: a SQLite database inside the app. Create it from the DSD or the SQL, fill it with sample data, run queries and check that the foreign keys work.",
@@ -174,6 +176,8 @@ const NOVEDADES_EN=["Right-click menu on every element (rename, add attribute, w
   "Shortcuts: F2 rename, Ctrl+D duplicate, Ctrl+F find, Ctrl+6 Test tab.",
   "«For Workbench / phpMyAdmin» (SQL tab): saves a MySQL .sql file that MySQL Workbench turns into a diagram and phpMyAdmin imports as a database."];
 const NOVEDADES=[
+  '1.7.1: la app se cierra del todo al salir, y «Reiniciar y actualizar» la vuelve a abrir con la versión nueva.',
+  '1.7.1: si abres la app desde dentro del .zip (o .rar) sin extraerla, te avisa y te explica cómo extraerla.',
   '1.7: menú del botón derecho en cada elemento (renombrar, añadir atributo, entidad débil, clave primaria, opcional, duplicar, borrar…). Mantener pulsado y arrastrar sigue moviendo el lienzo.',
   '1.7: buscar en el diagrama con Ctrl+F: entidades, relaciones, atributos, tablas, columnas y notas.',
   '1.7: la app también está en inglés (Ajustes › Apariencia › Idioma).',
@@ -227,6 +231,7 @@ const App={
     try{this.base=await window.api.baseGet();}catch(e){}
     this.renderFoot();
     if(this.solo){await this.startSolo();return;}
+    setTimeout(()=>this.archiveWarn(),900);
     if(!this.base){this.showSetup();this.maybeNews();setTimeout(()=>this.checkUpdates(false),1500);return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
     let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
@@ -239,6 +244,13 @@ const App={
       document.title=p.name+' · Modelado Bases';}
     catch(e){this.status('bad','No se pudo abrir el proyecto: '+e.message);}
     this.renderMain();
+  },
+  async archiveWarn(){
+    let a=false;try{a=await window.api.fromArchive();}catch(e){}
+    if(!a||document.querySelector('.mbox'))return;
+    this.modal(`<h3>Estás abriendo la app desde dentro del .zip</h3><p>Así Windows (o WinRAR) la saca a una carpeta temporal: <b>no se puede actualizar</b> y esa carpeta se borra cuando cierras.</p>
+      <ol class="steps"><li>Cierra Modelado Bases.</li><li>Clic derecho en el .zip › <b>Extraer todo…</b> (con WinRAR: <b>Extraer aquí</b>) y ponlo, por ejemplo, en Documentos.</li><li>Abre <b>Modelado Bases.exe</b> desde la carpeta extraída. Consejo: clic derecho › Enviar a › Escritorio (crear acceso directo).</li></ol>
+      <p class="tnote">Tus proyectos no se pierden: están en la carpeta Modelados BDD, que es aparte.</p><div class="mrow"><button class="ebtn pri" data-m="close">Entendido</button></div>`);
   },
   async checkUpdates(manual){
     if(this.solo)return;
@@ -303,7 +315,7 @@ const App={
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>n.slice(VERSION.length+2));
+  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>n.startsWith(VERSION+':')||n.startsWith(VERSION.split('.').slice(0,2).join('.')+':')).map(n=>n.slice(n.indexOf(':')+2));
     this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${en?'':`<details class="older"><summary>Cambios anteriores (1.5 – 1.6.4)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showSettings(sec){this._sec=sec||this._sec||'apariencia';this.settingsOpen=true;
     this.modal(`<div class="set-wrap"><nav class="set-nav" aria-label="Ajustes"><p class="set-title">Ajustes</p>${SET_SECS.map(([k,t,ic])=>`<button class="set-nb" data-sec="${k}">${ic}<span>${t}</span></button>`).join('')}</nav><div class="set-body" id="setbody"></div><button class="set-x" data-m="close" aria-label="Cerrar ajustes" title="Cerrar (Esc)">✕</button></div>`,'settings');

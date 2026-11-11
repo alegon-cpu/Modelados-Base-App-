@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.7';
+const VERSION = '1.7.1';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -32,8 +32,12 @@ function boundsVisible(b) {
   return !!b && screen.getAllDisplays().some(d => { const a = d.workArea; return b.x < a.x + a.width - 80 && b.x + b.width > a.x + 80 && b.y >= a.y - 10 && b.y < a.y + a.height - 60; });
 }
 
-if (!app.requestSingleInstanceLock()) app.quit();
-app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+if (!app.requestSingleInstanceLock()) { app.exit(0); }
+// Si ya hay una copia abierta, se enseña su ventana (o se abre una si se había quedado sin ninguna)
+app.on('second-instance', () => {
+  if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
+  else if (app.isReady() && !quitting) openMain();
+});
 
 function makeWindow(opts, query) {
   const w = new BrowserWindow(Object.assign({
@@ -79,10 +83,21 @@ app.whenReady().then(() => {
   try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) { cfg = {}; }
   if (cfg.dataDir) { try { fs.mkdirSync(cfg.dataDir, { recursive: true }); } catch (e) {} }
   Menu.setApplicationMenu(null);
+  openMain();
+});
+function openMain() {
   win = makeWindow({});
   win.on('closed', () => { win = null; for (const s of solos.values()) if (!s.w.isDestroyed()) s.w.close(); });
-});
-app.on('window-all-closed', () => app.quit());
+}
+// Al cerrar la última ventana, la app se cierra del todo (y si algo la retiene, se fuerza)
+let quitting = false;
+function quitForSure(ms) {
+  quitting = true;
+  app.quit();
+  setTimeout(() => app.exit(0), ms || 4000);
+}
+app.on('window-all-closed', () => quitForSure());
+app.on('before-quit', () => { quitting = true; });
 
 const winOf = e => BrowserWindow.fromWebContents(e.sender);
 const h = (ch, fn) => ipcMain.handle(ch, async (e, ...a) => {
@@ -220,8 +235,15 @@ const isNewer = (a, b) => { const x = vnum(a), y = vnum(b); for (let i = 0; i < 
 const DL_PREFIX = `https://github.com/${REPO}/releases/download/`;
 // ¿Se puede instalar sola? Solo en Windows, con la app empaquetada y su carpeta con permiso de escritura
 function installDir() { return path.dirname(process.execPath); }
-function canSelfUpdate() {
+// ¿Se está abriendo desde dentro del .zip / .rar? (Windows y WinRAR lo sacan a una carpeta temporal)
+function fromArchive() {
   if (process.platform !== 'win32' || !app.isPackaged) return false;
+  const exe = process.execPath.toLowerCase(), tmp = path.resolve(app.getPath('temp')).toLowerCase() + path.sep;
+  return exe.startsWith(tmp) || /[\\/](rar\$ex|temp\d*_|7z[a-z0-9]*)[^\\/]*[\\/]/i.test(process.execPath);
+}
+h('app:fromArchive', () => fromArchive());
+function canSelfUpdate() {
+  if (process.platform !== 'win32' || !app.isPackaged || fromArchive()) return false;
   const t = path.join(installDir(), '.mb-write-test');
   try { fs.writeFileSync(t, 'ok'); fs.unlinkSync(t); return true; } catch (e) { return false; }
 }
@@ -301,13 +323,24 @@ function launchInstaller(p, relaunch) {
   const ps = [
     "$ErrorActionPreference = 'SilentlyContinue'",
     `$pidApp = ${process.pid}`,
-    'for ($i = 0; $i -lt 240; $i++) { if (-not (Get-Process -Id $pidApp -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 }',
-    'Start-Sleep -Milliseconds 1200',
     `$src = ${q(p.src)}`, `$dst = ${q(dst)}`, `$log = ${q(log)}`,
+    "$exe = Join-Path $dst 'Modelado Bases.exe'",
+    "function L($m) { ((Get-Date -Format 'HH:mm:ss') + ' ' + $m) | Out-File -Append -Encoding utf8 $log }",
+    // Todos los procesos que salen de la carpeta del programa (Electron abre varios: ventana, GPU, crashpad...)
+    "function Left { Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($dst + '\\', [StringComparison]::OrdinalIgnoreCase) } }",
+    "L ('inicio: ' + $src + ' -> ' + $dst)",
+    'for ($i = 0; $i -lt 120; $i++) { if (-not (Get-Process -Id $pidApp -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 }',
+    'for ($i = 0; $i -lt 20; $i++) { if (-not (Left)) { break }; Start-Sleep -Milliseconds 500 }',
+    "$rest = @(Left); if ($rest.Count) { L ('cerrando a la fuerza: ' + (($rest | ForEach-Object { $_.Id }) -join ',')); $rest | Stop-Process -Force; Start-Sleep -Seconds 2 }",
     '$ok = $false',
-    'for ($t = 0; $t -lt 8; $t++) { robocopy $src $dst /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null; if ($LASTEXITCODE -lt 8) { $ok = $true; break }; Start-Sleep -Seconds 2 }',
-    "if ($ok) { 'ok' | Out-File $log } else { 'robocopy fallo: ' + $LASTEXITCODE | Out-File $log }",
-    relaunch ? "Start-Process -FilePath (Join-Path $dst 'Modelado Bases.exe')" : '',
+    'for ($t = 0; $t -lt 6; $t++) { robocopy $src $dst /E /R:3 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null; $code = $LASTEXITCODE; if ($code -lt 8) { $ok = $true; break }; L (\'robocopy \' + $code); Left | Stop-Process -Force; Start-Sleep -Seconds 2 }',
+    "if ($ok) { L 'copiado ok' } else { L 'no se pudo copiar' }",
+    relaunch ? [
+      'Start-Process -FilePath $exe -WorkingDirectory $dst',
+      'Start-Sleep -Seconds 6',
+      "if (-not (Left)) { L 'no se abrio, otra vez'; Start-Process -FilePath $exe -WorkingDirectory $dst }",
+      "L 'abierta'"
+    ].join('\r\n') : '',
     `if ($ok) { Start-Sleep -Seconds 3; Remove-Item -LiteralPath ${q(path.join(p.work, 'x'))} -Recurse -Force; Remove-Item -LiteralPath ${q(p.zip)} -Force }`
   ].join('\r\n');
   const script = path.join(p.work, 'update.ps1');
@@ -332,7 +365,11 @@ h('update:install', async (url, e) => {
   const p = await (prepPromise || prepareUpdate(url, e.sender));
   await launchInstaller(p, true);
   installing = true;
-  setTimeout(() => app.quit(), 300);
+  // Ya se ha guardado todo antes de llamar aquí: se cierran las ventanas sin volver a preguntar
+  setTimeout(() => {
+    for (const w of BrowserWindow.getAllWindows()) { w._canClose = true; if (!w.isDestroyed()) w.destroy(); }
+    quitForSure(3000);
+  }, 300);
   return true;
 });
 app.on('will-quit', () => {

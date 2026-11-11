@@ -12,6 +12,7 @@ cat <<'TXT'
 
 Si ya tienes Modelado Bases 1.6.2 o posterior, no tienes que hacer nada: la app se actualiza sola al cerrarla.
 Si tienes la 1.6.1, la app te avisa y basta con pulsar «Actualizar ahora».
+Si después de actualizar la app no se vuelve a abrir sola, ábrela tú desde su carpeta.
 
 Si es la primera vez:
 1. Descarga el zip de abajo (Assets).

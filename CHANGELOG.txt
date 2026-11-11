@@ -41,6 +41,15 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.1  (11/11/2026)
+--------------------
+- Al cerrar, la app se cierra del todo (no se queda nada abierto detras).
+- "Reiniciar y actualizar" vuelve a abrir la app con la version nueva. Si
+  algun proceso viejo se habia quedado abierto, el actualizador lo cierra
+  antes de copiar, y apunta lo que pasa en update.log.
+- Si abres la app desde dentro del .zip o .rar sin extraerla, te avisa:
+  asi Windows la abre en una carpeta temporal y no se puede actualizar.
+
 v1.7  (11/11/2026)
 ------------------
 - Pestaña nueva "Probar" (Ctrl+6): prueba el SQL del ejercicio dentro de
