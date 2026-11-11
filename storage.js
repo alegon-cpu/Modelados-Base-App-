@@ -8,8 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const SUBS = { er: 'E-R', rel: 'Relacional', ded: 'DED' };
-const EMPTY = { er: () => ({ nodes: [], links: [] }), rel: () => ({ t: [] }), ded: () => ({ t: [] }) };
+const SUBS = { bo: 'Boceto', er: 'E-R', rel: 'Relacional', ded: 'DED' };
+const EMPTY = { bo: () => ({ nodes: [], links: [] }), er: () => ({ nodes: [], links: [] }), rel: () => ({ t: [] }), ded: () => ({ t: [] }) };
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
 
 function safeName(n) {
@@ -84,7 +84,7 @@ function create(base, name) {
   fs.mkdirSync(base, { recursive: true });
   const folder = unique(base, name);
   const now = Date.now();
-  const p = { folder, name, created: now, updated: now, enun: '', sql: '', test: '', er: EMPTY.er(), rel: EMPTY.rel(), ded: EMPTY.ded() };
+  const p = { folder, name, created: now, updated: now, enun: '', sql: '', test: '', er: EMPTY.er(), rel: EMPTY.rel(), ded: EMPTY.ded(), bo: EMPTY.bo() };
   save(base, p, null);
   return p;
 }

@@ -45,7 +45,7 @@ const Pruebas={
     const old=this.st(p);if(old)try{old.db.close();}catch(e){}
     const db=new SQL.Database();db.run('PRAGMA foreign_keys = ON;');
     const script=ddl(sc,'sqlite');
-    try{db.exec(script);}catch(e){db.close();delete this.dbs[p._id];this.out(p,`<div class="tst-err"><b>No se pudieron crear las tablas.</b><p>${esc(explainSQLite(e.message))}</p></div>`);this.refresh(p);return;}
+    try{db.exec(script);}catch(e){db.close();delete this.dbs[p._id];this.out(p,`<div class="tst-err"><b>No se pudieron crear las tablas.</b>${explainSQLite(e.message).split('\n').map((l,i)=>`<p${i?' class="tst-tip"':''}>${esc(l)}</p>`).join('')}</div>`);this.refresh(p);return;}
     this.dbs[p._id]={db,sc,from};this.refresh(p);
     this.out(p,`<div class="tst-ok"><b>Base de datos de prueba creada</b> con ${sc.order.length} tablas.${sc.warn.length?`<ul class="plist">${sc.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}<details><summary>Ver el CREATE TABLE usado (SQLite)</summary><pre>${esc(script)}</pre></details></div>`);
   },
@@ -71,14 +71,16 @@ const Pruebas={
     const t=document.getElementById('tsttxt');let sql=forced||'';
     if(!sql&&t){sql=t.selectionEnd>t.selectionStart?t.value.slice(t.selectionStart,t.selectionEnd):t.value;}
     if(!sql.trim()){toast('Escribe una consulta para ejecutar.');return;}
-    const parts=[];let n=0;
-    try{for(const stmt of st.db.iterateStatements(sql)){n++;const q=stmt.getSQL().trim(),cols=stmt.getColumnNames();
+    const parts=[];let n=0,cur='',it=null;
+    try{it=st.db.iterateStatements(sql);for(const stmt of it){n++;const q=stmt.getSQL().trim(),cols=stmt.getColumnNames();cur=q;
         if(cols.length){const rs=[];while(stmt.step()){if(rs.length<500)rs.push(stmt.get());else{rs.more=true;}}
           parts.push(`<div class="tst-res"><div class="tst-q1">${esc(q.length>140?q.slice(0,140)+'…':q)}</div>${rs.length?`<div class="tst-scroll"><table class="tst-grid"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rs.map(r=>`<tr>${r.map(v=>`<td${v==null?' class="nul"':''}>${v==null?'NULL':esc(String(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="tnote">Sin filas.</p>'}<p class="tnote">${rs.length}${rs.more?'+ (se muestran 500)':''} fila(s)</p></div>`);}
         else{stmt.step();const k=st.db.getRowsModified(),verb=/^\s*insert/i.test(q)?'insertada(s)':/^\s*update/i.test(q)?'modificada(s)':/^\s*delete/i.test(q)?'borrada(s)':null;
           parts.push(`<div class="tst-res small"><div class="tst-q1">${esc(q.length>140?q.slice(0,140)+'…':q)}</div><p class="tnote">${verb?`${k} fila(s) ${verb}`:'Hecho'}.</p></div>`);}
-        stmt.free&&stmt.free();}}
-    catch(e){parts.push(`<div class="tst-err"><b>Error en la consulta ${n||1}</b><p>${esc(explainSQLite(e.message))}</p><p class="tnote">${esc(e.message)}</p></div>`);}
+        stmt.free&&stmt.free();cur='';}}
+    catch(e){let bad=cur,num=n;if(!bad){num=n+1;try{bad=(it&&it.getRemainingSQL?it.getRemainingSQL():'').trim();}catch(x){}}
+      const ex=explainSQLite(e.message).split('\n');
+      parts.push(`<div class="tst-err"><b>Error en la consulta ${num}</b>${bad?`<pre class="tst-bad">${esc(bad.length>300?bad.slice(0,300)+'…':bad)}</pre>`:''}<p>${esc(ex[0])}</p>${ex.slice(1).map(l=>`<p class="tst-tip">${esc(l)}</p>`).join('')}<p class="tnote">SQLite: ${esc(e.message)}</p></div>`);}
     this.out(p,parts.join('')||'<p class="tnote">No había nada que ejecutar.</p>');this.refresh(p);
   },
   forget(id){const st=this.dbs[id];if(st){try{st.db.close();}catch(e){}delete this.dbs[id];}}

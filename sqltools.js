@@ -150,15 +150,55 @@ function insertsSQL(sc,data,d){
   return out;
 }
 // Mensajes de SQLite explicados
+// Explica en palabras sencillas un error de SQLite (y da una pista para arreglarlo)
 function explainSQLite(msg){
-  const m=String(msg||'');let x;
-  if(/FOREIGN KEY constraint failed/i.test(m))return 'Clave ajena: ese valor no existe en la tabla a la que apunta (o intentas borrar una fila a la que otras apuntan).';
-  if(x=m.match(/NOT NULL constraint failed: ([\w.]+)/i))return `La columna ${x[1]} no puede quedar vacía (NOT NULL).`;
-  if(x=m.match(/UNIQUE constraint failed: ([\w., ]+)/i))return `Valor repetido en ${x[1]}: es clave primaria o única y no se puede repetir.`;
-  if(x=m.match(/no such table: ([\w.]+)/i))return `No existe la tabla «${x[1]}». Crea la base de datos de prueba o revisa el nombre.`;
-  if(x=m.match(/no such column: ([\w.]+)/i))return `No existe la columna «${x[1]}».`;
-  if(x=m.match(/near "([^"]*)": syntax error/i))return `Error de sintaxis cerca de «${x[1]}».`;
-  if(x=m.match(/table (\S+) already exists/i))return `La tabla ${x[1]} ya existe.`;
-  if(/incomplete input/i.test(m))return 'La consulta está incompleta (¿falta un paréntesis o el punto y coma?).';
+  const m=String(msg||''),en=LANG()==='en',T=(es,e)=>en?e:es;let x;
+  const near=(m.match(/near "([^"]*)": syntax error/i)||[])[1];
+  if(/FOREIGN KEY constraint failed/i.test(m))return T('Clave ajena: ese valor no existe en la tabla a la que apunta, o intentas borrar (o cambiar) una fila a la que otras filas apuntan.\nPista: inserta antes la fila de la tabla «padre», o borra primero las filas que apuntan a ella.','Foreign key: that value does not exist in the referenced table, or you are deleting (or changing) a row that other rows point to.\nTip: insert the «parent» row first, or delete the rows that point to it first.');
+  if(x=m.match(/NOT NULL constraint failed: ([\w.]+)/i))return T(`La columna ${x[1]} no puede quedar vacía (es NOT NULL).\nPista: dale un valor en el INSERT, o quítale el NOT NULL si de verdad puede faltar.`,`Column ${x[1]} cannot be empty (it is NOT NULL).\nTip: give it a value in the INSERT, or remove NOT NULL if it really can be missing.`);
+  if(x=m.match(/UNIQUE constraint failed: ([\w., ]+)/i))return T(`Valor repetido en ${x[1]}: es clave primaria o UNIQUE y no se puede repetir.\nPista: cambia el valor, o comprueba con SELECT qué fila lo tiene ya.`,`Repeated value in ${x[1]}: it is a primary key or UNIQUE and cannot be repeated.\nTip: change the value, or check with SELECT which row already has it.`);
+  if(x=m.match(/CHECK constraint failed: (.+)/i))return T(`El valor no cumple la condición CHECK (${x[1]}).`,`The value does not meet the CHECK condition (${x[1]}).`);
+  if(x=m.match(/no such table: ([\w.]+)/i))return T(`No existe la tabla «${x[1]}».\nPista: revisa el nombre (mayúsculas, tildes, plural) o crea la base de prueba otra vez.`,`Table «${x[1]}» does not exist.\nTip: check the name, or create the test database again.`);
+  if(x=m.match(/no such column: ([\w."]+)/i))return T(`No existe la columna «${x[1]}».\nPista: revisa el nombre y de qué tabla es. Si querías escribir un texto, ponlo entre comillas simples: 'así'.`,`Column «${x[1]}» does not exist.\nTip: check the name and its table. If you meant a text, use single quotes: 'like this'.`);
+  if(x=m.match(/ambiguous column name: ([\w.]+)/i))return T(`La columna «${x[1]}» está en varias tablas de la consulta y no sé cuál quieres.\nPista: pon delante el nombre de la tabla: Tabla.${x[1]}`,`Column «${x[1]}» is in several tables of the query.\nTip: put the table name before it: Table.${x[1]}`);
+  if(x=m.match(/table (\S+) has (\d+) columns but (\d+) values were supplied/i))return T(`La tabla ${x[1]} tiene ${x[2]} columnas pero has dado ${x[3]} valores.\nPista: escribe la lista de columnas: INSERT INTO ${x[1]} (col1, col2…) VALUES (…)`,`Table ${x[1]} has ${x[2]} columns but you gave ${x[3]} values.\nTip: list the columns: INSERT INTO ${x[1]} (col1, col2…) VALUES (…)`);
+  if(x=m.match(/(\d+) values for (\d+) columns/i))return T(`Has puesto ${x[1]} valores para ${x[2]} columnas: tiene que haber el mismo número.`,`You gave ${x[1]} values for ${x[2]} columns: they must match.`);
+  if(x=m.match(/table (\S+) already exists/i))return T(`La tabla ${x[1]} ya existe.\nPista: usa DROP TABLE ${x[1]}; antes, o CREATE TABLE IF NOT EXISTS.`,`Table ${x[1]} already exists.\nTip: DROP TABLE ${x[1]}; first, or CREATE TABLE IF NOT EXISTS.`);
+  if(x=m.match(/duplicate column name: (\S+)/i))return T(`La columna «${x[1]}» aparece dos veces en la tabla.`,`Column «${x[1]}» appears twice in the table.`);
+  if(x=m.match(/no such function: (\w+)/i)){const f=x[1].toUpperCase(),tip={NOW:"datetime('now')",CURDATE:"date('now')",CURRENT_DATE:"date('now')",SYSDATE:"datetime('now')",GETDATE:"datetime('now')",YEAR:"strftime('%Y', fecha)",MONTH:"strftime('%m', fecha)",DAY:"strftime('%d', fecha)",DATEDIFF:"julianday(f1) - julianday(f2)",CONCAT:"a || b",LEN:'length(…)',ISNULL:'ifnull(…)',NVL:'ifnull(…)',TO_DATE:"date('2024-01-31')"}[f];
+    return T(`SQLite no tiene la función ${f}()${tip?`. Aquí se escribe: ${tip}`:''}.\nTu gestor (MySQL, Oracle…) sí puede tenerla: esto solo afecta a la base de prueba.`,`SQLite has no ${f}() function${tip?`. Here use: ${tip}`:''}.\nYour DBMS (MySQL, Oracle…) may have it: this only affects the test database.`);}
+  if(x=m.match(/wrong number of arguments to function (\w+)/i))return T(`La función ${x[1]}() lleva otro número de datos entre los paréntesis.`,`Function ${x[1]}() takes a different number of arguments.`);
+  if(x=m.match(/misuse of (?:aggregate|window) function (\w+)/i)||(x=m.match(/misuse of aggregate: (\w+)/i)))return T(`No puedes usar ${x[1]}() en el WHERE.\nPista: para filtrar por un total usa GROUP BY … HAVING ${x[1]}(…) > …`,`You cannot use ${x[1]}() in WHERE.\nTip: to filter by a total use GROUP BY … HAVING ${x[1]}(…) > …`);
+  if(/a GROUP BY clause is required before HAVING/i.test(m))return T('Has puesto HAVING sin GROUP BY.\nPista: HAVING va después de GROUP BY; para filtrar filas sueltas usa WHERE.','HAVING without GROUP BY.\nTip: HAVING goes after GROUP BY; to filter rows use WHERE.');
+  if(x=m.match(/sub-select returns (\d+) columns - expected 1/i))return T(`La subconsulta devuelve ${x[1]} columnas y aquí solo cabe una.\nPista: en la subconsulta pon solo la columna que necesitas: (SELECT id FROM …)`,`The subquery returns ${x[1]} columns but only one fits here.`);
+  if(/SELECTs to the left and right of (UNION|INTERSECT|EXCEPT)/i.test(m))return T('Los SELECT de un UNION tienen que devolver el mismo número de columnas.','Both SELECTs in a UNION must return the same number of columns.');
+  if(/ORDER BY term out of range/i.test(m))return T('En el ORDER BY has puesto un número de columna que no existe en el SELECT.','ORDER BY uses a column number that is not in the SELECT.');
+  if(/row value misused/i.test(m))return T('Hay paréntesis con varios valores donde solo va uno.\nPista: revisa los paréntesis del WHERE o del SET.','A list of values in parentheses is used where only one fits.');
+  if(/datatype mismatch/i.test(m))return T('El tipo de dato no encaja.\nPista: en SQLite pasa sobre todo al poner un texto en una columna INTEGER PRIMARY KEY.','Data type mismatch (usually text in an INTEGER PRIMARY KEY).');
+  if(/foreign key mismatch/i.test(m))return T('Una clave ajena apunta a columnas que no son PRIMARY KEY ni UNIQUE en la tabla a la que apunta.\nPista: la FK debe apuntar a la clave primaria de la otra tabla.','A foreign key points to columns that are not PRIMARY KEY or UNIQUE.');
+  if(/Cannot add a NOT NULL column with default value NULL/i.test(m))return T('Para añadir con ALTER TABLE una columna NOT NULL, ponle un DEFAULT.','To ADD a NOT NULL column with ALTER TABLE, give it a DEFAULT.');
+  if(/cannot (start|commit|rollback) a transaction/i.test(m))return T('Problema con BEGIN / COMMIT / ROLLBACK: hay una transacción abierta de más (o ninguna).','Problem with BEGIN / COMMIT / ROLLBACK.');
+  if(x=m.match(/unrecognized token: "?(.{0,20})/i))return T(`Hay algo que no entiendo cerca de «${x[1]}».\nPista: ¿falta cerrar una comilla '…'? Los textos van entre comillas simples.`,`Unrecognized text near «${x[1]}».\nTip: is a quote missing? Texts go in single quotes.`);
+  if(/incomplete input/i.test(m))return T('La consulta está incompleta.\nPista: ¿falta cerrar un paréntesis o una comilla, o terminar la sentencia?','The query is incomplete.\nTip: is a parenthesis or a quote missing?');
+  if(near!=null){const N=near.toUpperCase(),tips={
+      AUTO_INCREMENT:T('En SQLite no existe AUTO_INCREMENT (es de MySQL). En la base de prueba no hace falta: quítalo, o usa INTEGER PRIMARY KEY.','SQLite has no AUTO_INCREMENT (it is MySQL). Remove it, or use INTEGER PRIMARY KEY.'),
+      ENGINE:T('ENGINE=InnoDB es solo de MySQL. Quítalo para probar aquí.','ENGINE=InnoDB is MySQL only. Remove it to test here.'),
+      DATABASE:T('SQLite no tiene CREATE DATABASE ni USE: la base de prueba ya está creada. Quita esas líneas.','SQLite has no CREATE DATABASE / USE: the test database already exists. Remove those lines.'),
+      USE:T('SQLite no tiene USE: la base de prueba ya está creada. Quita esa línea.','SQLite has no USE. Remove that line.'),
+      SHOW:T("SQLite no tiene SHOW TABLES. Usa: SELECT name FROM sqlite_master WHERE type='table';","SQLite has no SHOW TABLES. Use: SELECT name FROM sqlite_master WHERE type='table';"),
+      DESCRIBE:T('SQLite no tiene DESCRIBE. Usa: PRAGMA table_info(Tabla);','SQLite has no DESCRIBE. Use: PRAGMA table_info(Table);'),
+      DESC:T('Si querías ver la tabla, en SQLite es: PRAGMA table_info(Tabla);','To see a table in SQLite: PRAGMA table_info(Table);'),
+      TOP:T('TOP es de SQL Server. Aquí se escribe al final: … LIMIT 10','TOP is SQL Server. Here write at the end: … LIMIT 10'),
+      GO:T('GO es de SQL Server. Quítalo para probar aquí.','GO is SQL Server. Remove it here.'),
+      MODIFY:T('SQLite no tiene ALTER TABLE … MODIFY. En la base de prueba, cambia la tabla en el DED y créala otra vez.','SQLite has no ALTER TABLE … MODIFY.'),
+      ')':T('¿Sobra una coma antes del paréntesis de cierre, o falta un valor?','Is there an extra comma before the closing parenthesis?'),
+      ',':T('¿Sobra una coma, o falta algo entre dos comas?','Extra comma, or something missing between two commas?'),
+      FROM:T('¿Sobra una coma justo antes de FROM, o falta poner columnas en el SELECT?','Extra comma right before FROM, or no columns in SELECT?'),
+      WHERE:T('¿Falta el FROM, o sobra una coma antes del WHERE?','Missing FROM, or an extra comma before WHERE?'),
+      VALUES:T('¿Falta la lista de columnas entre paréntesis, o un paréntesis antes de VALUES?','Missing column list or a parenthesis before VALUES?'),
+      ON:T('ON va después de JOIN Tabla: … JOIN Tabla2 ON Tabla1.col = Tabla2.col','ON goes after JOIN Table: … JOIN T2 ON T1.col = T2.col'),
+      '':T('Falta algo al final de la sentencia.','Something is missing at the end.')}[N];
+    const kw=/^(SELECT|FROM|WHERE|ORDER|GROUP|TABLE|ORDER|BY|INTO|SET|KEY|INDEX|CHECK|DEFAULT|PRIMARY|REFERENCES|LIMIT|DATE|TIME|USER|GROUPS|VALUES|INSERT|UPDATE|DELETE)$/i.test(near);
+    return T(`Error de sintaxis cerca de «${near}».`,`Syntax error near «${near}».`)+(tips?'\n'+T('Pista: ','Tip: ')+tips:kw?T(`\nPista: «${near}» es una palabra reservada; si es el nombre de una tabla o columna, cámbialo o ponlo entre comillas dobles.`,`\nTip: «${near}» is a reserved word; if it is a table or column name, rename it or quote it.`):T('\nPista: revisa comas, paréntesis y comillas justo antes de esa palabra.','\nTip: check commas, parentheses and quotes right before that word.'));}
   return m;
 }

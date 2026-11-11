@@ -106,6 +106,24 @@ function rectExit(t,p,q){
   const ty=vy>0?(t.y+t.h-p[1])/vy:vy<0?(t.y-p[1])/vy:Infinity;
   const k=Math.min(tx,ty);return [p[0]+vx*k,p[1]+vy*k];
 }
+// Ruta en ángulo recto entre dos cajas (del borde de A al borde de B)
+function routeOrtho(A,B,off){
+  const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const gx=Math.max(B.x-(A.x+A.w),A.x-(B.x+B.w)),gy=Math.max(B.y-(A.y+A.h),A.y-(B.y+B.h));
+  if(gx>=16&&gx>=gy){const right=A.x+A.w<=B.x,xa=right?A.x+A.w:A.x,xb=right?B.x:B.x+B.w;
+    const lo=Math.max(A.y,B.y)+12,hi=Math.min(A.y+A.h,B.y+B.h)-12;
+    if(lo<=hi){const y=cl((lo+hi)/2+off,lo,hi);return [[xa,y],[xb,y]];}
+    const ya=cl(A.y+A.h/2+off,A.y+8,A.y+A.h-8),yb=cl(B.y+B.h/2+off,B.y+8,B.y+B.h-8),mx=(xa+xb)/2;return [[xa,ya],[mx,ya],[mx,yb],[xb,yb]];}
+  if(gy>=16){const down=A.y+A.h<=B.y,ya=down?A.y+A.h:A.y,yb=down?B.y:B.y+B.h;
+    const lo=Math.max(A.x,B.x)+16,hi=Math.min(A.x+A.w,B.x+B.w)-16;
+    if(lo<=hi){const x=cl((lo+hi)/2+off,lo,hi);return [[x,ya],[x,yb]];}
+    const xa=cl(A.x+A.w/2+off,A.x+10,A.x+A.w-10),xb=cl(B.x+B.w/2+off,B.x+10,B.x+B.w-10),my=(ya+yb)/2;return [[xa,ya],[xa,my],[xb,my],[xb,yb]];}
+  // muy juntas: sale por la derecha de A y entra por arriba o abajo de B
+  const y=A.y+A.h/2+off,xb=B.x+B.w/2,yb=B.y>A.y?B.y:B.y+B.h;return [[A.x+A.w,y],[Math.max(A.x+A.w+20,xb),y],[Math.max(A.x+A.w+20,xb),yb]];
+}
+const unitV=(p,q)=>{const l=Math.hypot(q[0]-p[0],q[1]-p[1])||1;return[(q[0]-p[0])/l,(q[1]-p[1])/l];};
+function endLabel(P,u,txt){const n=[-u[1],u[0]],lp=[P[0]+u[0]*20+n[0]*12,P[1]+u[1]*20+n[1]*12],an=n[0]<-.35?'end':n[0]>.35?'start':'middle';
+  return `<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card">${txt}</text>`;}
 function drawDED(d){
   const T=prepTables(d); let LK='',BX='',MK='';
   const links=[]; d.t.forEach(t=>t.cols.forEach(c=>{if(c.fk&&T[c.fk])links.push({ch:t,pa:T[c.fk],c});}));
@@ -120,12 +138,16 @@ function drawDED(d){
       MK+=marker([x2-34,y2],[0,1],!childOne,true,'lkm','lko')+marker([x2,y2-34],[1,0],false,c.nul,'lkm','lko');
       return;
     }
-    let p=[ch.cx,ch.cy],q=[pa.cx,pa.cy]; const len=Math.hypot(q[0]-p[0],q[1]-p[1]), n=[-(q[1]-p[1])/len,(q[0]-p[0])/len];
-    p=[p[0]+n[0]*l.off,p[1]+n[1]*l.off]; q=[q[0]+n[0]*l.off,q[1]+n[1]*l.off];
-    const A=rectExit(ch,p,q), B=rectExit(pa,q,p);
-    LK+=`<line x1="${f1(A[0])}" y1="${f1(A[1])}" x2="${f1(B[0])}" y2="${f1(B[1])}" class="lk${dash}"/>`;
-    const u=[(B[0]-A[0])/Math.hypot(B[0]-A[0],B[1]-A[1]),(B[1]-A[1])/Math.hypot(B[0]-A[0],B[1]-A[1])];
-    MK+=marker(A,u,!childOne,true,'lkm','lko')+marker(B,[-u[0],-u[1]],false,c.nul,'lkm','lko');
+    let A,B,uA,uB;
+    if(d.ortho){const pts=routeOrtho(ch,pa,l.off);A=pts[0];B=pts[pts.length-1];uA=unitV(pts[0],pts[1]);uB=unitV(pts[pts.length-1],pts[pts.length-2]);
+      LK+=`<polyline points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" class="lk${dash}"/>`;}
+    else{let p=[ch.cx,ch.cy],q=[pa.cx,pa.cy]; const len=Math.hypot(q[0]-p[0],q[1]-p[1]), n=[-(q[1]-p[1])/len,(q[0]-p[0])/len];
+      p=[p[0]+n[0]*l.off,p[1]+n[1]*l.off]; q=[q[0]+n[0]*l.off,q[1]+n[1]*l.off];
+      A=rectExit(ch,p,q);B=rectExit(pa,q,p);
+      LK+=`<line x1="${f1(A[0])}" y1="${f1(A[1])}" x2="${f1(B[0])}" y2="${f1(B[1])}" class="lk${dash}"/>`;
+      uA=unitV(A,B);uB=[-uA[0],-uA[1]];}
+    if(d.not==='uml')MK+=endLabel(A,uA,childOne?'0..1':'0..*')+endLabel(B,uB,c.nul?'0..1':'1');
+    else MK+=marker(A,uA,!childOne,true,'lkm','lko')+marker(B,uB,false,c.nul,'lkm','lko');
   });
   d.t.forEach(t=>{
     BX+=`<rect x="${t.x}" y="${t.y}" width="${f1(t.w)}" height="${t.h}" rx="6" class="tbox"/>`;
@@ -153,8 +175,8 @@ function drawRef(d,fixed){
     const sy=t.rowY(i), ey=pa.rowY(pi);
     let pts, ex, dir;
     if(pa===t){const x=t.x;pts=[[x,sy],[x-22,sy],[x-22,ey],[x,ey]];ex=x;dir=1;}
-    else if(pa.x>=t.x+t.rw){pts=[[t.x+t.rw,sy],[t.x+t.rw+14,sy],[pa.x-16,ey],[pa.x,ey]];ex=pa.x;dir=1;}
-    else if(pa.x+pa.rw<=t.x){pts=[[t.x,sy],[t.x-14,sy],[pa.x+pa.rw+16,ey],[pa.x+pa.rw,ey]];ex=pa.x+pa.rw;dir=-1;}
+    else if(pa.x>=t.x+t.rw){const mx=(t.x+t.rw+pa.x)/2;pts=d.ortho?[[t.x+t.rw,sy],[mx,sy],[mx,ey],[pa.x,ey]]:[[t.x+t.rw,sy],[t.x+t.rw+14,sy],[pa.x-16,ey],[pa.x,ey]];ex=pa.x;dir=1;}
+    else if(pa.x+pa.rw<=t.x){const mx=(t.x+pa.x+pa.rw)/2;pts=d.ortho?[[t.x,sy],[mx,sy],[mx,ey],[pa.x+pa.rw,ey]]:[[t.x,sy],[t.x-14,sy],[pa.x+pa.rw+16,ey],[pa.x+pa.rw,ey]];ex=pa.x+pa.rw;dir=-1;}
     else {const xl=Math.min(t.x,pa.x)-18;pts=[[t.x,sy],[xl,sy],[xl,ey],[pa.x,ey]];ex=pa.x;dir=1;}
     LN+=`<polyline points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" class="rarr"/>`;
     LN+=`<polygon points="${ex},${ey} ${ex-8*dir},${ey-4.5} ${ex-8*dir},${ey+4.5}" class="rhead"/>`;

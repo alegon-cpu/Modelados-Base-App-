@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Modelado Bases 1.7.6</title>
+<title>Modelado Bases 1.9</title>
 <style>@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
@@ -234,7 +234,7 @@ svg .pdot{fill:var(--line-2)}
 .opt{display:block;width:100%;text-align:left;margin:4px 0;padding:6px 10px;border:1px solid var(--line);background:var(--surface);border-radius:4px;cursor:pointer;font:600 12.5px var(--f-mono);color:var(--ink)}
 .opt small{display:block;font:11.5px var(--f-ui);color:var(--muted)}
 .opt:hover{background:var(--hover)}
-.opt[aria-pressed="true"]{border-color:var(--fk);background:var(--bad-bg)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));box-shadow:inset 3px 0 0 var(--accent)}
 textarea.notes{width:100%;font:14px/1.6 var(--f-ui);color:var(--ink);background:var(--surface);border:1px solid var(--line-2);border-radius:5px;padding:12px 14px;resize:none;min-height:200px}
 textarea.notes:focus{outline:none;border-color:var(--accent)}
 .enview{flex:1;display:flex;flex-direction:column;min-height:0;max-width:900px}
@@ -344,6 +344,43 @@ svg .cx.dup,svg .rnm.dup,svg .rcol.dup{fill:var(--bad);text-decoration:underline
 svg .hitl{stroke:transparent;stroke-width:14;cursor:pointer}
 svg .lsel{stroke:var(--accent);stroke-width:2.4}
 svg .selbox{fill:none;stroke:var(--accent);stroke-width:1.4;stroke-dasharray:4 3}
+/* 1.9: notaciones, jerarquías, boceto, bloquear, comparar */
+svg .ent.hd,svg .dia.hd{fill:none}
+svg .ktag{font:700 9px var(--f-mono);fill:var(--muted)}
+svg .rlab{fill:var(--surface);stroke:none;opacity:.92}
+svg .dia.assoc{stroke-dasharray:5 3}
+svg .ln.lid{stroke-width:2.2}
+svg .dia.isa{stroke-linejoin:round}
+svg .isal{fill:var(--c-rel)}
+svg .skt{fill:var(--c-ent)}
+svg .lockbg{fill:var(--surface);stroke:var(--line-2);stroke-width:1}
+svg .lockfg{fill:var(--muted)}
+svg .locksh{stroke:var(--muted);stroke-width:1.4}
+svg .dfbox{fill:none;stroke-width:2.6;stroke-dasharray:7 4}
+svg .dfbox.add{stroke:#2E9E5B}
+svg .dfbox.chg{stroke:#D08A12}
+.dfchip{border-color:#D08A12!important;color:#9A6408!important;font-size:12px}
+.nsel{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);padding:0 4px}
+.nsel select{font:12px var(--f-ui);padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.optcol .opt{margin:4px 0}
+.keyrow{display:flex;align-items:center;gap:6px}
+.keycap{min-width:120px;text-align:right;font-size:12px}
+.keycap.none{color:var(--muted)}
+.keycap.wait{color:var(--accent);font-weight:600}
+.set-g{margin:16px 0 4px;font:600 11px var(--f-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.cmp-src{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.cmp-sel{margin-left:30px;max-width:340px;font:13px var(--f-ui);padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.cmp-code{margin-left:30px;width:calc(100% - 30px);font:12px var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);resize:vertical}
+.cmp-parts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.cmp-sec{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0}
+.cmp-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cmp-pct{font:600 12px var(--f-mono);padding:2px 8px;border-radius:10px;background:color-mix(in srgb,var(--accent) calc(var(--p)*1%),var(--bad) );color:#fff}
+.cmp-h{margin:10px 0 4px;font-weight:600;font-size:12.5px}
+.cmp-h.add{color:#2E9E5B}.cmp-h.del{color:var(--bad)}.cmp-h.chg{color:#B07410}
+.cmp-l{margin:0;padding-left:1.3em;font-size:12.5px}.cmp-l li{margin:2px 0}
+.tst-bad{margin:6px 0;padding:6px 8px;background:var(--panel);border-left:3px solid var(--bad);font:12px var(--f-mono);white-space:pre-wrap;max-height:120px;overflow:auto}
+.tst-tip{color:var(--ink);background:color-mix(in srgb,var(--warn) 14%,transparent);padding:4px 8px;border-radius:4px}
+:root.proj svg .tx,:root.proj svg .cx,:root.proj svg .rcol{font-weight:600}
 svg .frombox{fill:none;stroke:var(--warn);stroke-width:2}
 svg .band{fill:var(--sel);fill-opacity:.45;stroke:var(--accent);stroke-width:1;stroke-dasharray:4 3}
 svg .hitbox{fill:transparent;cursor:move}
@@ -520,7 +557,7 @@ svg .notecard{cursor:move;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.12))}
 </style></head><body>
 <div class="app" id="app">
   <header class="titlebar" id="titlebar">
-    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v1.7.6</button><span class="tb-proj" id="tbproj"></span></div>
+    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v1.9</button><span class="tb-proj" id="tbproj"></span></div>
     <div class="tb-acts"><button class="tbb" data-act="theory" title="Teoría"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Teoría</span></button><button class="tbb" data-act="controls" title="Controles (F1)"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 7.5h1M8.5 7.5h1M12.5 7.5h1M5.5 10.5h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Controles</span></button><button class="tbb" data-act="settings" title="Ajustes (Ctrl+,)" aria-label="Ajustes"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 6.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 1.5h2.6l.4 2 1.6.9 1.9-.7 1.3 2.2-1.5 1.4v1.8l1.5 1.4-1.3 2.2-1.9-.7-1.6.9-.4 2H7.7l-.4-2-1.6-.9-1.9.7-1.3-2.2 1.5-1.4V8.3L2.5 6.9l1.3-2.2 1.9.7 1.6-.9z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Ajustes</span></button></div>
   </header>
   <aside class="side" aria-label="Proyectos">

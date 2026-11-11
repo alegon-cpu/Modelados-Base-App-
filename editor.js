@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='1.7.6';
+const VERSION='1.9';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -7,20 +7,22 @@ let uidN=0; const uid=(p='n')=>p+Date.now().toString(36)+(uidN++).toString(36)+M
 const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
 const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
 const lc=s=>String(s||'').trim().toLowerCase();
-const VIEWS={enun:'Enunciado',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
+const VIEWS={enun:'Enunciado',bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
 const ICO={
   folder:`<svg class="ico" width="16" height="16" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 0 1 1-1h3.6l1.4 1.5h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="var(--folder)"/></svg>`,
   chev:`<svg class="chev" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
   enun:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><path d="M3.5 1.5h6l3 3v10h-9z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 7.5h5M5.5 10h5M5.5 12.5h3" stroke="currentColor" stroke-width="1.2"/></svg>`,
+  bo:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="5.5" height="4" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><rect x="9.5" y="10" width="5.5" height="4" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M5 6l6 4" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>`,
   er:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="5.5" width="5" height="5" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M11.5 4.5 15 8l-3.5 3.5L8 8z" fill="none" stroke="var(--c-rel)" stroke-width="1.3"/><path d="M6 8h2" stroke="currentColor" stroke-width="1.3"/></svg>`,
   rel:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="7" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 5h3v2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`,
   ded:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M1 6h14" stroke="var(--ded-head)" stroke-width="2.4"/><path d="M4 9h6M4 11.5h4" stroke="currentColor" stroke-width="1.1"/></svg>`,
   test:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><path d="M4.5 2.5v4.2L1.8 12a1.3 1.3 0 0 0 1.2 1.9h10a1.3 1.3 0 0 0 1.2-1.9l-2.7-5.3V2.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M3.5 2.5h9M3.6 9.5h8.8" stroke="currentColor" stroke-width="1.2"/></svg>`,
   sql:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><ellipse cx="8" cy="3.5" rx="5.5" ry="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`};
 function toast(msg,kind){document.querySelectorAll('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),kind==='warn'?5200:3200);}
-const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||'')}));
-const cleanModel=(v,m)=>m==='er'?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]])})),notes:cleanNotes(v)};
+const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||''),...(n.lk?{lk:1}:{})}));
+// er y bo (boceto) comparten formato: nodos y líneas
+const cleanModel=(v,m)=>(m==='er'||m==='bo')?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null,...(l.sup?{sup:1}:{}),...(l.t?{t:l.t}:{})})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]]),...(t.lk?{lk:1}:{})})),notes:cleanNotes(v)};
 const isNote=n=>!!n&&n.k==='note';
 const NOTE_COLORS={y:'Amarilla',b:'Azul',g:'Verde',p:'Rosa'};
 // Parte el texto de una nota en líneas que caben en su ancho
@@ -32,7 +34,7 @@ function noteSize(n){n.w=n.w||180;n.lines=noteLines(n);n.h=Math.max(46,18+n.line
 function noteSVG(n,cls=''){noteSize(n);const x=n.x,y=n.y,w=n.w,h=n.h,f=12;
   return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/><path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
     n.lines.map((l,i)=>`<text x="${x+10}" y="${y+21+i*16}" class="note-tx">${esc(l)}</text>`).join('');}
-const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')});
+const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
 function guessType(name,f){
   const s=lc(name);
   if(f&&(f.pk||f.fk))return /^(dni|nif|nie)/.test(s)?'CHAR(9)':/^(mat|isbn|iata|cod[a-z]*str)/.test(s)?'VARCHAR(20)':'INT';
@@ -47,7 +49,9 @@ function guessType(name,f){
 }
 
 /* ===================== Modelo E-R (funciones que no dependen del editor) ===================== */
-const isEnt=n=>!!n&&(n.k==='ent'||n.k==='weak'), isRel=n=>!!n&&(n.k==='rel'||n.k==='idrel'), isAtt=n=>!!n&&n.k==='attr';
+const isEnt=n=>!!n&&(n.k==='ent'||n.k==='weak'), isRel=n=>!!n&&(n.k==='rel'||n.k==='idrel'), isAtt=n=>!!n&&n.k==='attr', isIsa=n=>!!n&&n.k==='isa';
+// Etiqueta de una jerarquía: (t,e) total exclusiva, (p,s) parcial solapada…
+const isaLabel=f=>{f=f||{};return Settings.get().notation==='uml'?`{${f.tot?(LANG()==='en'?'complete':'completa'):(LANG()==='en'?'incomplete':'incompleta')}, ${f.dis===false?(LANG()==='en'?'overlapping':'solapada'):(LANG()==='en'?'disjoint':'disjunta')}}`:`(${f.tot?'t':'p'},${f.dis===false?'s':'e'})`;};
 function mmOf(l){if(l.mn!=null||l.mx!=null)return{mn:l.mn??null,mx:l.mx??null};if(l.c){const m=String(l.c).match(/\((\w),(\w)\)/);if(m)return{mn:m[1],mx:m[2]};}return{mn:null,mx:null};}
 function erIdx(er){
   const N={};er.nodes.forEach(n=>N[n.id]=n);
@@ -58,7 +62,11 @@ function erIdx(er){
   const ends=r=>linksOf(r.id).filter(l=>isEnt(other(l,r.id))).map(l=>({l,e:other(l,r.id),...mmOf(l)}));
   const cardable=l=>(isRel(N[l.a])&&isEnt(N[l.b]))||(isRel(N[l.b])&&isEnt(N[l.a]));
   const relType=r=>{const cs=ends(r).map(x=>x.mx);if(cs.length>=3)return 'ternaria';if(cs.length!==2||cs.some(c=>c==null))return '';const m=cs.map(c=>c!=='1');return m[0]&&m[1]?'N:M':m[0]||m[1]?'1:N':'1:1';};
-  return {N,linksOf,other,attrsOf,ownerOf,ends,cardable,relType};
+  // Jerarquías (ISA): la línea con sup:1 va al supertipo, el resto a los subtipos
+  const superOf=i=>{const l=linksOf(i.id).find(l=>l.sup&&isEnt(other(l,i.id)));return l?other(l,i.id):null;};
+  const subsOf=i=>linksOf(i.id).filter(l=>!l.sup&&isEnt(other(l,i.id))).map(l=>other(l,i.id));
+  const isaOfSub=e=>{for(const l of linksOf(e.id)){const o=other(l,e.id);if(isIsa(o)&&!l.sup)return o;}return null;};
+  return {N,linksOf,other,attrsOf,ownerOf,ends,cardable,relType,superOf,subsOf,isaOfSub};
 }
 function erDups(er){
   const X=erIdx(er),bad=new Set(),cnt={};
@@ -77,11 +85,15 @@ function validateER(er,easy){
   const X=erIdx(er),out=[],ents=er.nodes.filter(isEnt);
   if(!ents.length){out.push('Tu E-R no tiene entidades todavía.');return out;}
   const dups=erDups(er);
-  ents.forEach(e=>{const at=X.attrsOf(e);
+  ents.forEach(e=>{const at=X.attrsOf(e),sub=X.isaOfSub(e);
+    if(sub){if(dups.has(e.id))out.push(`Hay dos entidades que se llaman «${e.n}».`);return;} // un subtipo hereda la clave de su supertipo
     if(!at.length)out.push(`La entidad «${e.n}» no tiene atributos.`);
     else if(!at.some(a=>a.f.k||(e.k==='weak'&&a.f.p)))out.push(`La entidad «${e.n}» no tiene clave primaria (marca un atributo como PK).`);
     if(dups.has(e.id))out.push(`Hay dos entidades que se llaman «${e.n}».`);});
   er.nodes.filter(isAtt).forEach(a=>{if(!X.ownerOf(a))out.push(`El atributo «${a.n}» no está unido a ninguna entidad o relación.`);else if(dups.has(a.id))out.push(`El atributo «${a.n}» está repetido en «${X.ownerOf(a).n}».`);});
+  er.nodes.filter(isIsa).forEach(i=>{const s=X.superOf(i),subs=X.subsOf(i);
+    if(!s)out.push('Una jerarquía (ISA) no tiene supertipo: en su panel elige cuál es la entidad de arriba.');
+    else if(!subs.length)out.push(`La jerarquía de «${s.n}» no tiene subtipos: une al triángulo las entidades hijas.`);});
   er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);
     if(en.length<2&&!(en.length===1&&X.linksOf(r.id).filter(l=>isEnt(X.other(l,r.id))).length>=2))out.push(`La relación «${r.n}» tiene que unir al menos dos entidades.`);
     else if(en.some(x=>x.mn==null||x.mx==null))out.push(`A la relación «${r.n}» le faltan cardinalidades (máximo y mínimo).`);});
@@ -96,6 +108,7 @@ function erToTables(er,easy){
       const fl={pk:(a.f.k||a.f.p)?1:0,nul:a.f.o?1:0};out.push([a.n,guessType(a.n,fl),joinF(fl)]);};X.attrsOf(o).forEach(add);return out;};
   const skip={d:0,m:[]};
   er.nodes.filter(isEnt).forEach(e=>{const t={id:uid(),n:e.n,x:0,y:0,c:flat(e,skip),_src:e.id};tables.push(t);byEnt[e.id]=t;});
+  isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols);
   if(skip.d)notes.push(`No se pasan los atributos derivados (${skip.d}): no se guardan.`);
   if(easy){
     // Multivaluados: tabla aparte con la PK de la entidad + el atributo
@@ -132,6 +145,33 @@ function erToTables(er,easy){
   layoutTables(tables,X);
   tables.forEach(t=>{delete t._src;delete t._mid;});
   return {tables,notes};
+}
+// Jerarquías (ISA) a tablas. Según lo elegido en cada una (f.map):
+//  each: una tabla por entidad; cada subtipo recibe la PK del supertipo como PK y FK (siempre vale)
+//  up:   solo la tabla del supertipo, con las columnas de los subtipos (opcionales) y una columna «tipo»
+//  down: solo las tablas de los subtipos, con las columnas del supertipo (solo si es total)
+function isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols){
+  const isas=er.nodes.filter(isIsa).map(i=>({i,sup:X.superOf(i),subs:X.subsOf(i)})).filter(o=>o.sup&&o.subs.length);
+  const depth=e=>{let d=0,cur=e;for(let g=0;g<30;g++){const p=isas.find(o=>o.subs.includes(cur));if(!p)break;d++;cur=p.sup;}return d;};
+  isas.sort((a,b)=>depth(a.sup)-depth(b.sup));
+  for(const o of isas){const f=o.i.f||{};let mode=f.map||'each';const ST=byEnt[o.sup.id];if(!ST)continue;
+    if(mode==='down'&&!f.tot){notes.push(`«${o.sup.n}»: solo se pueden quitar las tablas del supertipo si la jerarquía es total. Se ha hecho una tabla por entidad.`);mode='each';}
+    if(mode==='down'&&er.nodes.filter(isRel).some(r=>X.ends(r).some(x=>x.e.id===o.sup.id))){notes.push(`«${o.sup.n}» participa en relaciones, así que su tabla se mantiene (una tabla por entidad).`);mode='each';}
+    if(mode==='up'){
+      o.subs.forEach(s=>{const T=byEnt[s.id];if(!T||T===ST)return;
+        T.c.filter(c=>!parseF(c[2]).pk).forEach(c=>{const g=parseF(c[2]);g.nul=1;ST.c.push([uniqueCol(ST,c[0]),c[1],joinF(g)]);});
+        tables.splice(tables.indexOf(T),1);byEnt[s.id]=ST;});
+      if(f.dis!==false)ST.c.push([uniqueCol(ST,'tipo'),'VARCHAR(20)',joinF({nul:f.tot?0:1})]);
+      else o.subs.forEach(s=>ST.c.push([uniqueCol(ST,'es_'+s.n),'BOOLEAN',joinF({})]));
+      continue;}
+    if(mode==='down'){
+      o.subs.forEach(s=>{const T=byEnt[s.id];if(!T)return;const own=T.c.map(c=>{const g=parseF(c[2]);if(g.pk){g.pk=0;g.uq=1;}return[c[0],c[1],joinF(g)];});
+        T.c=ST.c.map(c=>[c[0],c[1],c[2]]);own.forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],c[2]]));});
+      tables.splice(tables.indexOf(ST),1);byEnt[o.sup.id]=null;continue;}
+    o.subs.forEach(s=>{const T=byEnt[s.id];if(!T||T===ST)return;
+      const own=T.c.map(c=>{const g=parseF(c[2]);if(g.pk){g.pk=0;g.uq=1;}return[c[0],c[1],joinF(g)];});
+      T.c=[];pkCols(ST).forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],joinF({pk:1,fk:ST.n})]));own.forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],c[2]]));});
+  }
 }
 function tableSize(t){const tmp={W,H,t:[{n:t.n,x:0,y:0,c:t.c}]};prepTables(tmp);return {w:tmp.t[0].w,h:tmp.t[0].h};}
 function layoutTables(tables,X){
@@ -179,6 +219,9 @@ const GL={
   enun:gsv(16,'<path d="M3 1.5h7l3 3v10H3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 7.5h6M5 10h6M5 12.5h4" stroke="currentColor" stroke-width="1.1"/>'),
   open:gsv(18,'<path d="M1.5 4.5a1 1 0 0 1 1-1h4l1.5 1.5h6.5a1 1 0 0 1 1 1v1.5H5L2.5 14.5h-1z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 7.5h11.5L14 14.5H2.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>'),
   note:gsv(18,'<path d="M2 2h11l3 3v11H2z" fill="#FBE7A1" stroke="#B08A1E" stroke-width="1.2"/><path d="M5 7h8M5 10h8M5 13h5" stroke="#8A6A10" stroke-width="1.1"/>'),
+  isa:gsv(22,'<path d="M11 1.5 20 14.5H2z" fill="var(--r-fill)" stroke="var(--c-rel)" stroke-width="1.4" stroke-linejoin="round"/>'),
+  lock:gsv(14,'<rect x="2.5" y="6.5" width="9" height="7" rx="1.2" fill="currentColor"/><path d="M4.5 6.5V4.5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.4"/>'),
+  sk:gsv(24,'<rect x="1" y="3" width="8" height="6" fill="var(--e-fill)" stroke="var(--c-ent)" stroke-width="1.3"/><rect x="15" y="7" width="8" height="6" fill="var(--e-fill)" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M9 6.5l6 3" stroke="currentColor" stroke-width="1.3"/>'),
   pin:gsv(14,'<path d="M5 1.5h4l-.6 4 2.6 2.5H3L5.6 5.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 8v5" stroke="currentColor" stroke-width="1.3"/>'),
   pkcol:gsv(18,'<circle cx="5" cy="8" r="3.4" fill="var(--pk)"/><rect x="7.5" y="7" width="9" height="2.2" fill="var(--pk)"/><rect x="13.5" y="8" width="2.2" height="3.5" fill="var(--pk)"/>'),
   fkcol:gsv(14,'<path d="M7 2.5 12 8 7 13.5 2 8z" fill="var(--fk)"/>'),
@@ -194,6 +237,9 @@ const ALG={l:ai('<path d="M2.5 1.5v15" stroke="currentColor" stroke-width="1.4"/
   b:ai('<path d="M1.5 15.5h15" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="3.5" width="3.5" height="10" fill="currentColor"/><rect x="10.5" y="7.5" width="3.5" height="6" fill="currentColor"/>'),
   dh:ai('<rect x="1.5" y="5" width="3" height="8" fill="currentColor"/><rect x="7.5" y="5" width="3" height="8" fill="currentColor"/><rect x="13.5" y="5" width="3" height="8" fill="currentColor"/>'),
   dv:ai('<rect x="5" y="1.5" width="8" height="3" fill="currentColor"/><rect x="5" y="7.5" width="8" height="3" fill="currentColor"/><rect x="5" y="13.5" width="8" height="3" fill="currentColor"/>')};
+const umlMult=c=>c.mn==null||c.mx==null?'?':c.mx==='1'?(c.mn==='0'?'0..1':'1'):(c.mn==='0'?'0..*':'1..*');
+const skLabel=t=>({'11':'1:1','1N':'1:N','N1':'N:1','NM':'N:M'})[t]||'';
+const lockIcon=(x,y)=>`<g class="lockic" transform="translate(${f1(x-6)},${f1(y-6)})"><circle cx="6" cy="6" r="8" class="lockbg"/><rect x="2.2" y="5.2" width="7.6" height="5.6" rx="1" class="lockfg"/><path d="M3.8 5.2V3.8a2.2 2.2 0 0 1 4.4 0v1.4" fill="none" class="locksh"/></g>`;
 const attrIcon=a=>a.f.k?GL.key:a.f.p?GL.partial:a.f.m?GL.multi:a.f.d?GL.deriv:a.f.c?GL.comp:GL.attr;
 
 /* ===================== Menú contextual ===================== */
@@ -222,7 +268,12 @@ class Editor{
     let pn=null;try{pn=localStorage.getItem('mb:pin');}catch(e){}this.pinned=pn==='1';
     let ez=null;try{ez=localStorage.getItem('mb:easy');}catch(e){}this.easy=ez==='1';}
   get m(){return this.p[this.mode]}
-  get isER(){return this.mode==='er'}
+  get isER(){return this.mode==='er'||this.mode==='bo'}
+  get isBo(){return this.mode==='bo'}
+  // Notación del E-R: chen (rombos y óvalos), crow (pata de gallo) o uml. El boceto siempre es sencillo.
+  get not(){return this.isBo?'chen':(Settings.get().notation||'chen');}
+  locked(n){return !!n&&(isNote(n)||!this.isER?!!n.lk:!!(n.f&&n.f.lock));}
+  setLock(n,v){if(!n)return;if(isNote(n)||!this.isER){if(v)n.lk=1;else delete n.lk;}else{n.f=n.f||{};if(v)n.f.lock=true;else delete n.f.lock;}}
   mount(el){
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
@@ -270,11 +321,15 @@ class Editor{
   /* ---------- Barra de herramientas ---------- */
   renderTools(){
     const B=(act,txt,cls='',ic='',tip='',pressed)=>`<button class="ebtn ${cls}" data-act="${act}"${tip?` title="${tip}"`:''}${pressed!=null?` aria-pressed="${pressed}"`:''}>${ic?GL[ic]:''}<span>${txt}</span></button>`;
-    let h='<div class="tgroup">';
-    if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien');
-    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy);
-    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
+    let h='<div class="tgroup">';const st=Settings.get();
+    const notSel=()=>`<label class="nsel" title="Notación del diagrama (también en Ajustes › Lienzo)"><span>Notación</span><select data-tsel="notation">${[['chen','Chen'],['crow','Pata de gallo'],['uml','UML']].map(([v,l])=>`<option value="${v}" ${(st.notation||'chen')===v?'selected':''}>${l}</option>`).join('')}</select></label>`;
+    if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('connect','Unir','tool','sk','Une dos entidades con una línea (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades para que las líneas se crucen lo menos posible')+'</div><div class="tgroup">'+B('bo2er','Pasar al E-R','','fromer','Crea en el E-R las entidades que falten y una relación por cada línea, para terminarlas allí');
+    else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+'</div><div class="tgroup">'+notSel();
+    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy)+(this.mode==='ded'?'</div><div class="tgroup">'+notSel():'');
+    const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
+    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
     this.tools.innerHTML=h;
+    this.tools.querySelectorAll('[data-tsel]').forEach(sel=>sel.addEventListener('change',()=>{Settings.set(sel.dataset.tsel,sel.value);this.renderTools();this.render();this.renderInsp();}));
   }
   /* ---------- Vista: zoom y desplazamiento ---------- */
   pt(e){const p=this.svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(this.svg.getScreenCTM().inverse());}
@@ -309,13 +364,23 @@ class Editor{
     return c;}
   /* ---------- Modelo ---------- */
   get notes(){return this.m.notes||(this.m.notes=[]);}
-  items(){return [...(this.isER?this.m.nodes:this.m.t),...this.notes];}
+  items(){return [...(this.isER?this.m.nodes.filter(n=>this.not==='chen'||!isAtt(n)):this.m.t),...this.notes];}
   node(id){return (this.isER?this.m.nodes:this.m.t).find(n=>n.id===id)||this.notes.find(n=>n.id===id);}
   X(){return erIdx(this.m);}
-  size(n){n.f=n.f||{};
-    if(isEnt(n)){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;}
-    else if(isRel(n)){n.w=Math.max(96,String(n.n).length*7.6+40);n.h=48;}
+  size(n,X){n.f=n.f||{};const nt=this.not;
+    if(isEnt(n)){if(nt==='chen'){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;}
+      else{const rows=this.rowsOf(n,X);n.rows=rows;n.w=Math.max(120,String(n.n).length*7.8+34,...rows.map(r=>r.t.length*6.9+(nt==='crow'?46:26)));n.h=30+Math.max(1,rows.length)*17+6;}}
+    else if(isRel(n)){if(nt==='chen'){n.w=Math.max(96,String(n.n).length*7.6+40);n.h=48;n.rows=null;}
+      else{const rows=this.rowsOf(n,X);n.rows=rows;const nm=String(n.n).length*7.4+24;
+        if(nt==='uml'&&!rows.length){const k=(X||this.X()).ends(n).length;if(k>=3){n.w=Math.max(44,nm);n.h=44;}else{n.w=Math.max(40,nm);n.h=22;}}
+        else{n.w=Math.max(70,nm,...rows.map(r=>r.t.length*6.9+24));n.h=rows.length?26+rows.length*17+6:26;}}}
+    else if(isIsa(n)){n.w=56;n.h=44;}
     else {n.lab=(n.f.c?'( '+n.n+' )':n.n)+(n.f.o?' (O)':'');n.rx=rxOf(n.lab);n.w=2*n.rx;n.h=26;}}
+  // Filas de atributos dentro de la caja (pata de gallo y UML)
+  rowsOf(o,X){X=X||this.X();const nt=this.not,out=[];
+    const lab=a=>{let s=(a.f.d?'/':'')+a.n;if(a.f.m)s+=nt==='uml'?' [*]':' {M}';if(a.f.o)s+=nt==='uml'?' [0..1]':' (O)';return s;};
+    const add=(a,dep)=>{out.push({id:a.id,t:(dep?'  · ':'')+lab(a),k:!!a.f.k,p:!!a.f.p&&!a.f.k,dep});if(a.f.c)X.attrsOf(a).forEach(x=>add(x,dep+1));};
+    [...X.attrsOf(o)].sort((a,b)=>((b.f.k||b.f.p)?1:0)-((a.f.k||a.f.p)?1:0)).forEach(a=>add(a,0));return out;}
   uniqueName(base,list){const set=new Set(list.map(lc));if(!set.has(lc(base)))return base;let i=2;while(set.has(lc(base+i)))i++;return base+i;}
   placeAttr(owner,nn){
     this.m.nodes.forEach(n=>this.size(n));const X=this.X();
@@ -347,6 +412,14 @@ class Editor{
   }
   connectNodes(aId,bId){
     if(aId===bId)return;if(isNote(this.node(aId))||isNote(this.node(bId))){toast('Las notas no se unen a nada: son solo para apuntar cosas.');return;}const A=this.node(aId),B=this.node(bId);if(!A||!B)return;const L=this.m.links;
+    if(this.isBo){if(!isEnt(A)||!isEnt(B))return;if(L.some(l=>(l.a===aId&&l.b===bId)||(l.a===bId&&l.b===aId))){toast('Esas dos entidades ya están unidas.');return;}
+      this.snap();const l={id:uid(),a:aId,b:bId,c:null,mn:null,mx:null};L.push(l);this.save();this.selIds=new Set();this.selLink=l.id;this.render();this.renderInsp();return;}
+    if(isIsa(A)||isIsa(B)){const i=isIsa(A)?A:B,e=isIsa(A)?B:A;
+      if(!isEnt(e)){toast('Una jerarquía solo se une a entidades.','warn');return;}
+      if(L.some(l=>(l.a===i.id&&l.b===e.id)||(l.a===e.id&&l.b===i.id))){toast('Esos dos elementos ya están unidos.');return;}
+      const X=this.X();this.snap();const sup=!X.superOf(i)&&e.y<i.y;L.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null,...(sup?{sup:1}:{})});
+      this.save();this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();
+      toast(sup?`«${e.n}» es el supertipo de la jerarquía.`:`«${e.n}» es un subtipo.`);return;}
     if(isRel(A)&&isRel(B)){toast('No se pueden unir dos relaciones entre sí.','warn');return;}
     if(isEnt(A)&&isEnt(B)){ // dos entidades: se crea la relación en medio
       this.snap();const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',this.m.nodes.filter(isRel).map(x=>x.n)),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};
@@ -383,6 +456,11 @@ class Editor{
       this.snap();const X=this.X();const nn={id:uid(),k:'attr',n:this.uniqueName('atributo',X.attrsOf(target).map(x=>x.n)),x:Math.round(pos.x),y:Math.round(pos.y),f:{}};this.size(nn);
       this.m.nodes.push(nn);this.m.links.push({id:uid(),a:target.id,b:nn.id,c:null,mn:null,mx:null});if(isAtt(target))target.f.c=true;
       this.placeAttr(target,nn);this.save();this.selIds=new Set([nn.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
+    if(a==='isa'){const sup=target&&isEnt(target)?target:(!pos&&this.single()&&isEnt(this.single())?this.single():null);this.snap();
+      const c=sup?{x:sup.x,y:sup.y+(sup.h||40)/2+70}:(pos||this.freeSpot(60,50));const i={id:uid(),k:'isa',n:'',x:Math.round(c.x),y:Math.round(c.y),f:{tot:false,dis:true,map:'each'}};
+      this.m.nodes.push(i);if(sup)this.m.links.push({id:uid(),a:i.id,b:sup.id,c:null,mn:null,mx:null,sup:1});
+      this.save();this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();
+      toast(sup?`Jerarquía de «${sup.n}». Ahora une los subtipos al triángulo (Mayús+clic) o usa «Añadir subtipo».`:'Une el triángulo a la entidad de arriba (supertipo) y después a los subtipos.');return;}
     if(a==='note'){this.snap();const c=pos||this.freeSpot(180,50);const n={id:uid(),k:'note',x:Math.round(c.x-90),y:Math.round(c.y-23),w:180,c:'y',text:''};
       this.notes.push(n);this.save();this.selIds=new Set([n.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
     this.snap();
@@ -395,7 +473,7 @@ class Editor{
   }
   // Arrastrar un botón (Entidad, Relación, Atributo, Tabla) hasta el lienzo
   toolDrag(e){
-    const b=e.target.closest('.ebtn.tool[data-act]');if(!b||e.button!==0)return;const a=b.dataset.act;if(!['ent','rel','attr','table','note'].includes(a))return;
+    const b=e.target.closest('.ebtn.tool[data-act]');if(!b||e.button!==0)return;const a=b.dataset.act;if(!['ent','rel','attr','table','note','isa'].includes(a))return;
     const st={x0:e.clientX,y0:e.clientY,moving:false,g:null};
     const inCv=ev=>{const r=this.cv.getBoundingClientRect();return ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom;};
     const mv=ev=>{
@@ -414,6 +492,10 @@ class Editor{
     if(this._noClick)return;
     const sg=e.target.closest('[data-card]');if(sg){const l=this.m.links.find(x=>x.id===sg.dataset.link);if(!l)return;this.snap();const cur=mmOf(l);cur[sg.dataset.card]=sg.dataset.v;l.mn=cur.mn;l.mx=cur.mx;l.c=(cur.mn!=null&&cur.mx!=null)?`(${cur.mn},${cur.mx})`:null;this.save();this.render();this.renderInsp();return;}
     const pd=e.target.closest('[data-pend]');if(pd&&this.pend){const k=pd.dataset.pend,v=pd.dataset.v;if(k==='create'){this.createRelation();return;}if(k==='cancel'){this.pend=null;this.renderInsp();this.render();return;}this.pend[k]=k==='req'||k==='ident'?!this.pend[k]:v;this.renderInsp();return;}
+    const io=e.target.closest('[data-isa]');if(io){const i=this.single();if(!isIsa(i))return;this.snap();const k=io.dataset.isa,v=io.dataset.v;
+      if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});}
+      else i.f[k]=v==='1'?true:v==='0'?false:v;this.save();this.render();this.renderInsp();return;}
+    const sk=e.target.closest('[data-skt]');if(sk){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();if(sk.dataset.skt)l.t=sk.dataset.skt;else delete l.t;this.save();this.render();this.renderInsp();return;}
     const nc=e.target.closest('[data-ncol],[data-nw]');if(nc){const n=this.single();if(!isNote(n))return;this.snap();if(nc.dataset.ncol)n.c=nc.dataset.ncol;else n.w=+nc.dataset.nw;this.save();this.render();this.renderInsp();return;}
     const al=e.target.closest('[data-align]');if(al){this.align(al.dataset.align);return;}
     const go=e.target.closest('[data-goto]');if(go){this.selIds=new Set([go.dataset.goto]);this.selLink=null;this.render();this.renderInsp();return;}
@@ -421,7 +503,12 @@ class Editor{
     if(a==='toggleenun'){this.showEnun=!this.showEnun;try{localStorage.setItem('mb:showEnun',this.showEnun?'1':'0');}catch(err){}b.setAttribute('aria-pressed',String(this.showEnun));this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);return;}
     if(a==='pin'){this.pinned=!this.pinned;try{localStorage.setItem('mb:pin',this.pinned?'1':'0');}catch(err){}this.renderInsp();return;}
     if(a==='easy'){this.easy=!this.easy;try{localStorage.setItem('mb:easy',this.easy?'1':'0');}catch(err){}b.setAttribute('aria-pressed',String(this.easy));toast(this.easy?'Modo fácil activado: también se pasan las relaciones.':'Modo fácil desactivado: solo entidades y atributos.');return;}
-    if(a==='ent'||a==='rel'||a==='attr'||a==='note'){this.create(a);return;}
+    if(a==='ent'||a==='rel'||a==='attr'||a==='note'||a==='isa'){this.create(a);return;}
+    if(a==='bo2er'){this.boToER();return;}
+    if(a==='addsub'){const i=this.single();if(isIsa(i))this.addSubtype(i);return;}
+    if(a==='mkrel'){this.relBetween();return;}
+    if(a==='lock'){this.toggleLock();return;}
+    if(a==='cleardiff'){this.app.clearDiff();return;}
     if(a==='addattr'){const one=this.single();if(!one)return;const X=this.X();const owner=isAtt(one)&&!one.f.c&&X.ownerOf(one)?X.ownerOf(one):one;this.addAttr(owner);return;}
     if(a==='addpart'){const one=this.single();if(one)this.addAttr(one);return;}
     if(a==='connect'||a==='relate'){this.connect=!this.connect;this.from=null;this.pend=null;b.setAttribute('aria-pressed',String(this.connect));if(this.connect)toast(this.isER?'Pulsa el primer elemento y luego el segundo.':'Pulsa la primera tabla y luego la segunda.');this.render();this.renderInsp();return;}
@@ -438,7 +525,7 @@ class Editor{
     if(e.key!=='Enter')return;const f=e.target.dataset.f;
     if(f==='cname'||f==='ctype'){e.preventDefault();this.addColumn(+e.target.dataset.ci);return;}
     if(f==='tname'){e.preventDefault();this.addColumn(-1);return;}
-    if(f==='name'&&this.isER){e.preventDefault();const n=this.single();if(!n)return;const X=this.X();
+    if(f==='name'&&this.isER&&!this.isBo){e.preventDefault();const n=this.single();if(!n)return;const X=this.X();
       if(isAtt(n)){const ow=X.ownerOf(n);if(ow)this.addAttr(ow);}else if(isEnt(n)||isRel(n))this.addAttr(n);}
   }
   focusName(){const n=this.insp.querySelector('[data-f=name],[data-f=tname],[data-f=ntext]');if(n){n.focus();n.select();}}
@@ -476,19 +563,24 @@ class Editor{
     this.selIds=sel;this.selLink=null;this.save();this.render();this.renderInsp();
   }
   nudge(dx,dy){if(!this.selIds.size)return;this.snap();const X=this.isER?this.X():null,moved=new Set();
-    const mv=n=>{if(moved.has(n.id))return;moved.add(n.id);n.x+=dx;n.y+=dy;if(X&&!isAtt(n))X.attrsOf(n).forEach(mv);};
+    const mv=n=>{if(moved.has(n.id)||this.locked(n))return;moved.add(n.id);n.x+=dx;n.y+=dy;if(X&&!isAtt(n))X.attrsOf(n).forEach(mv);};
     this.selIds.forEach(id=>{const n=this.node(id);if(n)mv(n);});this.save();this.render();}
   key(e){ // atajos del lienzo (llamado por la app)
-    const k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
-    if(ctrl&&k==='z'&&!e.shiftKey){e.preventDefault();this.undo();return true;}
-    if(ctrl&&(k==='y'||(k==='z'&&e.shiftKey))){e.preventDefault();this.redoIt();return true;}
-    if(ctrl&&k==='c'){e.preventDefault();this.copy(false);return true;}
-    if(ctrl&&k==='x'){e.preventDefault();this.copy(true);return true;}
-    if(ctrl&&k==='v'){e.preventDefault();this.paste();return true;}
-    if(ctrl&&k==='a'){e.preventDefault();this.selectAll();return true;}
-    if(ctrl&&k==='d'){e.preventDefault();this.duplicate();return true;}
-    if(e.key==='F2'){e.preventDefault();this.rename();return true;}
-    if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();this.deleteSel();return true;}
+    const k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey,K=a=>keyIs(e,a),go=fn=>{e.preventDefault();fn();return true;};
+    if(K('undo'))return go(()=>this.undo());
+    if(K('redo')||(ctrl&&e.shiftKey&&k==='z'))return go(()=>this.redoIt());
+    if(K('copy'))return go(()=>this.copy(false));
+    if(K('cut'))return go(()=>this.copy(true));
+    if(K('paste'))return go(()=>this.paste());
+    if(K('selectAll'))return go(()=>this.selectAll());
+    if(K('duplicate'))return go(()=>this.duplicate());
+    if(K('rename'))return go(()=>this.rename());
+    if(K('lock'))return go(()=>this.toggleLock());
+    if(K('distribute'))return go(()=>this.distribute());
+    if(K('fit'))return go(()=>this.fit());
+    const mk={newEnt:'ent',newRel:'rel',newAttr:'attr',newIsa:'isa',newNote:'note',newTable:'table'};
+    for(const [a,t] of Object.entries(mk))if(K(a)){const okHere=t==='note'||(t==='table'?!this.isER:this.isER&&(!this.isBo||t==='ent'));if(!okHere)return false;return go(()=>this.create(t));}
+    if(K('del')||e.key==='Backspace'||(e.key==='Delete'&&!KEYS().del))return go(()=>this.deleteSel());
     if(e.key==='Escape'){this.connect=false;this.from=null;this.pend=null;this.selIds=new Set();this.selLink=null;this.renderTools();this.render();this.renderInsp();return true;}
     const st=e.shiftKey?10:1;const arrows={arrowleft:[-st,0],arrowright:[st,0],arrowup:[0,-st],arrowdown:[0,st]};
     if(arrows[k]&&this.selIds.size){e.preventDefault();this.nudge(...arrows[k]);return true;}
@@ -501,38 +593,86 @@ class Editor{
     const id=P.g&&P.g.dataset.id,lid=P.hl&&P.hl.dataset.lid,at=this.pt(e),items=[];
     if(id&&!this.selIds.has(id)){this.selIds=new Set([id]);this.selLink=null;this.render();this.renderInsp();}
     if(!id&&lid&&this.isER){this.selIds=new Set();this.selLink=lid;this.render();this.renderInsp();}
-    const n=id?this.node(id):null,multi=id&&this.selIds.size>1;
+    const n=id?this.node(id):null,multi=id&&this.selIds.size>1,K=a=>keyLabel(a);
     const I=(label,fn,o={})=>items.push({label,fn,...o}),SEP=()=>items.push({sep:true});
-    const flag=(k,label)=>I(label,()=>{this.snap();n.f[k]=!n.f[k];if(k==='k'&&n.f.k)n.f.p=false;if(k==='p'&&n.f.p)n.f.k=false;if(k==='c'&&n.f.c===false){}this.save();this.render();this.renderInsp();},{check:!!n.f[k]});
+    const flag=(k,label)=>I(label,()=>{this.snap();n.f[k]=!n.f[k];if(k==='k'&&n.f.k)n.f.p=false;if(k==='p'&&n.f.p)n.f.k=false;this.save();this.render();this.renderInsp();},{check:!!n.f[k]});
+    const lockI=()=>{const all=[...this.selIds].map(x=>this.node(x)).filter(Boolean),on=all.length&&all.every(x=>this.locked(x));I(multi?(on?'Desbloquear posición':'Bloquear posición'):'Bloquear posición',()=>this.toggleLock(),{check:!multi&&on,key:K('lock')});};
+    const edit=(dup=true)=>{SEP();I('Copiar',()=>this.copy(false),{key:K('copy')});if(dup)I('Duplicar',()=>this.duplicate(),{key:K('duplicate')});lockI();SEP();};
     if(multi){
       items.push({row:[['l','Alinear a la izquierda'],['c','Centrar en horizontal'],['r','Alinear a la derecha'],['t','Alinear arriba'],['m','Centrar en vertical'],['b','Alinear abajo'],['dh','Repartir en horizontal'],['dv','Repartir en vertical']].map(([k,t])=>({icon:ALG[k],title:t,fn:()=>this.align(k)}))});
-      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I(`Borrar ${this.selIds.size} elementos`,()=>this.deleteSel(),{danger:true,key:'Supr'});}
-    else if(isNote(n)){I('Editar texto',()=>this.rename(),{key:'F2'});
+      const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
+      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size){SEP();I(ents.length===2?'Crear una relación entre las dos':`Crear una relación ${ents.length===3?'ternaria ':''}entre las ${ents.length}`,()=>this.relBetween());}
+      edit();I(`Borrar ${this.selIds.size} elementos`,()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(isNote(n)){I('Editar texto',()=>this.rename(),{key:K('rename')});
       items.push({row:Object.entries(NOTE_COLORS).map(([k,t])=>({swatch:k,title:t,on:(n.c||'y')===k,fn:()=>{this.snap();n.c=k;this.save();this.render();this.renderInsp();}}))});
-      SEP();I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
-    else if(n&&this.isER&&isEnt(n)){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir atributo',()=>this.addAttr(n));
+      edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n&&this.isBo&&isEnt(n)){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Unir con otra entidad…',()=>{this.connect=true;this.from=n.id;this.renderTools();this.render();toast('Pulsa la otra entidad.');});
+      edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n&&this.isER&&isEnt(n)){const X=this.X();I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir atributo',()=>this.addAttr(n));
       I('Entidad débil',()=>{this.snap();n.k=n.k==='weak'?'ent':'weak';this.save();this.render();this.renderInsp();},{check:n.k==='weak'});
-      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
-    else if(n&&this.isER&&isRel(n)){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir atributo',()=>this.addAttr(n));
+      if(Settings.get().showIsa!==false){const own=this.m.nodes.find(i=>isIsa(i)&&X.superOf(i)===n);I(own?'Añadir subtipo a su jerarquía':'Crear jerarquía (subtipos)',()=>{if(own)this.addSubtype(own);else{this.selIds=new Set([n.id]);this.create('isa');}});}
+      edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n&&this.isER&&isRel(n)){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir atributo',()=>this.addAttr(n));
       I('Identificadora',()=>{this.snap();n.k=n.k==='idrel'?'rel':'idrel';this.save();this.render();this.renderInsp();},{check:n.k==='idrel'});
-      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
-    else if(n&&this.isER&&isAtt(n)){const ow=this.X().ownerOf(n);I('Renombrar',()=>this.rename(),{key:'F2'});SEP();
+      I('Unir otra entidad (ternaria)…',()=>{this.connect=true;this.from=n.id;this.renderTools();this.render();toast('Pulsa la entidad que quieres añadir a la relación.');});
+      edit(false);I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n&&isIsa(n)){const f=n.f;const set=(k,v)=>()=>{this.snap();n.f[k]=v;this.save();this.render();this.renderInsp();};
+      I('Total',set('tot',true),{check:!!f.tot});I('Parcial',set('tot',false),{check:!f.tot});SEP();I('Exclusiva',set('dis',true),{check:f.dis!==false});I('Solapada',set('dis',false),{check:f.dis===false});SEP();
+      I('Añadir subtipo',()=>this.addSubtype(n));lockI();SEP();I('Borrar jerarquía',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n&&this.isER&&isAtt(n)){const ow=this.X().ownerOf(n);I('Renombrar',()=>this.rename(),{key:K('rename')});SEP();
       flag('k','Clave primaria');if((ow&&ow.k==='weak')||n.f.p)flag('p','Clave parcial');flag('o','Opcional');flag('m','Multivaluado');flag('d','Derivado');flag('c','Compuesto');
-      SEP();if(ow)I(`Añadir otro atributo a «${ow.n}»`,()=>this.addAttr(ow));I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
-    else if(n){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir columna',()=>{this.rename();this.addColumn();});
-      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I('Borrar tabla',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+      SEP();if(ow)I(`Añadir otro atributo a «${ow.n}»`,()=>this.addAttr(ow));lockI();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
+    else if(n){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir columna',()=>{this.rename();this.addColumn();});
+      edit();I('Borrar tabla',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(lid&&this.isER){const l=this.m.links.find(x=>x.id===lid),X=this.X();
-      if(l&&X.cardable(l)){const c=mmOf(l),set=(k,v)=>()=>{this.snap();const cur=mmOf(l);cur[k]=v;l.mn=cur.mn;l.mx=cur.mx;l.c=(cur.mn!=null&&cur.mx!=null)?`(${cur.mn},${cur.mx})`:null;this.save();this.render();this.renderInsp();};
+      if(l&&this.isBo){const A=X.N[l.a],B=X.N[l.b],set=v=>()=>{this.snap();if(v)l.t=v;else delete l.t;this.save();this.render();this.renderInsp();};
+        [['11','1:1'],['1N',`1:N (muchas/os ${B.n})`],['N1',`N:1 (muchas/os ${A.n})`],['NM','N:M'],['','Sin decidir']].forEach(([v,t])=>I(t,set(v),{check:(l.t||'')===v}));SEP();}
+      else if(l&&X.cardable(l)){const c=mmOf(l),set=(k,v)=>()=>{this.snap();const cur=mmOf(l);cur[k]=v;l.mn=cur.mn;l.mx=cur.mx;l.c=(cur.mn!=null&&cur.mx!=null)?`(${cur.mn},${cur.mx})`:null;this.save();this.render();this.renderInsp();};
         I('Mínimo 0',set('mn','0'),{check:c.mn==='0'});I('Mínimo 1',set('mn','1'),{check:c.mn==='1'});SEP();I('Máximo 1',set('mx','1'),{check:c.mx==='1'});I('Máximo N',set('mx','N'),{check:c.mx==='N'});SEP();}
-      I('Borrar línea',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+      I('Borrar línea',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else{this.selIds=new Set();this.selLink=null;this.render();this.renderInsp();
       const here=k=>()=>this.create(k,{x:at.x,y:at.y});
-      if(this.isER){I('Añadir entidad aquí',here('ent'));I('Añadir relación aquí',here('rel'));}else I('Añadir tabla aquí',here('table'));
+      if(this.isBo)I('Añadir entidad aquí',here('ent'));else if(this.isER){I('Añadir entidad aquí',here('ent'));I('Añadir relación aquí',here('rel'));}else I('Añadir tabla aquí',here('table'));
       I('Añadir nota aquí',here('note'));SEP();
-      I('Pegar',()=>this.paste(),{key:'Ctrl+V',disabled:!Editor.clip});I('Seleccionar todo',()=>this.selectAll(),{key:'Ctrl+A'});SEP();
-      I('Buscar…',()=>this.openSearch(),{key:'Ctrl+F'});I('Ajustar la vista',()=>this.fit());I('Distribuir',()=>this.distribute());}
+      I('Pegar',()=>this.paste(),{key:K('paste'),disabled:!Editor.clip});I('Seleccionar todo',()=>this.selectAll(),{key:K('selectAll')});SEP();
+      I('Buscar…',()=>this.openSearch(),{key:K('find')});I('Ajustar la vista',()=>this.fit(),{key:K('fit')});I('Distribuir',()=>this.distribute(),{key:K('distribute')});
+      if(this.app&&this.app.diff)I('Quitar las marcas de la comparación',()=>this.app.clearDiff());}
     openCtx(e.clientX,e.clientY,items);
   }
+  // Bloquear / desbloquear la posición de lo seleccionado
+  toggleLock(){const all=[...this.selIds].map(x=>this.node(x)).filter(Boolean);if(!all.length)return;const v=!all.every(x=>this.locked(x));
+    this.snap();all.forEach(x=>this.setLock(x,v));this.save();this.render();this.renderInsp();toast(v?(all.length>1?`${all.length} elementos bloqueados: no se mueven.`:'Bloqueado: ya no se mueve sin querer.'):'Desbloqueado.');}
+  // Añade una entidad nueva debajo de la jerarquía, ya unida como subtipo
+  addSubtype(i){const X=this.X(),subs=X.subsOf(i);this.snap();
+    const en=LANG()==='en',e={id:uid(),k:'ent',n:this.uniqueName(en?'subtype':'subtipo',this.m.nodes.filter(isEnt).map(x=>x.n)),x:Math.round(i.x+(subs.length?(subs.length%2?1:-1)*Math.ceil(subs.length/2)*190:0)),y:Math.round(i.y+120),f:{}};
+    this.m.nodes.push(e);this.m.links.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null});this.save();this.selIds=new Set([e.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();}
+  // Relación nueva (binaria, ternaria…) entre las entidades seleccionadas
+  relBetween(){const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);if(ents.length<2)return;this.snap();
+    const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',this.m.nodes.filter(isRel).map(x=>x.n)),x:Math.round(ents.reduce((s,e)=>s+e.x,0)/ents.length),y:Math.round(ents.reduce((s,e)=>s+e.y,0)/ents.length),f:{}};
+    if(ents.length===2&&Math.hypot(ents[0].x-ents[1].x,ents[0].y-ents[1].y)<260)r.y+=90;
+    this.m.nodes.push(r);ents.forEach(e=>this.m.links.push({id:uid(),a:r.id,b:e.id,c:null,mn:null,mx:null}));
+    this.save();this.selIds=new Set([r.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();
+    if(ents.length>2)toast(`Relación ternaria creada. En el panel, contesta las ${ents.length} preguntas de cardinalidad.`);}
+  // Del boceto al E-R: entidades que falten y una relación por cada línea
+  boToER(){const bo=this.p.bo||{nodes:[],links:[]},ents=bo.nodes.filter(isEnt);if(!ents.length){toast('Tu boceto está vacío.');return;}
+    const er=this.p.er,byName={};er.nodes.filter(isEnt).forEach(e=>byName[lc(e.n)]=e);const snapER=JSON.stringify(cleanModel(er,'er'));
+    const bx=ents.map(e=>e.x),by=ents.map(e=>e.y),cx=(Math.min(...bx)+Math.max(...bx))/2,cy=(Math.min(...by)+Math.max(...by))/2;
+    let dx=W/2,dy=H/2;const had=er.nodes.length;
+    if(had){const ys=er.nodes.map(n=>n.y),xs=er.nodes.map(n=>n.x);dx=(Math.min(...xs)+Math.max(...xs))/2;dy=Math.max(...ys)+260+(Math.max(...by)-Math.min(...by))*0.8;}
+    const map={};let ne=0,nr=0;
+    ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)*1.6),y:Math.round(dy+(e.y-cy)*1.6),f:{}};er.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;});
+    const X=erIdx(er),relNames=er.nodes.filter(isRel).map(x=>x.n);
+    bo.links.forEach(l=>{const A=map[l.a],B=map[l.b];if(!A||!B)return;
+      if(er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id);})()))return;
+      const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',relNames),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};relNames.push(r.n);
+      if(A===B){r.x+=160;r.y-=90;}
+      const mxA=l.t==='N1'||l.t==='NM'?'N':l.t?'1':null,mxB=l.t==='1N'||l.t==='NM'?'N':l.t?'1':null;
+      er.nodes.push(r);er.links.push({id:uid(),a:r.id,b:A.id,c:null,mn:null,mx:mxA},{id:uid(),a:r.id,b:B.id,c:null,mn:null,mx:mxB});nr++;});
+    if(!ne&&!nr){toast('Tu E-R ya tiene todo lo del boceto.');return;}
+    this.hist.push({mode:'er',data:snapER});this.app.touch(this.p);if(this.p._views)delete this.p._views.er;this.app.go(this.p,'er');
+    toast(`Pasado al E-R: ${ne} entidad(es) y ${nr} relación(es). Ponles nombre, atributos y cardinalidades. Ctrl+Z lo deshace.`);}
+  // Marcas de la comparación (verde: solo en el tuyo, ámbar: cambiado)
+  diffMarks(){const d=this.app&&this.app.diff;return d&&d.p===this.p&&d.marks&&d.marks[this.mode]||{};}
   /* ---------- Buscar (Ctrl+F) ---------- */
   openSearch(){
     let box=this.cv.querySelector('.cv-search');
@@ -549,8 +689,8 @@ class Editor{
   searchHits(){
     const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(),q=norm(this._sq).trim();if(!q)return[];
     const out=[];
-    if(this.isER){const X=this.X();this.m.nodes.forEach(n=>{if(norm(n.n).includes(q)){const ow=isAtt(n)?X.ownerOf(n):null;
-      out.push({id:n.id,what:(isEnt(n)?'Entidad':isRel(n)?'Relación':'Atributo')+' «'+n.n+'»'+(ow?' de «'+ow.n+'»':'')});}});}
+    if(this.isER){const X=this.X(),hide=this.not!=='chen';this.m.nodes.forEach(n=>{if(!isIsa(n)&&norm(n.n).includes(q)){const ow=isAtt(n)?X.ownerOf(n):null;
+      out.push({id:hide&&isAtt(n)&&ow?(isAtt(ow)?(X.ownerOf(ow)||ow).id:ow.id):n.id,what:(isEnt(n)?'Entidad':isRel(n)?'Relación':'Atributo')+' «'+n.n+'»'+(ow?' de «'+ow.n+'»':'')});}});}
     else this.m.t.forEach(t=>{if(norm(t.n).includes(q))out.push({id:t.id,what:'Tabla «'+t.n+'»'});
       t.c.forEach(c=>{if(norm(c[0]).includes(q))out.push({id:t.id,what:'Columna «'+c[0]+'» de «'+t.n+'»'});});});
     this.notes.forEach(n=>{if(norm(n.text).includes(q))out.push({id:n.id,what:'Nota'});});
@@ -579,8 +719,9 @@ class Editor{
       if(e.ctrlKey||e.metaKey){if(this.selIds.has(id))this.selIds.delete(id);else this.selIds.add(id);this.selLink=null;this.render();this.renderInsp();return;}
       const already=this.selIds.has(id);if(!already){this.selIds=new Set([id]);this.selLink=null;this.pend=null;}
       const p=this.pt(e),X=this.isER?this.X():null,list=[],seen=new Set();
-      const add=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);list.push({n,ox:n.x,oy:n.y});if(X&&!isAtt(n))X.attrsOf(n).forEach(add);if(X&&isAtt(n)&&n.f.c)X.attrsOf(n).forEach(add);};
+      const add=n=>{if(!n||seen.has(n.id)||this.locked(n))return;seen.add(n.id);list.push({n,ox:n.x,oy:n.y});if(X&&!isAtt(n))X.attrsOf(n).forEach(add);if(X&&isAtt(n)&&n.f.c)X.attrsOf(n).forEach(add);};
       this.selIds.forEach(sid=>add(this.node(sid)));
+      if(!list.length&&this.locked(this.node(id))&&!this._lockTold){this._lockTold=1;toast('Está bloqueado: no se mueve. Desbloquéalo con el botón derecho.');}
       this.drag={x0:p.x,y0:p.y,list,moved:false,click:id,already};this.svg.setPointerCapture(e.pointerId);e.preventDefault();
       if(!already){this.render();this.renderInsp();}return;}
     if(hl&&this.isER){this.selIds=new Set();this.selLink=hl.dataset.lid;this.pend=null;this.render();this.renderInsp();return;}
@@ -607,42 +748,66 @@ class Editor{
   gridSVG(){if(!Settings.get().grid)return '';return `<defs><pattern id="pdots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" class="pdot"/></pattern></defs><rect x="-400" y="-400" width="${W+800}" height="${H+800}" fill="url(#pdots)"/>`;}
   bandSVG(){const b=this.band;if(!b)return'';return `<rect x="${f1(Math.min(b.x0,b.x1))}" y="${f1(Math.min(b.y0,b.y1))}" width="${f1(Math.abs(b.x1-b.x0))}" height="${f1(Math.abs(b.y1-b.y0))}" class="band"/>`;}
   erString(live){
-    const m=this.m,X=erIdx(m),N=X.N;m.nodes.forEach(n=>this.size(n));const dups=live?erDups(m):new Set();
+    const m=this.m,X=erIdx(m),N=X.N,nt=this.not,bo=this.isBo,hide=nt!=='chen';m.nodes.forEach(n=>this.size(n,X));const dups=live?erDups(m):new Set(),D=live?this.diffMarks():{};
     let L='',S='',MK='',TX='';
-    m.links.forEach(l=>{const a=N[l.a],b=N[l.b];if(!a||!b)return;const on=live&&this.selLink===l.id;
-      L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
+    const card=(P,u,c,full)=>{const n=[-u[1],u[0]],d=nt==='uml'?20:32,lp=[P[0]+u[0]*d+n[0]*13,P[1]+u[1]*d+n[1]*13],an=n[0]<-.35?'end':n[0]>.35?'start':'middle';
+      const txt=nt==='uml'?umlMult(c):`(${c.mn??'?'},${c.mx??'?'})`;if(nt==='crow'&&full)return '';
+      return `<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card${full?'':' cardq'}">${nt==='crow'?'?':txt}</text>`;};
+    m.links.forEach(l=>{const a=N[l.a],b=N[l.b];if(!a||!b)return;if(hide&&(isAtt(a)||isAtt(b)))return;const on=live&&this.selLink===l.id;
       const r=isRel(a)&&isEnt(b)?a:isRel(b)&&isEnt(a)?b:null;
+      L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
       if(r){const en=r===a?b:a;const P=hitRect(en.x,en.y,en.w,en.h,r.x-en.x,r.y-en.y);const len=Math.hypot(r.x-P[0],r.y-P[1])||1;const u=[(r.x-P[0])/len,(r.y-P[1])/len];
-        const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full)MK+=marker(P,u,c.mx!=='1',c.mn==='0');
-        const n=[-u[1],u[0]],lp=[P[0]+u[0]*32+n[0]*13,P[1]+u[1]*32+n[1]*13],an=n[0]<-.35?'end':n[0]>.35?'start':'middle';
-        TX+=`<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card${full?'':' cardq'}">(${c.mn??'?'},${c.mx??'?'})</text>`;}
+        const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full&&nt!=='uml')MK+=marker(P,u,c.mx!=='1',c.mn==='0');TX+=card(P,u,c,full);}
+      if(bo&&l.t&&isEnt(a)&&isEnt(b)){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;TX+=`<text x="${f1(mx)}" y="${f1(my-7)}" text-anchor="middle" class="card skt">${esc(skLabel(l.t))}</text>`;}
     });
-    m.nodes.forEach(n=>{let g='';const dup=dups.has(n.id)?' dup':'';
-      if(isEnt(n)){g+=`<rect x="${f1(n.x-n.w/2)}" y="${n.y-20}" width="${f1(n.w)}" height="40" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(n.x-n.w/2+4)}" y="${n.y-16}" width="${f1(n.w-8)}" height="32" class="ent in${dup}"/>`;g+=`<text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;}
-      else if(isRel(n)){const w=n.w/2,h=24;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y} ${n.x},${n.y+h} ${n.x-w},${n.y}" class="dia"/>`;if(n.k==='idrel')g+=`<polygon points="${n.x},${n.y-h+6} ${n.x+w-11},${n.y} ${n.x},${n.y+h-6} ${n.x-w+11},${n.y}" class="dia in"/>`;const t=X.relType(n);g+=`<text x="${n.x}" y="${n.y+(t?1:4)}" text-anchor="middle" class="tr">${esc(n.n)}</text>`+(t?`<text x="${n.x}" y="${n.y+14}" text-anchor="middle" class="tt">${t}</text>`:'');}
+    m.nodes.forEach(n=>{if(hide&&isAtt(n))return;let g='';const dup=dups.has(n.id)?' dup':'';const x0=n.x-n.w/2,y0=n.y-n.h/2;
+      const rows=(list,top,crowTag)=>list.map((r,i)=>{const y=top+14+i*17,tx=x0+(crowTag?36:10)+(r.dep?6:0);
+        let s=crowTag&&(r.k||r.p)?`<text x="${f1(x0+9)}" y="${f1(y)}" class="ktag">${r.p?'PK*':'PK'}</text>`:'';
+        s+=`<text x="${f1(tx)}" y="${f1(y)}" class="tx${r.k||r.p?' txk':''}">${esc(r.t)}</text>`;
+        if(!crowTag&&(r.k||r.p)){const w=r.t.trim().length*CH;s+=`<line x1="${f1(tx)}" y1="${f1(y+2.5)}" x2="${f1(tx+w)}" y2="${f1(y+2.5)}" class="ul${r.p?' p':''}"/>`;}
+        return s;}).join('');
+      if(isEnt(n)){
+        if(!hide){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+4)}" y="${f1(y0+4)}" width="${f1(n.w-8)}" height="${n.h-8}" class="ent in${dup}"/>`;g+=`<text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;}
+        else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?4:0}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+3)}" y="${f1(y0+3)}" width="${f1(n.w-6)}" height="${n.h-6}" rx="${nt==='crow'?3:0}" class="ent in${dup}"/>`;
+          g+=`<path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
+          g+=n.rows.length?rows(n.rows,y0+30,nt==='crow'):`<text x="${f1(x0+10)}" y="${f1(y0+44)}" class="tx cardq">${LANG()==='en'?'no attributes':'sin atributos'}</text>`;}}
+      else if(isRel(n)){const t=X.relType(n);
+        if(!hide){const w=n.w/2,h=24;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y} ${n.x},${n.y+h} ${n.x-w},${n.y}" class="dia"/>`;if(n.k==='idrel')g+=`<polygon points="${n.x},${n.y-h+6} ${n.x+w-11},${n.y} ${n.x},${n.y+h-6} ${n.x-w+11},${n.y}" class="dia in"/>`;g+=`<text x="${n.x}" y="${n.y+(t?1:4)}" text-anchor="middle" class="tr">${esc(n.n)}</text>`+(t?`<text x="${n.x}" y="${n.y+14}" text-anchor="middle" class="tt">${t}</text>`:'');}
+        else if(nt==='uml'&&!n.rows.length){
+          if(n.h>30){const w=n.w/2,h=n.h/2;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y} ${n.x},${n.y+h} ${n.x-w},${n.y}" class="dia"/>`;}
+          else g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="rlab"/>`;
+          g+=`<text x="${n.x}" y="${n.y+4}" text-anchor="middle" class="tr">${esc(n.n)}</text>`;}
+        else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?11:0}" class="dia${nt==='uml'?' assoc':''}"/><text x="${n.x}" y="${f1(y0+17)}" text-anchor="middle" class="tr">${esc(n.n)}</text>`;
+          if(n.rows.length)g+=`<path d="M${f1(x0)},${f1(y0+24)} H${f1(x0+n.w)}" class="dia hd"/>`+rows(n.rows,y0+26,false);}}
+      else if(isIsa(n)){const h=n.h/2,w=n.w/2;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y+h} ${n.x-w},${n.y+h}" class="dia isa${dup}"/><text x="${n.x}" y="${f1(n.y+h-8)}" text-anchor="middle" class="tt">${LANG()==='en'?'IS A':'ES'}</text>`;
+        TX+=`<text x="${f1(n.x+w+6)}" y="${f1(n.y+5)}" class="card isal">${esc(isaLabel(n.f))}</text>`;}
       else{const key=n.f.k||n.f.p,cls='att'+(key?' key':'')+(n.f.d?' dr':'')+dup;
         if(n.f.m)g+=`<ellipse cx="${n.x}" cy="${n.y}" rx="${f1(n.rx+4)}" ry="17" class="${cls}"/>`;
         g+=`<ellipse cx="${n.x}" cy="${n.y}" rx="${f1(n.rx)}" ry="13" class="${cls}"/><text x="${n.x}" y="${f1(n.y+3.8)}" text-anchor="middle" class="tx${key?' txk':''}">${esc(n.lab)}</text>`;
         if(key){const w=n.lab.length*CH;g+=`<line x1="${f1(n.x-w/2)}" y1="${f1(n.y+6.5)}" x2="${f1(n.x+w/2)}" y2="${f1(n.y+6.5)}" class="ul${n.f.p&&!n.f.k?' p':''}"/>`;}}
-      if(live&&this.selIds.has(n.id))g+=`<rect x="${f1(n.x-n.w/2-6)}" y="${n.y-n.h/2-6}" width="${f1(n.w+12)}" height="${n.h+12}" rx="6" class="selbox"/>`;
-      if(live&&this.from===n.id)g+=`<rect x="${f1(n.x-n.w/2-6)}" y="${n.y-n.h/2-6}" width="${f1(n.w+12)}" height="${n.h+12}" rx="6" class="frombox"/>`;
+      if(live&&D[n.id])g+=`<rect x="${f1(x0-9)}" y="${f1(y0-9)}" width="${f1(n.w+18)}" height="${n.h+18}" rx="8" class="dfbox ${D[n.id]}"/>`;
+      if(live&&this.selIds.has(n.id))g+=`<rect x="${f1(x0-6)}" y="${f1(y0-6)}" width="${f1(n.w+12)}" height="${n.h+12}" rx="6" class="selbox"/>`;
+      if(live&&this.from===n.id)g+=`<rect x="${f1(x0-6)}" y="${f1(y0-6)}" width="${f1(n.w+12)}" height="${n.h+12}" rx="6" class="frombox"/>`;
+      if(live&&this.locked(n))g+=lockIcon(x0+n.w-2,y0-2);
       S+=`<g class="node" data-id="${n.id}">${g}</g>`;});
-    const empty=this.items().length||!live?'':`<text x="0" y="0" text-anchor="middle" class="emp">Lienzo vacío: empieza con «Entidad»</text>`;
+    const empty=this.items().length||!live?'':`<text x="0" y="0" text-anchor="middle" class="emp">${bo?'Boceto vacío: añade entidades y únelas':'Lienzo vacío: empieza con «Entidad»'}</text>`;
     return (live?this.gridSVG():'')+L+S+MK+TX+this.notesSVG(live)+empty+(live?this.bandSVG():'');
   }
   tablesString(live){
     if(live)tableDups(this.m);else this.m.t.forEach(t=>{t._dup=false;t._dupCols=null;});
-    const spec={W,H,t:this.m.t};let inner='',boxes=[];
+    const st=Settings.get(),spec={W,H,t:this.m.t,ortho:st.lines==='ortho',not:st.notation||'chen'};let inner='',boxes=[];const D=live?this.diffMarks():{};
     if(this.mode==='ded'){inner=drawDED(spec).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');boxes=this.m.t.map(t=>[t,t.x,t.y,t.w,t.h]);}
     else {inner=drawRef(spec,true).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');boxes=this.m.t.map(t=>[t,t.x,t.y,t.rw,18+t.rh]);}
     let Hh='';if(live)boxes.forEach(([t,x,y,w,h])=>{Hh+=`<rect x="${x}" y="${y}" width="${f1(w)}" height="${f1(h)}" class="hitbox" data-id="${t.id}"/>`;
+      if(D[t.id])Hh+=`<rect x="${x-9}" y="${y-9}" width="${f1(w+18)}" height="${f1(h+18)}" rx="9" class="dfbox ${D[t.id]}" pointer-events="none"/>`;
+      if(this.locked(t))Hh+=`<g pointer-events="none">${lockIcon(x+w-2,y-2)}</g>`;
       if(this.selIds.has(t.id))Hh+=`<rect x="${x-6}" y="${y-6}" width="${f1(w+12)}" height="${f1(h+12)}" rx="8" class="selbox" pointer-events="none"/>`;
       if(this.from===t.id)Hh+=`<rect x="${x-6}" y="${y-6}" width="${f1(w+12)}" height="${f1(h+12)}" rx="8" class="frombox" pointer-events="none"/>`;});
     const empty=this.items().length||!live?'':`<text x="0" y="0" text-anchor="middle" class="emp">Lienzo vacío: empieza con «Tabla» o «Pasar desde mi E-R»</text>`;
     const grid=live?this.gridSVG():'';
     return grid+inner+Hh+this.notesSVG(live)+empty+(live?this.bandSVG():'');
   }
-  notesSVG(live){return this.notes.map(n=>{let g=noteSVG(n);
+  notesSVG(live){const D=live?this.diffMarks():{};return this.notes.map(n=>{let g=noteSVG(n);if(live&&this.locked(n))g+=lockIcon(n.x+n.w-2,n.y-2);
     if(live&&this.selIds.has(n.id))g+=`<rect x="${n.x-6}" y="${n.y-6}" width="${n.w+12}" height="${n.h+12}" rx="6" class="selbox"/>`;
     return `<g class="node notecard" data-id="${n.id}">${g}</g>`;}).join('');}
   markDup(){ // marca en rojo el campo del nombre si está repetido
@@ -669,6 +834,7 @@ class Editor{
     const show=this.pinned||any;this.main.classList.toggle('noinsp',!show);if(!show){this.insp.innerHTML='';return;}
     const chk=(f,txt,on,ic,sub='')=>`<label class="chk"><input type="checkbox" data-f="${f}" ${on?'checked':''}><span class="chk-ic">${GL[ic]||''}</span><span class="chk-t">${txt}${sub?`<small>${sub}</small>`:''}</span><span class="sw" aria-hidden="true"></span></label>`;
     const head=t=>`<div class="in-h"><span>${t}</span><button class="pinb" data-act="pin" aria-pressed="${this.pinned}" title="${this.pinned?'Panel fijo: se queda aunque no haya nada seleccionado':'Panel automático: se oculta si no hay nada seleccionado'}">${GL.pin}</button></div>`;
+    const lockChk=n=>chk('lock','Bloquear posición',this.locked(n),'lock','No se mueve al arrastrarlo ni al distribuir');
     const nameF=(f,v,lab)=>`<label class="fld">${lab}<input type="text" data-f="${f}" value="${escA(v)}" spellcheck="false"></label><p class="dupmsg" hidden>Ya hay otro elemento con este nombre. Cámbialo.</p>`;
     let h='';
     if(this.pend){const A=this.node(this.pend.a),B=this.node(this.pend.b),P=this.pend;
@@ -682,15 +848,34 @@ class Editor{
     else if(this.selIds.size>1){const ab=(k,t,ic)=>`<button class="algb" data-align="${k}" title="${t}" aria-label="${t}">${ic}</button>`;
       h+=head(`${this.selIds.size} elementos`)+`<p class="in-p">Arrástralos para moverlos juntos. Ctrl+C copia, Supr borra.</p>
         <div class="in-sub">Alinear</div><div class="alg">${ab('l','Alinear a la izquierda',ALG.l)}${ab('c','Centrar en horizontal',ALG.c)}${ab('r','Alinear a la derecha',ALG.r)}${ab('t','Alinear arriba',ALG.t)}${ab('m','Centrar en vertical',ALG.m)}${ab('b','Alinear abajo',ALG.b)}</div>
-        <div class="in-sub">Repartir</div><div class="alg">${ab('dh','Repartir en horizontal (mismo espacio)',ALG.dh)}${ab('dv','Repartir en vertical (mismo espacio)',ALG.dv)}</div>`;}
+        <div class="in-sub">Repartir</div><div class="alg">${ab('dh','Repartir en horizontal (mismo espacio)',ALG.dh)}${ab('dv','Repartir en vertical (mismo espacio)',ALG.dv)}</div>`;
+      const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
+      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkrel">${GL.rel}<span>${ents.length===3?'Relación ternaria entre las 3':'Relación entre las '+ents.length}</span></button></div>`;
+      h+=`<div class="in-actions"><button class="ebtn" data-act="lock">${GL.lock}<span>${[...this.selIds].every(x=>this.locked(this.node(x)))?'Desbloquear':'Bloquear'} posición</span></button></div>`;}
     else if(isNote(one)){h+=head('Nota')+`<label class="fld">Texto<textarea data-f="ntext" rows="5" spellcheck="true" placeholder="Escribe aquí tu duda o explicación">${esc(one.text||'')}</textarea></label>
         <div class="in-sub">Color</div><div class="seg wide">${Object.entries(NOTE_COLORS).map(([k,v])=>`<button class="segb ncsw nc-${k}" data-ncol="${k}" aria-pressed="${(one.c||'y')===k}">${v}</button>`).join('')}</div>
-        <div class="in-sub">Ancho</div><div class="seg wide">${[[150,'Estrecha'],[200,'Normal'],[280,'Ancha']].map(([w,t])=>`<button class="segb" data-nw="${w}" aria-pressed="${Math.abs((one.w||180)-w)<30}">${t}</button>`).join('')}</div>`;}
+        <div class="in-sub">Ancho</div><div class="seg wide">${[[150,'Estrecha'],[200,'Normal'],[280,'Ancha']].map(([w,t])=>`<button class="segb" data-nw="${w}" aria-pressed="${Math.abs((one.w||180)-w)<30}">${t}</button>`).join('')}</div>`+lockChk(one);}
+    else if(this.isBo&&one&&isEnt(one)){const X=this.X(),nb=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt);
+      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Unida con <span class="cnt">${nb.length}</span></div><div class="alist">${nb.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Con nadie todavía. Mayús + clic en otra entidad para unirlas.</span>'}</div>`+lockChk(one)+
+        `<p class="in-p">En el boceto solo hay entidades y líneas: sirve para pensar qué se relaciona con qué. Cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
+    else if(this.isBo&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}const A=X.N[l.a],B=X.N[l.b];
+      h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">¿Qué crees que será? (opcional)</div>
+        <div class="seg wide">${[['','?'],['11','1:1'],['1N','1:N'],['N1','N:1'],['NM','N:M']].map(([v,t])=>`<button class="segb" data-skt="${v}" aria-pressed="${(l.t||'')===v}">${t}</button>`).join('')}</div>
+        <p class="in-p">${l.t==='1N'?`Una/o ${esc(A.n)} con muchas/os ${esc(B.n)}.`:l.t==='N1'?`Muchas/os ${esc(A.n)} con una/o ${esc(B.n)}.`:l.t==='NM'?'Muchas/os con muchas/os.':l.t==='11'?'Una/o con una/o.':'Aún sin decidir: no hace falta.'} Al pasarlo al E-R se ponen los máximos; los mínimos los decides allí.</p>`;}
+    else if(isIsa(one)){const X=this.X(),sup=X.superOf(one),subs=X.subsOf(one),all=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt),f=one.f;
+      const sb=(k,v,t,on)=>`<button class="segb" data-isa="${k}" data-v="${v}" aria-pressed="${on}">${t}</button>`;
+      h+=head('Jerarquía (ISA)')+`<p class="in-p">Generalización / especialización. Etiqueta: <b>${esc(isaLabel(f))}</b></p>
+        <div class="in-sub">Supertipo (la entidad general, arriba)</div>${all.length?`<div class="seg wide">${all.map(e=>sb('sup',e.id,esc(e.n),sup===e)).join('')}</div>`:'<p class="in-p warn">Une el triángulo a la entidad general (Mayús + clic).</p>'}
+        <div class="in-sub">Subtipos <span class="cnt">${subs.length}</span></div><div class="alist">${subs.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Ninguno todavía.</span>'}</div>
+        <button class="ebtn" data-act="addsub">${GL.ent}<span>Añadir subtipo</span></button>
+        <div class="in-sub">Cobertura</div><div class="seg wide">${sb('tot','1','Total',!!f.tot)}${sb('tot','0','Parcial',!f.tot)}</div><p class="in-p">${f.tot?'Todo '+esc(sup?sup.n:'supertipo')+' es de algún subtipo.':'Puede haber '+esc(sup?sup.n:'supertipo')+' que no sea de ningún subtipo.'}</p>
+        <div class="in-sub">Solapamiento</div><div class="seg wide">${sb('dis','1','Exclusiva',f.dis!==false)}${sb('dis','0','Solapada',f.dis===false)}</div><p class="in-p">${f.dis===false?'Uno puede ser de varios subtipos a la vez.':'Cada uno es como mucho de un subtipo.'}</p>
+        <div class="in-sub">Al pasar a tablas</div><div class="optcol">${[['each','Una tabla por entidad','Cada subtipo lleva la PK del supertipo (como PK y FK). Vale siempre.'],['up','Todo en la tabla del supertipo','Las columnas de los subtipos van al supertipo (pueden quedar vacías) y se añade «tipo».'],['down','Solo las tablas de los subtipos','Cada subtipo copia las columnas del supertipo. Solo si es total.']].map(([v,t,sub])=>`<button class="opt" data-isa="map" data-v="${v}" aria-pressed="${(f.map||'each')===v}"><b>${t}</b><small>${sub}</small></button>`).join('')}</div>`+lockChk(one);}
     else if(this.isER&&one){const X=this.X(),n=one;
-      if(isEnt(n)){h+=head('Entidad')+nameF('name',n.n,'Nombre')+chk('weak','Entidad débil',n.k==='weak','weak','Doble rectángulo')+this.attrList(n);}
-      else if(isRel(n)){const t=X.relType(n);h+=head('Relación'+(t?` <span class="badge">${t}</span>`:''))+nameF('name',n.n,'Nombre')+chk('idrel','Identificadora',n.k==='idrel','idrel','Doble rombo')+`<div class="in-sub">Cardinalidades</div>`+this.cardBlock(n)+this.attrList(n);}
+      if(isEnt(n)){const isub=X.isaOfSub(n);h+=head('Entidad')+nameF('name',n.n,'Nombre')+chk('weak','Entidad débil',n.k==='weak','weak','Doble rectángulo')+(isub&&X.superOf(isub)?`<p class="in-p">Subtipo de <button class="lnk" data-goto="${isub.id}">${esc(X.superOf(isub).n)}</button>: hereda su clave, no necesita PK propia.</p>`:'')+this.attrList(n)+lockChk(n);}
+      else if(isRel(n)){const t=X.relType(n),ne=X.ends(n).length;h+=head('Relación'+(t?` <span class="badge">${t}</span>`:''))+nameF('name',n.n,'Nombre')+chk('idrel','Identificadora',n.k==='idrel','idrel','Doble rombo')+`<div class="in-sub">Cardinalidades</div>`+this.cardBlock(n)+(ne===2?`<p class="in-p">¿Ternaria? Une una tercera entidad a la relación con Mayús + clic.</p>`:'')+this.attrList(n)+lockChk(n);}
       else{const ow=X.ownerOf(n),f=n.f;h+=head('Atributo')+nameF('name',n.n,'Nombre')+(ow?`<p class="in-p">De <button class="lnk" data-goto="${ow.id}">${esc(ow.n)}</button></p>`:`<p class="in-p warn">No está unido a nada. Usa Mayús + clic en su entidad.</p>`)+
-        `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'');}}
+        `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'')+lockChk(n);}}
     else if(this.isER&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}
       const a=X.N[l.a],b=X.N[l.b];h+=head('Línea');if(X.cardable(l)){const r=isRel(a)?a:b;h+=this.cardBlock(r,l.id);}else h+=`<p class="in-p">${esc(a.n)} — ${esc(b.n)}</p>`;}
     else if(!this.isER&&one){const t=one,ded=this.mode==='ded',names=this.m.t.map(x=>x.n);tableDups(this.m);
@@ -700,7 +885,7 @@ class Editor{
         <button class="xbtn" data-act="delcol" data-ci="${k}" aria-label="Borrar columna">✕</button>
         <span class="tgs"><label class="tg" title="Clave primaria"><input type="checkbox" data-f="pk" data-ci="${k}" ${f.pk?'checked':''}>${GL.pkcol}<span>PK</span></label><label class="tg" title="Clave ajena"><input type="checkbox" data-f="fk" data-ci="${k}" ${f.fk?'checked':''}>${GL.fkcol}<span>FK</span></label><label class="tg" title="NOT NULL: no puede quedar vacía"><input type="checkbox" data-f="nn" data-ci="${k}" ${f.nul?'':'checked'}>${GL.nncol}<span>NN</span></label><label class="tg" title="UNIQUE: no se puede repetir"><input type="checkbox" data-f="uq" data-ci="${k}" ${f.uq?'checked':''}>${GL.uqcol}<span>Único</span></label></span>
         ${f.fk?`<select data-f="fkt" data-ci="${k}" aria-label="Tabla a la que apunta">${names.map(nm=>`<option ${nm===f.fk?'selected':''}>${esc(nm)}</option>`).join('')}</select>`:''}</div>`;});
-      h+=`<div class="in-actions"><button class="ebtn" data-act="addcol">${GL.table}<span>Añadir columna</span></button></div>`;}
+      h+=`<div class="in-actions"><button class="ebtn" data-act="addcol">${GL.table}<span>Añadir columna</span></button></div>`+lockChk(t);}
     else h+=head('Propiedades')+`<p class="in-p">Selecciona algo para editarlo.</p>`;
     this.insp.innerHTML=h;
     this.insp.querySelectorAll('[data-pendchk]').forEach(i=>i.addEventListener('change',()=>{this.pend[i.dataset.pendchk]=i.checked;}));
@@ -708,7 +893,7 @@ class Editor{
   }
   apply(el){
     const f=el.dataset.f;if(!f||el.dataset.pendchk)return;
-    const sn=this.single();if(isNote(sn)){if(f==='ntext')sn.text=el.value;return;}
+    const sn=this.single();if(f==='lock'){this.setLock(sn,el.checked);return;}if(isNote(sn)){if(f==='ntext')sn.text=el.value;return;}
     if(this.isER){const n=this.single();if(!n)return;
       if(f==='name')n.n=el.value;else if(f==='weak')n.k=el.checked?'weak':'ent';else if(f==='idrel')n.k=el.checked?'idrel':'rel';
       else if(f.startsWith('f-')){n.f[f.slice(2)]=el.checked;if(f==='f-k'&&el.checked)n.f.p=false;if(f==='f-p'&&el.checked)n.f.k=false;}
@@ -726,7 +911,7 @@ class Editor{
     const its=[...this.selIds].map(id=>this.node(id)).filter(Boolean);if(its.length<2)return;
     if((k==='dh'||k==='dv')&&its.length<3){toast('Para repartir hacen falta al menos 3 elementos.');return;}
     this.snap();const X=this.isER?this.X():null,sel=this.selIds;
-    const move=(n,dx,dy)=>{const seen=new Set();const mv=o=>{if(seen.has(o.id))return;seen.add(o.id);o.x=Math.round(o.x+dx);o.y=Math.round(o.y+dy);
+    const move=(n,dx,dy)=>{const seen=new Set();const mv=o=>{if(seen.has(o.id)||this.locked(o))return;seen.add(o.id);o.x=Math.round(o.x+dx);o.y=Math.round(o.y+dy);
       if(X&&!isNote(o)&&(!isAtt(o)||o.f.c))X.attrsOf(o).forEach(a=>{if(!sel.has(a.id))mv(a);});};mv(n);};
     const B=its.map(n=>({n,b:this.boxOf(n)}));
     const x0=Math.min(...B.map(o=>o.b[0])),x1=Math.max(...B.map(o=>o.b[2])),y0=Math.min(...B.map(o=>o.b[1])),y1=Math.max(...B.map(o=>o.b[3]));
@@ -738,21 +923,28 @@ class Editor{
   }
   /* ---------- Distribuir el relacional / DED ---------- */
   distributeTables(){
-    const ts=this.m.t;if(!ts.length)return;this.snap();
-    const tmp=ts.map(t=>({n:t.n,c:t.c,_par:[...new Set(t.c.map(c=>parseF(c[2]).fk).filter(f=>f&&lc(f)!==lc(t.n)))]}));
-    layoutByFK(tmp);
-    ts.forEach((t,i)=>{t.x=tmp[i].x;t.y=tmp[i].y;});
-    this.save();this.render();this.fit(true);toast('Tablas distribuidas. Ctrl+Z para volver atrás.');
+    const ts=this.m.t;if(!ts.length)return;const free=ts.filter(t=>!this.locked(t)),fixed=ts.filter(t=>this.locked(t));
+    if(!free.length){toast('Todas las tablas están bloqueadas.');return;}this.snap();
+    const rel=this.mode==='rel',size=t=>rel?refSize(t):tableSize(t);
+    const tmp=free.map(t=>({n:t.n,c:t.c}));layoutSmart(tmp,{size,others:ts});
+    free.forEach((t,i)=>{t.x=tmp[i].x;t.y=tmp[i].y;});
+    if(fixed.length)keepClear(free,fixed,size);
+    this.save();this.render();this.fit(true);toast(fixed.length?'Tablas distribuidas (las bloqueadas no se mueven). Ctrl+Z para volver atrás.':'Tablas distribuidas. Ctrl+Z para volver atrás.');
   }
   /* ---------- Distribuir el E-R ---------- */
   distribute(){
     // Coloca las entidades en una cuadrícula siguiendo sus relaciones, cada relación entre sus entidades
     // y los atributos repartidos alrededor de su dueño, por el lado contrario a las líneas.
     if(!this.isER){this.distributeTables();return;}
-    if(!this.m.nodes.length)return;this.snap();const X=this.X();const ns=this.m.nodes;ns.forEach(n=>this.size(n));
-    const ents=ns.filter(isEnt),rels=ns.filter(isRel),attrs=ns.filter(isAtt);
+    if(!this.m.nodes.length)return;this.snap();const X=this.X();const ns=this.m.nodes;ns.forEach(n=>this.size(n,X));
+    // lo bloqueado (y los atributos de una entidad bloqueada) se queda donde está
+    const keep=new Map();const keepIt=n=>{if(keep.has(n.id))return;keep.set(n.id,[n.x,n.y]);if(!isAtt(n)||n.f.c)X.attrsOf(n).forEach(keepIt);};ns.filter(n=>this.locked(n)).forEach(keepIt);
+    const ents=ns.filter(isEnt),rels=ns.filter(isRel),attrs=ns.filter(isAtt),isas=ns.filter(isIsa);
     const deg=new Map(ents.map(e=>[e.id,0])),adj=new Map(ents.map(e=>[e.id,new Set()]));
-    rels.forEach(r=>{const es=[...new Set(X.ends(r).map(x=>x.e.id))];es.forEach(a=>{deg.set(a,deg.get(a)+1);es.forEach(b=>{if(a!==b)adj.get(a).add(b);});});});
+    const join=es=>es.forEach(a=>{deg.set(a,deg.get(a)+1);es.forEach(b=>{if(a!==b)adj.get(a).add(b);});});
+    rels.forEach(r=>join([...new Set(X.ends(r).map(x=>x.e.id))]));
+    this.m.links.forEach(l=>{if(isEnt(X.N[l.a])&&isEnt(X.N[l.b])&&l.a!==l.b)join([l.a,l.b]);}); // líneas directas del boceto
+    const supOf={};isas.forEach(i=>{const s=X.superOf(i);if(!s)return;X.subsOf(i).forEach(e=>{supOf[e.id]=s.id;join([s.id,e.id]);});});
     const nAtt=o=>X.attrsOf(o).length,maxA=Math.max(60,...attrs.map(a=>a.w));
     const cellW=Math.max(110,...ents.map(e=>e.w))+2*(maxA+34)+140;
     const cellH=Math.max(...ents.map(e=>nAtt(e)>4?250:200),200)+140;
@@ -772,6 +964,9 @@ class Editor{
             // evita quedar en línea recta detrás de otra entidad (la línea la atravesaría)
             if((ax===0&&ay>1)||(ay===0&&ax>1))sc+=1.5;});
           sc+=Math.abs(dy)*0.1+Math.abs(dx)*0.02;
+          // en una jerarquía, los subtipos debajo del supertipo
+          if(supOf[e.id]&&pos[supOf[e.id]]&&c[1]<=pos[supOf[e.id]][1])sc+=4;
+          Object.keys(supOf).forEach(sid=>{if(supOf[sid]===e.id&&pos[sid]&&c[1]>=pos[sid][1])sc+=4;});
           // que el conjunto quede compacto (ni una fila larga ni una columna)
           const xs=[...Object.values(pos).map(p=>p[0]),c[0]],ys=[...Object.values(pos).map(p=>p[1]),c[1]];
           sc+=0.45*Math.max(0,Math.max(...xs)-Math.min(...xs)-2)+0.45*Math.max(0,Math.max(...ys)-Math.min(...ys)-1);
@@ -798,7 +993,10 @@ class Editor{
         for(let ring=1;ring<14&&!found;ring++)for(let k=0;k<8*ring&&!found;k++){const ang=k/(8*ring)*2*Math.PI;r.x=x0+Math.cos(ang)*ring*36;r.y=y0+Math.sin(ang)*ring*30;if(!hits(r,24))found=true;}
         if(!found){r.x=x0;r.y=y0;}}
       r._p=1;});
-    const orphans=[...rels.filter(r=>r.x===-1e5),...ents.filter(e=>!done.has(e.id))];
+    isas.forEach(i=>{const s=X.superOf(i),subs=X.subsOf(i);if(!s){i.x=-1e5;return;}
+      const my=subs.length?subs.reduce((t,e)=>t+e.y,0)/subs.length:s.y+cellH,mx=subs.length?subs.reduce((t,e)=>t+e.x,0)/subs.length:s.x;
+      i.x=Math.round((s.x*2+mx)/3);i.y=Math.round(s.y+(my-s.y)*0.45);});
+    const orphans=[...rels.filter(r=>r.x===-1e5),...isas.filter(i=>i.x===-1e5),...ents.filter(e=>!done.has(e.id))];
     // 3) atributos alrededor de su dueño
     attrs.forEach(a=>{a.x=-9999;a.y=-9999;});
     const placed=()=>ns.filter(n=>n.x>-5000);
@@ -829,7 +1027,8 @@ class Editor{
     const all=ns,bx0=Math.min(...all.map(n=>n.x-n.w/2)),bx1=Math.max(...all.map(n=>n.x+n.w/2)),by0=Math.min(...all.map(n=>n.y-n.h/2)),by1=Math.max(...all.map(n=>n.y+n.h/2));
     const dx=W/2-(bx0+bx1)/2,dy=H/2-(by0+by1)/2;
     all.forEach(n=>{n.x=Math.round(n.x+dx);n.y=Math.round(n.y+dy);delete n._p;delete n._k;});
-    this.save();this.render();this.fit(true);toast('Diagrama distribuido. Ctrl+Z para volver atrás.');
+    keep.forEach(([x,y],id)=>{const n=X.N[id];if(n){n.x=x;n.y=y;}});
+    this.save();this.render();this.fit(true);toast(keep.size?'Diagrama distribuido (lo bloqueado no se mueve). Ctrl+Z para volver atrás.':'Diagrama distribuido. Ctrl+Z para volver atrás.');
   }
   /* ---------- Pasar del E-R a tablas ---------- */
   fromER(){

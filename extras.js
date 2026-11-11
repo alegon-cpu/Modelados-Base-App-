@@ -1,6 +1,7 @@
 /* ===================== Ajustes ===================== */
 const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
-  grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:''};
+  grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
+  notation:'chen',lines:'straight',showIsa:true,projector:false,keys:{}};
 const Settings={
   _c:null,
   get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}return this._c={...SET_DEF,...v};},
@@ -9,10 +10,13 @@ const Settings={
   reset(){this._c={...SET_DEF};try{localStorage.setItem('mb:set',JSON.stringify(this._c));}catch(e){}this.apply();try{window.api.winPref({start:SET_DEF.winStart,onTop:SET_DEF.onTop}).catch(()=>{});}catch(e){}},
   apply(){const c=this.get(),r=document.documentElement;
     r.dataset.accent=c.accent;
-    r.classList.toggle('hc',!!c.contrast);r.classList.toggle('rm',!!c.reduceMotion);r.classList.toggle('thick',!!c.thick);
+    // Modo proyector: tema claro, alto contraste, líneas gruesas y todo más grande
+    const pj=!!c.projector;r.classList.toggle('proj',pj);
+    r.classList.toggle('hc',!!c.contrast||pj);r.classList.toggle('rm',!!c.reduceMotion);r.classList.toggle('thick',!!c.thick||pj);
     r.classList.toggle('cb',!!c.cb);r.classList.toggle('focusall',!!c.focusAll);
-    try{window.api.winZoom(c.uiScale/100).catch(()=>{});}catch(e){}
-    if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();},
+    if(typeof Theme!=='undefined'){if(pj)r.setAttribute('data-theme','light');else Theme.apply(Theme.get());}
+    try{window.api.winZoom((pj?Math.max(c.uiScale,125):c.uiScale)/100).catch(()=>{});}catch(e){}
+    if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg){App.ed.renderTools();App.ed.render();}},
   init(){this.apply();try{window.api.winPref({start:this.get().winStart,onTop:this.get().onTop}).catch(()=>{});}catch(e){}
     const lang0=LANG();
     window.addEventListener('storage',async e=>{if(e.key==='mb:set'){this._c=null;if(LANG()!==lang0){try{await App.flushAll();App.keepPlace();}catch(x){}window.api.reload();return;}this.apply();if(typeof App!=='undefined'&&App.settingsOpen)App.renderSettings();}});}
@@ -104,7 +108,7 @@ function parseSQL(text){
     if(!tb.cols.some(c=>c.pk||pk.has(lc(c.n))))warn.push(`La tabla «${tb.n}» no tiene clave primaria.`);
     return {id:uid(),n:tb.n,x:0,y:0,_par:[...new Set(Object.values(fkOf))].filter(n=>lc(n)!==lc(tb.n)),
       c:tb.cols.map(c=>{const isPk=c.pk||pk.has(lc(c.n));return [c.n,c.type||'VARCHAR(45)',joinF({pk:isPk?1:0,nul:(!isPk&&!c.nn)?1:0,uq:(!isPk&&(c.uq||uq.has(lc(c.n))))?1:0,fk:fkOf[lc(c.n)]||null})];})};});
-  layoutByFK(out);
+  layoutSmart(out);out.forEach(t=>delete t._par);
   return {tables:out,warn:[...new Set(warn)]};
 }
 // Modelo de MySQL Workbench (.mwb → document.mwb.xml): se pasa a un script SQL y se guardan las posiciones del diagrama

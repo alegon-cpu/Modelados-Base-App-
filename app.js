@@ -13,6 +13,7 @@ const SVG_RULES=`.ln{stroke:var(--er-stroke);stroke-width:1.2}.mk{stroke:var(--e
 .ipk{fill:var(--pk)}.ifk{fill:var(--fk)}.icol{fill:var(--col)}.inul{fill:none;stroke:var(--col);stroke-width:1.3}
 .rbox{fill:var(--surface);stroke:var(--ink);stroke-width:1.1}.rnm{font:600 12.5px var(--f-mono);fill:var(--c-ent)}.rcol{font:12px var(--f-mono);fill:var(--ink)}.rpk{font-weight:700;fill:var(--pk-ink)}.rfk{fill:var(--fk-ink)}.rul{stroke:var(--pk-ink);stroke-width:1.1}
 .rtag{font:600 9.5px var(--f-mono);fill:var(--muted)}.rarr{fill:none;stroke:var(--fk);stroke-width:1.1}.rhead{fill:var(--fk)}
+.ent.hd,.dia.hd{fill:none}.ktag{font:700 9px var(--f-mono);fill:var(--muted)}.rlab{fill:#FFFFFF;stroke:none;opacity:.92}.dia.assoc{stroke-dasharray:5 3}.ln.lid{stroke-width:2.2}.isal{fill:var(--c-rel)}.skt{fill:var(--c-ent)}
 .thx.dup{fill:#FFC2BD}.cx.dup,.rnm.dup,.rcol.dup{fill:var(--bad);text-decoration:underline}
 .note{stroke-width:1.2}.note-fold{stroke-width:1.2}.nc-y{fill:#FFF4C2;stroke:#D2AE36}.nc-b{fill:#DDEBFA;stroke:#7AA3D6}.nc-g{fill:#DFF2E1;stroke:#7DBB87}.nc-p{fill:#FBE1EC;stroke:#D98AAE}.note-fold{filter:brightness(.93)}.note-tx{font:12px var(--f-ui);fill:#2B2A27}`;
 const SVG_CSS=SVG_RULES.replace(/var\(--([\w-]+)\)/g,(_,k)=>LIGHT[k]||'#000');
@@ -91,7 +92,7 @@ const b64u={enc(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharC
   dec(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}};
 async function pipeBytes(data,stream){return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());}
 async function toCode(list){
-  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,er:q.er,rel:q.rel,ded:q.ded};})});
+  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,bo:q.bo,er:q.er,rel:q.rel,ded:q.ded};})});
   return 'MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
 }
 async function fromCode(txt){
@@ -145,38 +146,48 @@ const SET_SECS=[['apariencia','Apariencia',ico('<circle cx="9" cy="9" r="6.5" fi
   ['ventana','Ventana',ico('<rect x="2" y="3" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2 6.5h14" stroke="currentColor" stroke-width="1.3"/>')],
   ['accesibilidad','Accesibilidad',ico('<circle cx="9" cy="3.5" r="1.6" fill="currentColor"/><path d="M3 6.5h12M9 6.5v4.5l-3 4.5M9 11l3 4.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>')],
   ['lienzo','Lienzo',ico('<path d="M3 3h12v12H3z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="6" cy="6" r=".9" fill="currentColor"/><circle cx="9" cy="6" r=".9" fill="currentColor"/><circle cx="12" cy="6" r=".9" fill="currentColor"/><circle cx="6" cy="9" r=".9" fill="currentColor"/><circle cx="9" cy="9" r=".9" fill="currentColor"/><circle cx="12" cy="9" r=".9" fill="currentColor"/><circle cx="6" cy="12" r=".9" fill="currentColor"/><circle cx="9" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>')],
+  ['atajos','Atajos',ico('<rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4 7.5h1.5M7 7.5h1.5M10 7.5h1.5M13 7.5h1M5 10.5h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>')],
   ['actualizaciones','Actualizaciones',ico('<path d="M14.5 6.5A6 6 0 1 0 15 11" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M15 2.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.4"/>')],
   ['teoria','Teoría',ico('<path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>')],
   ['acerca','Acerca de',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 8v4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="5.5" r="1" fill="currentColor"/>')]];
 const kb=s=>s.split('+').map(k=>`<kbd>${k}</kbd>`).join('+');
 const CONTROLS=[
-  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['Ctrl+A','Seleccionar todo'],['Ctrl+F','Buscar en el diagrama'],['Clic derecho','Menú con opciones del elemento (sin mover el ratón)'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
-  ['Editar',[['Ctrl+C','Copiar'],['Ctrl+X','Cortar'],['Ctrl+V','Pegar'],['Ctrl+D','Duplicar'],['F2','Renombrar'],['Supr','Borrar lo seleccionado (también Retroceso)'],['Ctrl+Z','Deshacer'],['Ctrl+Y','Rehacer'],['Esc','Cancelar / quitar la selección']]],
+  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['@selectAll','Seleccionar todo'],['@find','Buscar en el diagrama'],['@fit','Ajustar la vista'],['@distribute','Distribuir'],['@lock','Bloquear / desbloquear la posición'],['@notation','Cambiar de notación'],['Clic derecho','Menú con opciones del elemento (sin mover el ratón)'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
+  ['Editar',[['@copy','Copiar'],['@cut','Cortar'],['@paste','Pegar'],['@duplicate','Duplicar'],['@rename','Renombrar'],['@del','Borrar lo seleccionado (también Retroceso)'],['@undo','Deshacer'],['@redo','Rehacer'],['Esc','Cancelar / quitar la selección']]],
   ['Unir y relacionar',[['Mayús+clic','Une lo seleccionado con el elemento que pulses'],['Dos entidades','Al unirlas se crea una relación en medio'],['Mayús+clic en Rel/DED','Relaciona dos tablas: eliges quién recibe la clave'],['Clic en una línea','Poner máximo y mínimo de esa línea']]],
   ['Panel',[['Enter en un atributo','Crea otro atributo en la misma entidad'],['Enter en una columna','Crea otra columna debajo'],['Enter en el nombre de la tabla','Añade una columna']]],
-  ['General',[['Ctrl+S','Guardar'],['Ctrl+1 … Ctrl+6','Enunciado, E-R, Relacional, DED, SQL, Probar'],['F1','Ver estos controles'],['Ctrl+,','Ajustes'],['F11','Pantalla completa']]]
+  ['General',[['@save','Guardar'],['Ctrl+1 … Ctrl+7','Enunciado, Boceto, E-R, Relacional, DED, SQL, Probar'],['@controls','Ver estos controles'],['@settings','Ajustes'],['@projector','Modo proyector'],['F11','Pantalla completa']]]
 ];
-const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL para MySQL, SQL Server, Oracle o PostgreSQL, con datos de ejemplo; se puede editar, y también al revés: de un SQL dibuja las tablas.", "Pestaña Probar: una base de datos SQLite de verdad dentro de la app para ejecutar consultas y comprobar las claves ajenas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
+const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "Boceto y E-R: entidades (normales y débiles), relaciones (binarias, ternarias e identificadoras), jerarquías (ISA) y atributos de todos los tipos, en notación Chen, pata de gallo o UML. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL para MySQL, SQL Server, Oracle o PostgreSQL, con datos de ejemplo; se puede editar, y también al revés: de un SQL dibuja las tablas.", "Pestaña Probar: una base de datos SQLite de verdad dentro de la app para ejecutar consultas y comprobar las claves ajenas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
 const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you choose. Each one with its brief, E-R, relational, DSD, SQL and tests.",
-  "E-R: entities (normal and weak), relationships (and identifying ones) and every kind of attribute. Maximum and minimum with simple questions; the type (1:1, 1:N, N:M) appears by itself.",
+  "Sketch and E-R: entities (normal and weak), relationships (binary, ternary, identifying), hierarchies (ISA) and every kind of attribute, in Chen, crow's foot or UML notation. Maximum and minimum with simple questions; the type (1:1, 1:N, N:M) appears by itself.",
   "Relational and DSD: tables with PK, FK, NN and Unique. They can be created from the E-R (with or without the relationships) and related with Shift+click.",
   "SQL for MySQL, SQL Server, Oracle or PostgreSQL, with sample data. And the other way round: from an SQL script it draws the tables.",
   "Test tab: a real SQLite database inside the app to run queries and check the foreign keys.",
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=["After «Update now» the app opens again by itself with the new version.","Checked that automatic updating works: this version arrived by itself.","Updating now really works: the new version installs itself (without depending on PowerShell) and the app opens again.","«Arrange» is now also in the relational and the DSD: tables that depend on nobody go on top and the ones pointing to them below, ordered so the arrows cross as little as possible.","The app now closes completely, and «Restart and update» opens it again with the new version.",
-  "Import from MySQL Workbench or phpMyAdmin (SQL tab): open a .mwb model or a .sql exported from them and it draws the DSD and the relational. Export is the button next to it.",
-  "If you open the app from inside the .zip (or .rar) without extracting it, it warns you and explains how to extract it.",
-  "Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
-  "Find in the diagram with Ctrl+F: entities, relationships, attributes, tables, columns and notes.",
-  "The app is now also in English (Settings › Appearance › Language).",
-  "New Test tab in every project: a SQLite database inside the app. Create it from the DSD or the SQL, fill it with sample data, run queries and check that the foreign keys work.",
-  "Sample data: consistent INSERTs that respect PK, FK and UNIQUE.",
-  "SQL for MySQL, SQL Server, Oracle or PostgreSQL: the types and details change for each one.",
-  "Shortcuts: F2 rename, Ctrl+D duplicate, Ctrl+F find, Ctrl+6 Test tab.",
-  "«For Workbench / phpMyAdmin» (SQL tab): saves a MySQL .sql file that MySQL Workbench turns into a diagram and phpMyAdmin imports as a database."];
+const NOVEDADES_EN=['New Sketch tab (right after the Brief): only entities and lines between them, to think about what relates to what. «To the E-R» creates the entities and a diamond for each line.',
+  'Hierarchies (ISA, generalization / specialization): «Hierarchy» button, total or partial, disjoint or overlapping, and three ways to convert them to tables.',
+  'Easier ternary relationships: select 3 entities and «Ternary relationship between the 3»; or join a third entity to a relationship.',
+  "Choose the notation: Chen, crow's foot or UML, in the E-R and the DSD (diagram bar or Settings › Canvas).",
+  'Arrange in the relational and DSD redone: it looks for the layout with fewest line crossings and no lines over tables.',
+  'Right-angled lines in the relational and the DSD (Settings › Canvas).',
+  'Lock the position of any element (right button or Ctrl+L): it does not move when dragged or arranged.',
+  'Compare two versions («Compare» button): with another project or a code, it tells you what is missing, extra or different, and marks it on the diagram.',
+  'SQL errors in the Test tab are explained, with a tip to fix them and the failing statement.',
+  'Keyboard shortcuts your way (Settings › Shortcuts) and projector mode for class (Ctrl+Shift+P).'];
 const NOVEDADES=[
+  '1.9: pestaña Boceto (justo después del Enunciado): solo entidades y líneas entre ellas, para pensar qué se relaciona con qué. «Pasar al E-R» crea las entidades y un rombo por cada línea.',
+  '1.9: jerarquías (ISA, generalización / especialización): botón «Jerarquía», total o parcial, exclusiva o solapada, y tres formas de pasarlas a tablas.',
+  '1.9: relaciones ternarias más fáciles: selecciona 3 entidades y «Relación ternaria entre las 3»; o une una tercera entidad a una relación.',
+  '1.9: notación a elegir: Chen, pata de gallo o UML, en el E-R y en el DED (barra del diagrama o Ajustes › Lienzo).',
+  '1.9: «Distribuir» del relacional y del DED rehecho: busca la colocación con menos cruces de líneas y sin líneas por encima de las tablas.',
+  '1.9: líneas en ángulo recto en el relacional y el DED (Ajustes › Lienzo).',
+  '1.9: bloquear la posición de cualquier elemento (botón derecho o Ctrl+L): no se mueve al arrastrar ni al distribuir.',
+  '1.9: comparar dos versiones (botón «Comparar»): con otro proyecto o un código, te dice qué falta, qué sobra y qué cambia, y lo marca en el diagrama.',
+  '1.9: los errores de SQL de la pestaña Probar se explican en español, con una pista para arreglarlos y la consulta que falla.',
+  '1.9: atajos de teclado a tu gusto (Ajustes › Atajos) y modo proyector para clase (Ctrl+Mayús+P).',
   '1.7.6: tras «Actualizar ahora» la app se vuelve a abrir sola con la versión nueva.',
   '1.7.5: comprobado que la actualización automática funciona: esta versión ha llegado sola.',
   '1.7.4: actualizar ya funciona de verdad: la versión nueva se instala sola (sin depender de PowerShell) y la app se vuelve a abrir.',
@@ -345,8 +356,15 @@ const App={
     else if(sec==='accesibilidad'){h=H('Accesibilidad')+seg('uiScale','Tamaño de la interfaz','Agranda letras, botones y paneles.',[[90,'90 %'],[100,'100 %'],[110,'110 %'],[125,'125 %'],[150,'150 %']])+
         tog('contrast','Alto contraste','Bordes y textos más marcados.')+tog('thick','Líneas más gruesas en los diagramas','Entidades, relaciones, tablas y flechas se ven mejor.')+
         tog('cb','Colores para daltonismo','Cambia los colores de los diagramas por otros que se distinguen con cualquier tipo de daltonismo.')+
+        tog('projector','Modo proyector','Para enseñarlo en clase: tema claro, alto contraste, líneas gruesas y todo más grande. Atajo: '+(keyLabel('projector')||'—')+'.')+
         tog('focusAll','Marcar siempre el elemento activo','Un borde de color en el botón o campo donde estás, también con el ratón.')+tog('reduceMotion','Reducir animaciones','Quita transiciones y movimientos.');}
-    else if(sec==='lienzo'){h=H('Lienzo')+tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados.')+
+    else if(sec==='atajos'){const K=KEYS();
+      h=H('Atajos de teclado','Pulsa «Cambiar» y después la combinación que quieras (por ejemplo Ctrl+Mayús+E). Esc cancela.')+KEY_NAMES.map(([g,rows])=>`<p class="set-g">${g}</p>`+rows.map(([a,l])=>`<div class="set-row"><div class="set-lab"><b>${l}</b></div><div class="keyrow">${this._capKey===a?'<span class="keycap wait">Pulsa la combinación…</span>':K[a]?`<span class="keycap">${kb(K[a]==='Delete'?'Supr':K[a])}</span>`:'<span class="keycap none">Sin atajo</span>'}<button class="ebtn" data-m="key-set" data-k="${a}">Cambiar</button>${K[a]?`<button class="ebtn" data-m="key-clear" data-k="${a}" title="Quitar el atajo" aria-label="Quitar el atajo">✕</button>`:''}</div></div>`).join('')).join('')+
+        `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
+    else if(sec==='lienzo'){h=H('Lienzo')+seg('notation','Notación del E-R y del DED','Chen: rombos y óvalos. Pata de gallo: cajas con los atributos dentro y patas en las líneas. UML: clases con multiplicidades (0..*, 1…).',[['chen','Chen'],['crow','Pata de gallo'],['uml','UML']])+
+        seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
+        tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
+        tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados.')+
         seg('zoomSpeed','Velocidad del zoom con la rueda','',[['slow','Lenta'],['normal','Normal'],['fast','Rápida']])+
         `<p class="set-sub">Para alinear varios elementos, selecciónalos (arrastrando en un hueco) y usa los botones de «Alinear» y «Repartir» del panel derecho.</p>`;}
     else if(sec==='actualizaciones'){h=H('Actualizaciones',`Tienes la versión <b>${VERSION}</b>.`)+tog('autoUpdate','Actualizar automáticamente','Las versiones nuevas se descargan solas y se instalan al cerrar la app. Si lo quitas, te avisará y elegirás tú.')+
@@ -364,7 +382,40 @@ const App={
     body.innerHTML=h;
     const q=document.getElementById('thq');if(q){q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderSettings();const n=document.getElementById('thq');if(n){n.focus();n.setSelectionRange(pos,pos);}});}
   },
-  showControls(){this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+6'):esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><div class="mrow"><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
+  // Guardar un atajo nuevo (si ya lo usaba otra acción, a esa se le quita)
+  setKey(a,c){const K=KEYS(),ks={...(Settings.get().keys||{})};const other=Object.keys(K).find(x=>x!==a&&K[x]===c);
+    if(other){ks[other]='';const nm=KEY_NAMES.flatMap(g=>g[1]).find(r=>r[0]===other);toast(`${c} ya era «${nm?nm[1]:other}»: se lo he quitado.`,'warn');}
+    ks[a]=c;this._capKey=null;Settings.set('keys',ks);this.renderSettings();},
+  /* ---------- Comparar dos versiones ---------- */
+  showCompare(){const p=this.cur;if(!p)return;const others=this.projects.filter(x=>x!==p);
+    this.modal(`<h3>Comparar «${esc(p.name)}»</h3><p>Compara este proyecto con otro (por ejemplo, tu versión con la de un compañero o la del profesor) y te dice qué hay en uno y no en el otro, y qué cambia.</p>
+      <div class="cmp-src"><label class="chk"><input type="radio" name="cmpsrc" value="proj" ${others.length?'checked':'disabled'}><span class="chk-t">Con otro de mis proyectos<small>${others.length?'':'No tienes otros proyectos.'}</small></span></label>
+      ${others.length?`<select id="cmpproj" class="cmp-sel">${others.map(o=>`<option value="${o._id}">${esc(o.name)}</option>`).join('')}</select>`:''}
+      <label class="chk"><input type="radio" name="cmpsrc" value="code" ${others.length?'':'checked'}><span class="chk-t">Con un código<small>El que sale en «Exportar código». Pégalo aquí:</small></span></label>
+      <textarea id="cmpcode" class="cmp-code" rows="3" spellcheck="false" placeholder="MB1-…"></textarea></div>
+      <div class="in-sub">Qué comparar</div><div class="cmp-parts">${[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']].map(([v,l])=>`<label class="tg"><input type="checkbox" data-cmp="${v}" ${v!=='bo'?'checked':''}><span>${l}</span></label>`).join('')}</div>
+      <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="cmp-go">Comparar</button></div>`);
+    const code=document.getElementById('cmpcode');code.addEventListener('focus',()=>{const r=document.querySelector('input[name=cmpsrc][value=code]');if(r)r.checked=true;});},
+  async runCompare(){const p=this.cur;const src=(document.querySelector('input[name=cmpsrc]:checked')||{}).value,parts=[...document.querySelectorAll('[data-cmp]:checked')].map(x=>x.dataset.cmp);
+    if(!parts.length){toast('Elige qué comparar.','warn');return;}
+    let o;if(src==='proj'){o=this.byId(document.getElementById('cmpproj').value);}
+    else{try{const list=await fromCode(document.getElementById('cmpcode').value);o=list[0];}catch(err){toast(err.message,'warn');return;}}
+    if(!o){toast('Elige con qué comparar.','warn');return;}
+    const res={},marks={},T={bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED'};
+    parts.forEach(v=>{const A=cleanModel(p[v],v),B=cleanModel(o[v],v);const d=(v==='er'||v==='bo')?diffER(A,B):diffTables(A,B);
+      const total=(v==='er'||v==='bo')?A.nodes.filter(n=>!isNote(n)).length+B.nodes.length/2:A.t.reduce((s,t)=>s+1+t.c.length,0);
+      d.score=diffScore(d,Math.max(1,total));res[v]=d;marks[v]=d.marks;});
+    this._cmp={marks,parts,with:o.name};
+    const L=(arr,cls,t)=>arr.length?`<p class="cmp-h ${cls}">${t} <span class="cnt">${arr.length}</span></p><ul class="cmp-l">${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
+    const any=parts.some(v=>res[v].add.length||res[v].del.length||res[v].chg.length);
+    this.modal(`<h3>Comparación: «${esc(p.name)}» y «${esc(o.name)}»</h3>${any?'':'<p class="tst-ok">Son iguales en todo lo que has elegido.</p>'}
+      ${parts.map(v=>{const d=res[v];return `<section class="cmp-sec"><div class="cmp-top"><b>${T[v]}</b><span class="cmp-pct" style="--p:${d.score}">${d.score} % parecido</span></div>
+        ${!d.add.length&&!d.del.length&&!d.chg.length?'<p class="tnote">Igual.</p>':L(d.add,'add',`Solo en «${esc(p.name)}»`)+L(d.del,'del',`Solo en «${esc(o.name)}» (te falta)`)+L(d.chg,'chg','Distinto')}</section>`;}).join('')}
+      <p class="tnote">Los nombres parecidos cuentan como iguales (mayúsculas, tildes, singular o plural).</p>
+      <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button>${any?'<button class="ebtn pri" data-m="cmp-mark">Marcarlo en el diagrama</button>':''}</div>`,'wide');},
+  clearDiff(){this.diff=null;if(this.ed&&this.ed.p&&this.ed.svg){this.ed.renderTools();this.ed.render();}toast('Marcas quitadas.');},
+  showControls(){const kk=k=>k.startsWith('@')?(keyLabel(k.slice(1))?kb(keyLabel(k.slice(1))):'<span class="mut">—</span>'):!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+7'):esc(k);
+    this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${kk(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><p class="tnote">Los atajos se pueden cambiar en Ajustes › Atajos.</p><div class="mrow"><button class="ebtn" data-m="set-keys">Cambiar atajos</button><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
   async reload(selectFolder){
     // Conserva en memoria los proyectos con cambios sin guardar
     const keep={};this.projects.forEach(p=>{if(p._dirty)keep[p.folder]=p;});
@@ -431,17 +482,21 @@ const App={
     document.getElementById('titlebar').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)this.action(b);});
     document.addEventListener('keydown',e=>{
       const tg=e.target.tagName,typing=tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA',ctrl=e.ctrlKey||e.metaKey,modalOpen=!document.getElementById('modal').hidden;
+      if(this._capKey&&modalOpen){e.preventDefault();e.stopPropagation();if(e.key==='Escape'){this._capKey=null;this.renderSettings();return;}const c=comboOf(e);if(c)this.setKey(this._capKey,c);return;}
       if(modalOpen){if(e.key==='Escape'){this.closeModal();}return;}
-      if(e.key==='F1'){e.preventDefault();this.showControls();return;}
-      if(ctrl&&e.key===','){e.preventDefault();this.showSettings();return;}
-      if(ctrl&&e.key.toLowerCase()==='f'&&this.cur&&['er','rel','ded'].includes(this.view)&&this.ed.p&&!this.locked.has(this.cur.folder)){e.preventDefault();this.ed.openSearch();return;}
-      if(ctrl&&e.key.toLowerCase()==='s'){e.preventDefault();this.saveNow();return;}
-      if(ctrl&&/^[1-6]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
-      if(typing||!this.cur||!['er','rel','ded'].includes(this.view)||!this.ed.p||this.locked.has(this.cur.folder))return;
+      const K=a=>keyIs(e,a),edv=this.cur&&['bo','er','rel','ded'].includes(this.view)&&this.ed.p&&!this.locked.has(this.cur.folder);
+      if(K('controls')){e.preventDefault();this.showControls();return;}
+      if(K('settings')){e.preventDefault();this.showSettings();return;}
+      if(K('find')&&edv){e.preventDefault();this.ed.openSearch();return;}
+      if(K('save')){e.preventDefault();this.saveNow();return;}
+      if(K('projector')){e.preventDefault();const v=!Settings.get().projector;Settings.set('projector',v);toast(v?'Modo proyector activado (vuelve a pulsar el atajo para quitarlo).':'Modo proyector desactivado.');return;}
+      if(K('notation')){e.preventDefault();const o=['chen','crow','uml'],c=Settings.get().notation||'chen',n=o[(o.indexOf(c)+1)%3];Settings.set('notation',n);if(edv)this.ed.renderTools();toast('Notación: '+{chen:'Chen',crow:'Pata de gallo',uml:'UML'}[n]);return;}
+      if(ctrl&&!e.shiftKey&&!e.altKey&&/^[1-7]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
+      if(typing||!edv)return;
       this.ed.key(e);
     });
   },
-  counts(p){const ents=p.er.nodes.filter(n=>n.k==='ent'||n.k==='weak').length;return{enun:p.enun&&p.enun.trim()?'✓':'',er:ents?ents+' ent.':'',rel:p.rel.t.length?p.rel.t.length+' tab.':'',ded:p.ded.t.length?p.ded.t.length+' tab.':'',sql:p.sql&&p.sql.trim()?'✓':'',test:Pruebas.dbs[p._id]?'BD':''};},
+  counts(p){const ents=p.er.nodes.filter(n=>n.k==='ent'||n.k==='weak').length,be=((p.bo&&p.bo.nodes)||[]).filter(n=>n.k==='ent').length;return{enun:p.enun&&p.enun.trim()?'✓':'',bo:be?be+' ent.':'',er:ents?ents+' ent.':'',rel:p.rel.t.length?p.rel.t.length+' tab.':'',ded:p.ded.t.length?p.ded.t.length+' tab.':'',sql:p.sql&&p.sql.trim()?'✓':'',test:Pruebas.dbs[p._id]?'BD':''};},
   renderCounts(p){const c=this.counts(p);Object.keys(c).forEach(v=>{const el=document.querySelector(`.pi[data-pid="${p._id}"][data-view="${v}"] .cnt`);if(el)el.textContent=c[v];});},
   renderTree(){
     const t=document.getElementById('tree');if(this.solo){t.innerHTML='';return;}
@@ -471,7 +526,7 @@ const App={
     const B=(a,t,cls='',tip='')=>`<button class="ebtn ${cls}" data-act="${a}"${tip?` title="${tip}"`:''}>${t}</button>`;
     mv.innerHTML=`<header class="ph">
       <input class="pname" id="pname" value="${escA(p.name)}" aria-label="Nombre del proyecto" spellcheck="false">
-      <div class="ph-acts">${this.solo?'':B('window','Abrir en ventana','','Abre solo este proyecto en una ventana nueva, a pantalla completa')+'<span class="ph-sep"></span>'}${B('capture','Exportar ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Exportar código','','Genera un código para pasar el proyecto a otra persona')}${B('erdplus','Exportar a ERDPlus','','Guarda el E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar de ERDPlus','','Abre un archivo .erdplus y lo pasa a tu E-R')}<span class="ph-sep"></span>${B('reveal','Abrir carpeta')}${this.solo?'':B('dup','Duplicar')}${B('clearproj','Vaciar proyecto','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></header>
+      <div class="ph-acts">${this.solo?'':B('window','Abrir en ventana','','Abre solo este proyecto en una ventana nueva, a pantalla completa')+'<span class="ph-sep"></span>'}${B('capture','Exportar ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Exportar código','','Genera un código para pasar el proyecto a otra persona')}${B('erdplus','Exportar a ERDPlus','','Guarda el E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar de ERDPlus','','Abre un archivo .erdplus y lo pasa a tu E-R')}${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}<span class="ph-sep"></span>${B('reveal','Abrir carpeta')}${this.solo?'':B('dup','Duplicar')}${B('clearproj','Vaciar proyecto','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></header>
       <div class="vtabs" role="tablist">${Object.entries(VIEWS).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
       <div class="view" id="view"></div>`;
     document.getElementById('pname').addEventListener('input',e=>{p.name=e.target.value.trim()||'Sin nombre';const nm=document.querySelector(`.pf[data-pid="${p._id}"] .nm`);if(nm)nm.textContent=p.name;const tp=document.getElementById('tbproj');if(tp)tp.textContent=p.name;if(this.solo)document.title=p.name+' · Modelado Bases';this.renameSoon(p);});
@@ -486,7 +541,7 @@ const App={
       document.getElementById('sqltxt').addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});
       document.getElementById('sqltxt').addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});
     } else if(this.view==='test'){Pruebas.render(v,p);
-    } else {this.ed.mount(v);this.ed.open(p,this.view);}
+    } else {if(this.view==='bo'&&!p.bo)p.bo={nodes:[],links:[],notes:[]};this.ed.mount(v);this.ed.open(p,this.view);}
   },
   go(p,view){this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
   byId(id){return this.projects.find(x=>x._id===id);},
@@ -534,6 +589,8 @@ const App={
     if(a==='reveal'){this.run(()=>window.api.reveal(p.folder));return;}
     if(a==='capture'){await this.flushAll();await this.captureMany([p]);return;}
     if(a==='export'){this.showCode([p],'Código del proyecto «'+p.name+'»');return;}
+    if(a==='compare'){this.showCompare();return;}
+    if(a==='cleardiff'){this.clearDiff();return;}
     if(a==='erdplus'){
       if(!p.er.nodes.length){toast('Tu E-R está vacío.');return;}
       let txt;try{txt=toERDPlus(cleanModel(p.er,'er'));}catch(e){toast('No se pudo generar: '+e.message,'warn');return;}
@@ -635,7 +692,7 @@ const App={
     for(const src of list){
       let name=String(src.name||'proyecto importado').trim()||'proyecto importado';if(names.has(name.toLowerCase()))name+=' (importado)';names.add(name.toLowerCase());
       const np=await this.run(()=>window.api.create(name));if(!np)continue;
-      np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.test=String(src.test||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.updated=Date.now();
+      np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.test=String(src.test||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.bo=cleanModel(src.bo||{},'bo');np.updated=Date.now();
       await this.run(()=>window.api.save(plainProject(np),exportSVGs(np)));got.push(np.folder);
     }
     if(got.length){await this.reload(got[0]);toast(got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`);}
@@ -648,7 +705,13 @@ const App={
     if(sv){const v=sv.dataset.v;Settings.set(sv.dataset.setv,/^\d+$/.test(v)?+v:v);this.renderSettings();return;}
     const tn=e.target.closest('[data-th]');if(tn){this._th=tn.dataset.th;this.renderSettings();const a=document.getElementById('thart');if(a)a.scrollTop=0;return;}
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
-    if(k==='close'){this.closeModal();return;}
+    if(k==='close'){this._capKey=null;this.closeModal();return;}
+    if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
+    if(k==='key-set'){this._capKey=b.dataset.k;this.renderSettings();return;}
+    if(k==='key-clear'){const ks={...(Settings.get().keys||{})};ks[b.dataset.k]='';Settings.set('keys',ks);this.renderSettings();return;}
+    if(k==='keys-reset'){Settings.set('keys',{});this._capKey=null;this.renderSettings();toast('Atajos restablecidos.');return;}
+    if(k==='cmp-go'){this.runCompare();return;}
+    if(k==='cmp-mark'){const d=this._cmp;if(!d)return;this.diff={p:this.cur,marks:d.marks,with:d.with};this.closeModal();const first=['er','rel','ded'].find(v=>d.parts.includes(v)&&Object.keys(d.marks[v]||{}).length)||d.parts[0];this.go(this.cur,first);toast('Verde: solo en el tuyo. Ámbar: cambiado. Lo que falta está en la lista.');return;}
     if(k==='controls'){this.showControls();return;}
     if(k==='news'){this.showNews();return;}
     if(k==='fullscreen'){window.api.winFullscreen();return;}

@@ -41,6 +41,32 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.9  (11/11/2026)
+------------------
+- Pestaña Boceto, justo despues del Enunciado: solo entidades y lineas entre
+  ellas (sin atributos ni rombos) para pensar que se relaciona con que. Cada
+  linea puede llevar el tipo que crees que sera (1:1, 1:N, N:M). "Pasar al
+  E-R" crea las entidades que falten y un rombo por cada linea. Se guarda en
+  la subcarpeta Boceto.
+- Jerarquias (ISA, generalizacion / especializacion): boton "Jerarquia",
+  supertipo y subtipos, total o parcial, exclusiva o solapada, con su
+  etiqueta (t,e). Al pasar a tablas eliges: una tabla por entidad, todo en
+  el supertipo o solo los subtipos.
+- Relaciones ternarias: selecciona 3 entidades y "Relacion ternaria entre
+  las 3", o une una tercera entidad a una relacion.
+- Notacion a elegir en el E-R y en el DED: Chen, pata de gallo o UML.
+- "Distribuir" del relacional y del DED rehecho: busca la colocacion con
+  menos cruces de lineas, sin lineas por encima de las tablas.
+- Lineas en angulo recto en el relacional y el DED (Ajustes > Lienzo).
+- Bloquear la posicion de cualquier elemento (boton derecho o Ctrl+L).
+- Comparar dos versiones (boton "Comparar"): con otro proyecto o con un
+  codigo; dice que falta, que sobra y que cambia, y lo marca en el diagrama.
+- Errores de SQL explicados en la pestaña Probar, con una pista y la
+  consulta que falla.
+- Atajos de teclado configurables (Ajustes > Atajos) y modo proyector
+  para clase (Ctrl+Mayus+P).
+- Teoria nueva: Boceto, Jerarquias, Relaciones ternarias y Notaciones.
+
 v1.7.6  (11/11/2026)
 --------------------
 - Despues de "Actualizar ahora" o "Reiniciar y actualizar", la app se

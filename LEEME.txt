@@ -20,6 +20,7 @@ Cada proyecto es una carpeta:
   proyecto 1\
     proyecto.json
     Enunciado.txt
+    Boceto\      diagrama.json (solo entidades y lineas)
     E-R\         diagrama.json  y  diagrama.svg
     Relacional\  diagrama.json  y  diagrama.svg
     DED\         diagrama.json  y  diagrama.svg

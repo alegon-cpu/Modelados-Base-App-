@@ -17,6 +17,10 @@ const TEORIA=[
 <li>Palabras como <i>cada, puede, al menos, varios, solo uno</i> → <b>cardinalidades</b>.</li>
 <li>Lo que «identifica» o «no se puede repetir» (DNI, código, matrícula) → <b>clave primaria</b>.</li></ul>`},
 
+{id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades lineas relacionar empezar',h:`
+<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. Solo hay <b>entidades</b> y <b>líneas</b> entre ellas: ni atributos, ni rombos, ni nombres de relación.</p>
+<ol><li>Lee el enunciado y pon una entidad por cada sustantivo importante (Alumno, Curso, Profesor…).</li><li>Une con una línea las que se relacionan (Mayús + clic, o «Unir»).</li><li>Si ya lo intuyes, pulsa la línea y marca si será 1:1, 1:N o N:M (es opcional).</li><li>Pulsa <b>Pasar al E-R</b>: se crean las entidades que falten y un rombo por cada línea, para ponerle allí el verbo, los atributos y las cardinalidades.</li></ol>
+<p class="th-tip">Si una entidad no tiene ninguna línea, quizá sobra, o es un atributo de otra.</p>`},
 {id:'entidades',t:'Entidades',k:'entidad fuerte debil rectangulo doble',h:`
 <p>Una <b>entidad</b> es algo de lo que queremos guardar información y que se puede distinguir de los demás: un alumno, un libro, un pedido.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.ent,'Entidad (fuerte)')}<p>Rectángulo. Tiene su propia clave primaria: se identifica sola. Ejemplo: <i>Alumno</i> se identifica por su DNI.</p></div>
@@ -60,6 +64,32 @@ Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como m�
 <li><b>1:N</b> → un máximo es 1 y el otro N (una pizzería tiene muchos animatrónicos).</li>
 <li><b>N:M</b> → los dos máximos son N (un alumno, muchos cursos; un curso, muchos alumnos).</li></ul>
 <div class="th-tip">Haz siempre las dos preguntas, una desde cada entidad. La app te las muestra al pulsar la relación o una de sus líneas.</div>`},
+
+{id:'jerarquias',t:'Jerarquías (generalización / ISA)',k:'isa jerarquia generalizacion especializacion supertipo subtipo total parcial exclusiva solapada disjunta herencia es un',h:`
+<p>Una <b>jerarquía</b> (ISA, «es un») se usa cuando varias entidades comparten datos y una es un caso particular de otra: un <i>Titular</i> <b>es un</b> <i>Profesor</i>, un <i>Interino</i> <b>es un</b> <i>Profesor</i>.</p>
+<p>Se dibuja con un <b>triángulo</b>: arriba la entidad general (<b>supertipo</b>) y debajo las particulares (<b>subtipos</b>). Los subtipos <b>heredan</b> la clave y los atributos del supertipo, y solo llevan lo suyo.</p>
+<h4>Cómo se marca</h4><table class="th-t"><tr><th></th><th>Significa</th></tr>
+<tr><td><b>Total</b> (t)</td><td>Todo profesor es de algún subtipo.</td></tr><tr><td><b>Parcial</b> (p)</td><td>Puede haber profesores que no sean de ningún subtipo.</td></tr>
+<tr><td><b>Exclusiva</b> (e)</td><td>Cada uno es como mucho de un subtipo.</td></tr><tr><td><b>Solapada</b> (s)</td><td>Uno puede ser de varios subtipos a la vez.</td></tr></table>
+<p>Se escribe junto al triángulo: <b>(t,e)</b> total exclusiva, <b>(p,s)</b> parcial solapada… En UML se escribe <i>{completa, disjunta}</i>.</p>
+<h4>Al pasar a tablas</h4><ul><li><b>Una tabla por entidad</b> (vale siempre): cada subtipo tiene como PK la del supertipo, que también es FK hacia él.</li>
+<li><b>Todo en el supertipo</b>: una sola tabla con las columnas de todos (las de los subtipos pueden quedar vacías) y una columna <i>tipo</i>. Cómodo si los subtipos tienen pocos atributos.</li>
+<li><b>Solo los subtipos</b>: cada subtipo copia las columnas del supertipo. Solo si la jerarquía es <b>total</b> (si no, se perderían los que no son de ningún subtipo).</li></ul>
+<p class="th-tip">En la app: selecciona el supertipo y pulsa «Jerarquía»; después «Añadir subtipo». En su panel eliges total/parcial, exclusiva/solapada y cómo pasarla a tablas.</p>`},
+
+{id:'ternarias',t:'Relaciones ternarias',k:'ternaria tres entidades cardinalidad grado n-aria',h:`
+<p>Una relación <b>ternaria</b> une tres entidades a la vez. Úsala solo cuando el dato necesita las tres juntas: <i>un profesor imparte una asignatura a un grupo</i>. Si se puede partir en dos binarias sin perder información, mejor binarias.</p>
+<h4>Cardinalidad en una ternaria</h4><p>Para cada entidad se pregunta: <b>fijando una pareja de las otras dos</b>, ¿cuántas de esta puede haber? Ejemplo: para un profesor y una asignatura, ¿en cuántos grupos? → (1,N).</p>
+<h4>Al pasar a tablas</h4><p>Siempre sale una <b>tabla nueva</b> con las PK de las tres entidades como FK. La PK de esa tabla la forman las FK de los lados con máximo N (si todos son 1, basta con dos).</p>
+<p class="th-tip">En la app: selecciona las tres entidades (arrastrando en un hueco o con Ctrl+clic) y pulsa «Relación ternaria entre las 3». También puedes unir una tercera entidad a una relación con Mayús + clic.</p>`},
+
+{id:'notaciones',t:'Notaciones: Chen, pata de gallo y UML',k:'notacion chen pata de gallo crow foot uml multiplicidad patas',h:`
+<p>El mismo E-R se puede dibujar de varias formas. En la app se cambia en la barra («Notación») o en Ajustes › Lienzo.</p>
+<table class="th-t"><tr><th>Notación</th><th>Cómo se ve</th></tr>
+<tr><td><b>Chen</b></td><td>Entidades en rectángulos, relaciones en rombos, atributos en óvalos y la cardinalidad (mín,máx) en las líneas. La más usada en clase.</td></tr>
+<tr><td><b>Pata de gallo</b></td><td>Cajas con los atributos dentro (PK marcada). En cada línea, junto a la entidad: <b>|</b> es uno, la <b>pata</b> es muchos, el <b>círculo</b> es mínimo 0. Es la de MySQL Workbench.</td></tr>
+<tr><td><b>UML</b></td><td>Clases con los atributos dentro y multiplicidades en los extremos: <b>1</b>, <b>0..1</b>, <b>0..*</b>, <b>1..*</b>. Las relaciones de 3 o más llevan un rombo.</td></tr></table>
+<p>Equivalencias: (0,1) = 0..1 · (1,1) = 1 · (0,N) = 0..* · (1,N) = 1..*.</p>`},
 
 {id:'paso',t:'Pasar del E-R a tablas',k:'paso relacional reglas transformacion fk tabla intermedia n:m 1:n 1:1 debil multivaluado',h:`
 <p>Estas son las reglas para convertir el E-R en el modelo relacional. Son las mismas que usa el botón «Pasar desde mi E-R» con el modo fácil.</p>
@@ -151,6 +181,9 @@ const TEORIA_EN=[
 <ul><li>Important <b>nouns</b> (student, course, order) → possible <b>entities</b>.</li><li><b>Data</b> about each thing (name, date, price) → <b>attributes</b>.</li>
 <li><b>Verbs</b> joining two things (a student <i>enrols in</i> courses) → <b>relationships</b>.</li><li>Words like <i>each, can, at least, several, only one</i> → <b>cardinalities</b>.</li>
 <li>Whatever «identifies» or «cannot repeat» (ID number, code, plate) → <b>primary key</b>.</li></ul>`},
+{id:'boceto',t:'Sketch: think before the E-R',k:'sketch draft entities lines relate start',h:`
+<p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R. It only has <b>entities</b> and <b>lines</b> between them: no attributes, diamonds or relationship names.</p>
+<ol><li>Read the brief and add an entity for each important noun (Student, Course, Teacher…).</li><li>Join with a line the ones that are related (Shift + click, or «Connect»).</li><li>If you already know it, click the line and mark 1:1, 1:N or N:M (optional).</li><li>Click <b>To the E-R</b>: the missing entities and one diamond per line are created there, so you can add the verb, attributes and cardinalities.</li></ol>`},
 {id:'entidades',t:'Entities',k:'entity strong weak rectangle double',h:`
 <p>An <b>entity</b> is something we want to store information about and that can be told apart from the rest: a student, a book, an order.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.ent,'Entity (strong)')}<p>Rectangle. It has its own primary key: it identifies itself. Example: <i>Student</i> is identified by their ID number.</p></div>
@@ -184,6 +217,24 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <h4>Relationship type</h4><p>It comes from the <b>two maximums</b>:</p>
 <ul><li><b>1:1</b> → both maximums are 1 (a person has one passport).</li><li><b>1:N</b> → one maximum is 1 and the other N (a pizzeria has many animatronics).</li><li><b>N:M</b> → both maximums are N (a student, many courses; a course, many students).</li></ul>
 <div class="th-tip">Always ask both questions, one from each entity. The app shows them when you click the relationship or one of its lines.</div>`},
+{id:'jerarquias',t:'Hierarchies (generalization / ISA)',k:'isa hierarchy generalization specialization supertype subtype total partial disjoint overlapping inheritance',h:`
+<p>A <b>hierarchy</b> (ISA, «is a») is used when one entity is a particular case of another: a <i>Tenured</i> teacher <b>is a</b> <i>Teacher</i>.</p>
+<p>It is drawn with a <b>triangle</b>: the general entity (<b>supertype</b>) on top and the particular ones (<b>subtypes</b>) below. Subtypes <b>inherit</b> the key and attributes of the supertype.</p>
+<table class="th-t"><tr><td><b>Total</b> (t)</td><td>Every teacher belongs to some subtype.</td></tr><tr><td><b>Partial</b> (p)</td><td>Some teachers may belong to no subtype.</td></tr>
+<tr><td><b>Disjoint</b> (e)</td><td>Each one belongs to at most one subtype.</td></tr><tr><td><b>Overlapping</b> (s)</td><td>One can belong to several subtypes.</td></tr></table>
+<h4>To tables</h4><ul><li><b>One table per entity</b> (always valid): each subtype's PK is the supertype's PK, also an FK to it.</li><li><b>All in the supertype</b>: one table with every column and a <i>type</i> column.</li><li><b>Only subtypes</b>: each subtype copies the supertype columns. Only if the hierarchy is total.</li></ul>`},
+
+{id:'ternarias',t:'Ternary relationships',k:'ternary three entities cardinality degree',h:`
+<p>A <b>ternary</b> relationship joins three entities at once. Use it only when the fact needs all three: <i>a teacher teaches a subject to a group</i>.</p>
+<p>Cardinality: for each entity ask, <b>fixing a pair of the other two</b>, how many of this one there can be.</p>
+<p>To tables: always a <b>new table</b> with the three PKs as FKs. Its PK is made of the FKs on the sides with maximum N.</p>`},
+
+{id:'notaciones',t:"Notations: Chen, crow's foot and UML",k:'notation chen crow foot uml multiplicity',h:`
+<table class="th-t"><tr><td><b>Chen</b></td><td>Rectangles, diamonds, ovals and (min,max) on the lines.</td></tr>
+<tr><td><b>Crow's foot</b></td><td>Boxes with the attributes inside. <b>|</b> is one, the <b>foot</b> is many, the <b>circle</b> is minimum 0. Used by MySQL Workbench.</td></tr>
+<tr><td><b>UML</b></td><td>Classes with multiplicities: <b>1</b>, <b>0..1</b>, <b>0..*</b>, <b>1..*</b>.</td></tr></table>
+<p>(0,1) = 0..1 · (1,1) = 1 · (0,N) = 0..* · (1,N) = 1..*.</p>`},
+
 {id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`
 <p>These are the rules to turn the E-R into the relational model. They are the same ones the «Convert from my E-R» button uses with easy mode.</p>
 <table class="th-tab"><tr><th>In the E-R</th><th>In the tables</th></tr><tr><td>Entity</td><td>A table with its attributes. The primary key is underlined.</td></tr>
