@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.6  (11/11/2026)
+--------------------
+- Despues de "Actualizar ahora" o "Reiniciar y actualizar", la app se
+  vuelve a abrir sola con la version nueva.
+
 v1.7.5  (11/11/2026)
 --------------------
 - Version para comprobar que la actualizacion automatica funciona.

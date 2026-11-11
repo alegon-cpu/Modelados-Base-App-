@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.7.5';
+const VERSION = '1.7.6';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -80,14 +80,17 @@ async function runInstaller() {
   L(ok ? 'copiado ok' : 'no se pudo copiar: ' + err);
   if (relaunch) {
     const exe = path.join(dst, process.platform === 'win32' ? 'Modelado Bases.exe' : 'Modelado Bases');
+    // En Windows la abre el Explorador: así no depende de que este instalador siga vivo
+    const win32 = process.platform === 'win32';
     try {
-      const c = require('child_process').spawn(exe, [], { cwd: dst, detached: true, stdio: 'ignore' });
+      const c = require('child_process').spawn(win32 ? 'explorer.exe' : exe, win32 ? [exe] : [], { cwd: dst, detached: true, stdio: 'ignore' });
       c.on('error', e => L('no se pudo abrir: ' + e.message));
-      c.on('spawn', () => L('abierta'));
+      c.on('spawn', () => L('abriendo la app'));
       c.unref();
     } catch (e) { L('no se pudo abrir: ' + e.message); }
-    await sleep(1500);
+    await sleep(4000);
   }
+  L('instalador terminado');
   app.exit(0);
 }
 // Si ya hay una copia abierta, se enseña su ventana (o se abre una si se había quedado sin ninguna)
@@ -137,6 +140,11 @@ function sendSolos() {
 
 app.whenReady().then(() => {
   if (INSTALLER) return;
+  // Si venimos de una actualización, se apunta en el registro que la app ha arrancado
+  try {
+    const lg = path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log');
+    if (Date.now() - fs.statSync(lg).mtimeMs < 5 * 60 * 1000) fs.appendFileSync(lg, new Date().toTimeString().slice(0, 8) + ' arranca la app ' + VERSION + '\r\n');
+  } catch (e) {}
   cfgFile = path.join(app.getPath('userData'), 'config.json');
   try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) { cfg = {}; }
   if (cfg.dataDir) { try { fs.mkdirSync(cfg.dataDir, { recursive: true }); } catch (e) {} }
