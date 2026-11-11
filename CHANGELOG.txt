@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.3  (11/11/2026)
+--------------------
+- Boton "Distribuir" tambien en el relacional y en el DED (y en el menu
+  del boton derecho): arriba las tablas que no dependen de nadie y debajo
+  las que les apuntan con su clave ajena, ordenadas para que las flechas
+  se crucen lo menos posible. Ctrl+Z lo deshace.
+
 v1.7.2  (11/11/2026)
 --------------------
 - Importar de MySQL Workbench o phpMyAdmin (pestaña SQL > Importar): abre

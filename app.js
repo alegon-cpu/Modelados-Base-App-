@@ -165,7 +165,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=["The app now closes completely, and «Restart and update» opens it again with the new version.",
+const NOVEDADES_EN=["«Arrange» is now also in the relational and the DSD: tables that depend on nobody go on top and the ones pointing to them below, ordered so the arrows cross as little as possible.","The app now closes completely, and «Restart and update» opens it again with the new version.",
   "Import from MySQL Workbench or phpMyAdmin (SQL tab): open a .mwb model or a .sql exported from them and it draws the DSD and the relational. Export is the button next to it.",
   "If you open the app from inside the .zip (or .rar) without extracting it, it warns you and explains how to extract it.",
   "Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
@@ -177,6 +177,7 @@ const NOVEDADES_EN=["The app now closes completely, and «Restart and update» o
   "Shortcuts: F2 rename, Ctrl+D duplicate, Ctrl+F find, Ctrl+6 Test tab.",
   "«For Workbench / phpMyAdmin» (SQL tab): saves a MySQL .sql file that MySQL Workbench turns into a diagram and phpMyAdmin imports as a database."];
 const NOVEDADES=[
+  '1.7.3: «Distribuir» también en el relacional y en el DED: arriba las tablas que no dependen de nadie y debajo las que les apuntan, ordenadas para que las flechas se crucen lo menos posible.',
   '1.7.1: la app se cierra del todo al salir, y «Reiniciar y actualizar» la vuelve a abrir con la versión nueva.',
   '1.7.2: Importar de MySQL Workbench o phpMyAdmin (pestaña SQL): abre un modelo .mwb o un .sql exportado de ellos y dibuja el DED y el relacional. Exportar sigue en el botón de al lado.',
   '1.7.1: si abres la app desde dentro del .zip (o .rar) sin extraerla, te avisa y te explica cómo extraerla.',

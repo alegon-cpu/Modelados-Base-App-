@@ -170,7 +170,19 @@ function layoutByFK(tables){
     const ps=(t._par||[]).map(n=>by[lc(n)]).filter(Boolean);const v=ps.length?1+Math.max(...ps.map(p=>L(p,stack))):0;stack.delete(k);return lev[k]=v;};
   tables.forEach(t=>L(t,new Set()));
   const rows=[];tables.forEach(t=>{const r=lev[lc(t.n)];(rows[r]=rows[r]||[]).push(t);});
-  const flat=[];rows.filter(Boolean).forEach(r=>{for(let i=0;i<r.length;i+=5)flat.push(r.slice(i,i+5));});
+  // Cada fila se ordena según la posición de las tablas a las que apunta, para que las flechas se crucen lo menos posible
+  const slot={},kids={};
+  tables.forEach(t=>(t._par||[]).forEach(n=>{(kids[lc(n)]=kids[lc(n)]||[]).push(t);}));
+  const placeRow=r=>{r.forEach((t,i)=>slot[lc(t.n)]=r.length>1?i/(r.length-1):.5);};
+  const bary=(t,src)=>{const v=src.map(x=>slot[lc(x.n)]).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const rs=rows.filter(Boolean);
+  if(rs[0]&&rs.length>1){// la primera fila: juntas las tablas que comparten hijas
+    const first=rs[0];const score=t=>(kids[lc(t.n)]||[]).length;first.sort((a,b)=>score(b)-score(a));
+    const ord=[];first.forEach((t,i)=>i%2?ord.push(t):ord.unshift(t));rs[0]=ord;}
+  rs.forEach((r,ri)=>{if(ri>0){const k=r.map((t,i)=>({t,b:bary(t,(t._par||[]).map(n=>by[lc(n)]).filter(Boolean)),i}));
+      k.sort((a,b)=>(a.b==null?2:a.b)-(b.b==null?2:b.b)||a.i-b.i);r.splice(0,r.length,...k.map(x=>x.t));}
+    placeRow(r);});
+  const flat=[];rs.forEach(r=>{const per=Math.ceil(r.length/Math.ceil(r.length/5));for(let i=0;i<r.length;i+=per)flat.push(r.slice(i,i+per));});
   let y=0;const widths=[];
   flat.forEach(row=>{let x=0,h=0;row.forEach(t=>{const s=tableSize(t);t.x=x;t.y=y;x+=s.w+110;h=Math.max(h,s.h);});widths.push(x-110);y+=h+100;});
   const wMax=Math.max(...widths,0);

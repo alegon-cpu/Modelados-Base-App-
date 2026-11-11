@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='1.7.2';
+const VERSION='1.7.3';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -272,7 +272,7 @@ class Editor{
     const B=(act,txt,cls='',ic='',tip='',pressed)=>`<button class="ebtn ${cls}" data-act="${act}"${tip?` title="${tip}"`:''}${pressed!=null?` aria-pressed="${pressed}"`:''}>${ic?GL[ic]:''}<span>${txt}</span></button>`;
     let h='<div class="tgroup">';
     if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien');
-    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy);
+    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy);
     h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
     this.tools.innerHTML=h;
   }
@@ -530,7 +530,7 @@ class Editor{
       if(this.isER){I('Añadir entidad aquí',here('ent'));I('Añadir relación aquí',here('rel'));}else I('Añadir tabla aquí',here('table'));
       I('Añadir nota aquí',here('note'));SEP();
       I('Pegar',()=>this.paste(),{key:'Ctrl+V',disabled:!Editor.clip});I('Seleccionar todo',()=>this.selectAll(),{key:'Ctrl+A'});SEP();
-      I('Buscar…',()=>this.openSearch(),{key:'Ctrl+F'});I('Ajustar la vista',()=>this.fit());if(this.isER)I('Distribuir',()=>this.distribute());}
+      I('Buscar…',()=>this.openSearch(),{key:'Ctrl+F'});I('Ajustar la vista',()=>this.fit());I('Distribuir',()=>this.distribute());}
     openCtx(e.clientX,e.clientY,items);
   }
   /* ---------- Buscar (Ctrl+F) ---------- */
@@ -736,11 +736,20 @@ class Editor{
     else B.forEach(({n,b})=>{const d={l:[x0-b[0],0],r:[x1-b[2],0],c:[(x0+x1)/2-(b[0]+b[2])/2,0],t:[0,y0-b[1]],b:[0,y1-b[3]],m:[0,(y0+y1)/2-(b[1]+b[3])/2]}[k];move(n,d[0],d[1]);});
     this.save();this.render();this.renderInsp();
   }
+  /* ---------- Distribuir el relacional / DED ---------- */
+  distributeTables(){
+    const ts=this.m.t;if(!ts.length)return;this.snap();
+    const tmp=ts.map(t=>({n:t.n,c:t.c,_par:[...new Set(t.c.map(c=>parseF(c[2]).fk).filter(f=>f&&lc(f)!==lc(t.n)))]}));
+    layoutByFK(tmp);
+    ts.forEach((t,i)=>{t.x=tmp[i].x;t.y=tmp[i].y;});
+    this.save();this.render();this.fit(true);toast('Tablas distribuidas. Ctrl+Z para volver atrás.');
+  }
   /* ---------- Distribuir el E-R ---------- */
   distribute(){
     // Coloca las entidades en una cuadrícula siguiendo sus relaciones, cada relación entre sus entidades
     // y los atributos repartidos alrededor de su dueño, por el lado contrario a las líneas.
-    if(!this.isER||!this.m.nodes.length)return;this.snap();const X=this.X();const ns=this.m.nodes;ns.forEach(n=>this.size(n));
+    if(!this.isER){this.distributeTables();return;}
+    if(!this.m.nodes.length)return;this.snap();const X=this.X();const ns=this.m.nodes;ns.forEach(n=>this.size(n));
     const ents=ns.filter(isEnt),rels=ns.filter(isRel),attrs=ns.filter(isAtt);
     const deg=new Map(ents.map(e=>[e.id,0])),adj=new Map(ents.map(e=>[e.id,new Set()]));
     rels.forEach(r=>{const es=[...new Set(X.ends(r).map(x=>x.e.id))];es.forEach(a=>{deg.set(a,deg.get(a)+1);es.forEach(b=>{if(a!==b)adj.get(a).add(b);});});});
