@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.5  (11/11/2026)
+--------------------
+- Version para comprobar que la actualizacion automatica funciona.
+
 v1.7.4  (11/11/2026)
 --------------------
 - Arreglado: al actualizar, la version nueva no se instalaba. Ahora es la
