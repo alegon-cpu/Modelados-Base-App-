@@ -26,6 +26,10 @@ Cada proyecto es una carpeta:
     SQL\         script.sql (pestaña SQL)
     Captura\     imagen con los tres diagramas (boton "Exportar ejercicio")
 
+AJUSTES Y TEORIA
+- Arriba a la derecha: Teoria (todo lo que hay que saber), Controles (atajos)
+  y Ajustes (tema, ventana, accesibilidad, lienzo y actualizaciones).
+
 MOVERTE POR EL LIENZO
 - Clic derecho y arrastrar: moverte.  Rueda: zoom.  "Ajustar": ver todo.
 - Todos los atajos: boton "Controles" abajo a la derecha (o F1).

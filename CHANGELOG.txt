@@ -32,12 +32,34 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 - Compartir: "Exportar codigo" / "Importar codigo" para pasar uno o todos
   los proyectos a otra persona. Exportar el E-R a ERDPlus.
 - Abrir un proyecto en su propia ventana. Tema claro, oscuro o automatico.
-- Todos los atajos: boton "Controles" (o F1).
+- Todos los atajos: boton "Controles" (o F1). Ajustes de ventana y
+  accesibilidad, y teoria completa dentro de la app.
+- Notas en los diagramas, alinear y repartir, importar de ERDPlus y de SQL.
 - Se actualiza sola: descarga las versiones nuevas en segundo plano y las
   instala al cerrar la app.
 
 HISTORIAL DE VERSIONES
 ======================
+
+v1.6.3  (11/11/2026)
+--------------------
+- Aspecto de aplicacion: barra de titulo integrada con los botones de
+  Windows, y arriba a la derecha Teoria, Controles y Ajustes.
+- Ajustes (Ctrl+,): tema y color principal; ventana (al abrir maximizada,
+  como la dejaste o normal; siempre visible encima; pantalla completa con
+  F11); accesibilidad (tamaño de la interfaz, alto contraste, lineas mas
+  gruesas, colores para daltonismo, marcar el elemento activo, reducir
+  animaciones); lienzo (cuadricula, ajustar a la cuadricula, velocidad del
+  zoom) y actualizaciones.
+- Teoria completa dentro de la app, con buscador: entidades, atributos,
+  relaciones, cardinalidad, paso a tablas, relacional, DED, normalizacion,
+  SQL, errores tipicos y glosario.
+- Notas de colores pegadas al diagrama (E-R, relacional y DED). Salen tambien
+  en las capturas.
+- Alinear y repartir varios elementos seleccionados (panel derecho).
+- Importar de ERDPlus: abre un archivo .erdplus y lo pasa a tu E-R.
+- Importar SQL: pega un script con CREATE TABLE (o abre un .sql) y la app
+  dibuja el DED y el relacional, con PK, FK, NOT NULL y UNIQUE.
 
 v1.6.2  (11/11/2026)
 --------------------

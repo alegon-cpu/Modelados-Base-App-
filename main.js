@@ -3,13 +3,28 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.6.2';
+const VERSION = '1.6.3';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
 const base = () => { if (!cfg.dataDir) throw new Error('Primero elige dónde guardar la carpeta Modelados BDD.'); return cfg.dataDir; };
 function saveCfg() { try { fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2)); } catch (e) {} }
 const bg = () => nativeTheme.shouldUseDarkColors ? '#1C1D1F' : '#F3F2EF';
+// Barra de título integrada: los botones de Windows se pintan con los colores del tema
+const TB_H = 36;
+const overlay = () => nativeTheme.shouldUseDarkColors ? { color: '#222326', symbolColor: '#E7E6E3', height: TB_H } : { color: '#FAF9F7', symbolColor: '#22211F', height: TB_H };
+function paintOverlays() {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (w.isDestroyed()) continue;
+    w.setBackgroundColor(bg());
+    try { w.setTitleBarOverlay(overlay()); } catch (e) {}
+  }
+}
+// Posición y tamaño de la ventana principal, para "Como la dejé"
+function boundsVisible(b) {
+  const { screen } = require('electron');
+  return !!b && screen.getAllDisplays().some(d => { const a = d.workArea; return b.x < a.x + a.width - 80 && b.x + b.width > a.x + 80 && b.y >= a.y - 10 && b.y < a.y + a.height - 60; });
+}
 
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -18,18 +33,28 @@ function makeWindow(opts, query) {
   const w = new BrowserWindow(Object.assign({
     width: 1440, height: 900, minWidth: 900, minHeight: 600, title: 'Modelado Bases ' + VERSION,
     icon: path.join(__dirname, 'icon.png'), backgroundColor: bg(), show: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
+    titleBarStyle: 'hidden', titleBarOverlay: overlay()
   }, opts));
-  w.once('ready-to-show', () => { w.maximize(); w.show(); });
+  w.once('ready-to-show', () => {
+    const start = cfg.winStart || 'max';
+    if (start === 'remember' && !query && boundsVisible(cfg.bounds)) { w.setBounds(cfg.bounds); if (cfg.maximized) w.maximize(); }
+    else if (start !== 'normal') w.maximize();
+    else w.center();
+    if (cfg.onTop) w.setAlwaysOnTop(true);
+    w.show();
+  });
   w.loadFile(path.join(__dirname, 'index.html'), query ? { query } : undefined);
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});
   w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   w.webContents.on('will-navigate', e => e.preventDefault());
   w.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown' && input.key === 'F12') w.webContents.toggleDevTools();
+    if (input.type === 'keyDown' && input.key === 'F11') { e.preventDefault(); w.setFullScreen(!w.isFullScreen()); }
   });
   // Antes de cerrar, la ventana comprueba si hay cambios sin guardar
   w.on('close', e => {
+    if (w === win && !w.isDestroyed()) { cfg.maximized = w.isMaximized(); if (!w.isFullScreen()) cfg.bounds = w.getNormalBounds(); saveCfg(); }
     if (w._canClose) return;
     e.preventDefault();
     w._ack = false;
@@ -301,5 +326,24 @@ app.on('will-quit', () => {
 h('update:page', () => shell.openExternal(`https://github.com/${REPO}/releases/latest`));
 h('theme:set', mode => {
   nativeTheme.themeSource = ['light', 'dark'].includes(mode) ? mode : 'system';
-  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.setBackgroundColor(bg());
+  paintOverlays();
+});
+nativeTheme.on('updated', paintOverlays);
+// Ajustes de ventana
+h('win:pref', p => {
+  p = p || {};
+  if (['max', 'remember', 'normal'].includes(p.start)) cfg.winStart = p.start;
+  cfg.onTop = !!p.onTop; saveCfg();
+  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.setAlwaysOnTop(cfg.onTop);
+});
+h('win:zoom', (f, e) => { f = Math.min(1.75, Math.max(0.75, +f || 1)); e.sender.setZoomFactor(f); });
+h('win:fullscreen', e => { const w = winOf(e); if (w) w.setFullScreen(!w.isFullScreen()); });
+// Abrir un archivo de texto (importar ERDPlus o SQL)
+h('file:openText', async (o, e) => {
+  o = o || {};
+  const r = await dialog.showOpenDialog(winOf(e) || win, { title: String(o.title || 'Abrir'), properties: ['openFile'], filters: Array.isArray(o.filters) ? o.filters : [] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const f = r.filePaths[0];
+  if (fs.statSync(f).size > 10 * 1024 * 1024) throw new Error('El archivo es demasiado grande (más de 10 MB).');
+  return { name: path.basename(f), text: fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '') };
 });

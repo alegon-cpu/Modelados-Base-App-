@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   reveal: f => call('proj:reveal', f), importDir: () => call('proj:importDir'),
   saveERDPlus: (f, n, t) => call('file:erdplus', f, n, t), saveCapture: (f, n, b64) => call('proj:saveCapture', f, n, b64), showFile: f => call('file:show', f),
   setTheme: m => call('theme:set', m),
+  winPref: p => call('win:pref', p), winZoom: f => call('win:zoom', f), winFullscreen: () => call('win:fullscreen'), openText: o => call('file:openText', o),
   updateCheck: () => call('update:check'), updateDownload: u => call('update:download', u), updateInstall: u => call('update:install', u), updatePrepare: u => call('update:prepare', u), updatePage: () => call('update:page'),
   onUpdateProgress: cb => ipcRenderer.on('update:progress', (e, d) => cb(d)),
   solo: () => call('app:solo'), openWindow: (f, n) => call('win:open', f, n), windows: () => call('win:list'), focusWindow: f => call('win:focus', f), setTitle: t => call('win:title', t),
