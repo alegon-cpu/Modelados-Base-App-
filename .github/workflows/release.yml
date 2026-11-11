@@ -1,12 +1,19 @@
 name: Publicar versión
 
-# Se ejecuta al subir una etiqueta como v1.6.1: construye el zip de Windows y crea la Release.
+# Cuando cambia la versión en package.json (en main), construye el zip de Windows
+# y crea la Release vX.Y.Z. Si esa versión ya está publicada, no hace nada.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: ['package.json']
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
 
 jobs:
   publicar:
@@ -14,35 +21,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Versión
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" >/dev/null 2>&1; then
+            echo "La versión v$V ya está publicada: no hay nada que hacer."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip != 'true'
         with:
           node-version: 20
           cache: npm
 
       - name: Instalar dependencias
+        if: steps.v.outputs.skip != 'true'
         run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
-      - name: Comprobar que la etiqueta coincide con package.json
-        run: |
-          V=$(node -p "require('./package.json').version")
-          if [ "v$V" != "$GITHUB_REF_NAME" ]; then
-            echo "La etiqueta $GITHUB_REF_NAME no coincide con la versión de package.json ($V)"; exit 1
-          fi
-
       - name: Pruebas
+        if: steps.v.outputs.skip != 'true'
         run: node test-storage.js
 
       - name: Construir el zip de Windows
+        if: steps.v.outputs.skip != 'true'
         run: bash build.sh
 
       - name: Publicar la Release
+        if: steps.v.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
         run: |
-          V=${GITHUB_REF_NAME#v}
           bash release-notes.sh > notes.md
           cat notes.md
-          gh release create "$GITHUB_REF_NAME" "Modelado-Bases-$V-Windows.zip" \
+          gh release create "v$V" "Modelado-Bases-$V-Windows.zip" --target "$GITHUB_SHA" \
             --title "Modelado Bases ${V%.0}" --notes-file notes.md --latest

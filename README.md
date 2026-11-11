@@ -8,8 +8,8 @@ Desde la 1.6.1 la app se actualiza sola («Actualizar ahora»).
 ## Cómo se publica una versión
 
 1. Cambiar `version` en `package.json` y añadir sus novedades al principio del historial de `CHANGELOG.txt` (`vX.Y.Z  (fecha)`).
-2. Subir los cambios y una etiqueta con la misma versión: `git tag v1.6.2 && git push origin main v1.6.2`.
-3. GitHub Actions (`.github/workflows/release.yml`) construye el zip de Windows y publica la Release.
-   La app de todos avisa de la versión nueva al abrirse.
+2. Subir los cambios a `main`.
+3. GitHub Actions (`.github/workflows/release.yml`) ve que la versión ha cambiado, construye el zip de Windows y publica la Release `vX.Y.Z`.
+   La app de todos avisa de la versión nueva al abrirse y se actualiza con «Actualizar ahora».
 
 Para construirlo a mano: `npm ci` y `bash build.sh`.
