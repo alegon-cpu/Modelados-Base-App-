@@ -41,6 +41,14 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.2  (11/11/2026)
+--------------------
+- Importar de MySQL Workbench o phpMyAdmin (pestaña SQL > Importar): abre
+  el modelo .mwb de Workbench (cada tabla sale donde la tenias) o un .sql
+  exportado de Workbench (Forward Engineer) o de phpMyAdmin (Exportar >
+  SQL), y dibuja solo el DED y el relacional con sus claves.
+- Exportar a Workbench / phpMyAdmin sigue en el boton de al lado.
+
 v1.7.1  (11/11/2026)
 --------------------
 - Al cerrar, la app se cierra del todo (no se queda nada abierto detras).

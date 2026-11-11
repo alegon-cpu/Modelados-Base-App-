@@ -166,6 +166,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
 const NOVEDADES_EN=["The app now closes completely, and «Restart and update» opens it again with the new version.",
+  "Import from MySQL Workbench or phpMyAdmin (SQL tab): open a .mwb model or a .sql exported from them and it draws the DSD and the relational. Export is the button next to it.",
   "If you open the app from inside the .zip (or .rar) without extracting it, it warns you and explains how to extract it.",
   "Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
   "Find in the diagram with Ctrl+F: entities, relationships, attributes, tables, columns and notes.",
@@ -177,6 +178,7 @@ const NOVEDADES_EN=["The app now closes completely, and «Restart and update» o
   "«For Workbench / phpMyAdmin» (SQL tab): saves a MySQL .sql file that MySQL Workbench turns into a diagram and phpMyAdmin imports as a database."];
 const NOVEDADES=[
   '1.7.1: la app se cierra del todo al salir, y «Reiniciar y actualizar» la vuelve a abrir con la versión nueva.',
+  '1.7.2: Importar de MySQL Workbench o phpMyAdmin (pestaña SQL): abre un modelo .mwb o un .sql exportado de ellos y dibuja el DED y el relacional. Exportar sigue en el botón de al lado.',
   '1.7.1: si abres la app desde dentro del .zip (o .rar) sin extraerla, te avisa y te explica cómo extraerla.',
   '1.7: menú del botón derecho en cada elemento (renombrar, añadir atributo, entidad débil, clave primaria, opcional, duplicar, borrar…). Mantener pulsado y arrastrar sigue moviendo el lienzo.',
   '1.7: buscar en el diagrama con Ctrl+F: entidades, relaciones, atributos, tablas, columnas y notas.',
@@ -315,7 +317,7 @@ const App={
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>n.startsWith(VERSION+':')||n.startsWith(VERSION.split('.').slice(0,2).join('.')+':')).map(n=>n.slice(n.indexOf(':')+2));
+  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>{const mm=VERSION.split('.').slice(0,2).join('.');return n.startsWith(mm+':')||n.startsWith(mm+'.');}).map(n=>n.slice(n.indexOf(':')+2));
     this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${en?'':`<details class="older"><summary>Cambios anteriores (1.5 – 1.6.4)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showSettings(sec){this._sec=sec||this._sec||'apariencia';this.settingsOpen=true;
     this.modal(`<div class="set-wrap"><nav class="set-nav" aria-label="Ajustes"><p class="set-title">Ajustes</p>${SET_SECS.map(([k,t,ic])=>`<button class="set-nb" data-sec="${k}">${ic}<span>${t}</span></button>`).join('')}</nav><div class="set-body" id="setbody"></div><button class="set-x" data-m="close" aria-label="Cerrar ajustes" title="Cerrar (Esc)">✕</button></div>`,'settings');
@@ -475,7 +477,7 @@ const App={
       document.getElementById('enun').addEventListener('input',e=>{p.enun=e.target.value;this.touch(p);});
     } else if(this.view==='sql'){
       const dl=Settings.get().sqlDialect||'mysql';
-      v.innerHTML=`<div class="ed-tools"><div class="tgroup"><span class="tlab">Para</span><div class="seg dial" role="group" aria-label="Gestor de base de datos">${Object.entries(DIALECTS).map(([k,l])=>`<button class="segb" data-act="sql-dialect" data-v="${k}" aria-pressed="${dl===k}">${l}</button>`).join('')}</div></div><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-draw">${GL.fromer}<span>Dibujar desde este SQL</span></button><button class="ebtn" data-act="sql-open">${GL.open}<span>Abrir archivo .sql</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-sample" title="Añade al final INSERT con datos inventados pero coherentes (respetan PK, FK y UNIQUE)">${GL.table}<span>Añadir datos de ejemplo</span></button><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-wb" title="Guarda un archivo .sql para MySQL que se abre en MySQL Workbench (te dibuja el diagrama) y en phpMyAdmin">${GL.open}<span>Para Workbench / phpMyAdmin</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
+      v.innerHTML=`<div class="ed-tools"><div class="tgroup"><span class="tlab">Para</span><div class="seg dial" role="group" aria-label="Gestor de base de datos">${Object.entries(DIALECTS).map(([k,l])=>`<button class="segb" data-act="sql-dialect" data-v="${k}" aria-pressed="${dl===k}">${l}</button>`).join('')}</div></div><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-draw">${GL.fromer}<span>Dibujar desde este SQL</span></button><button class="ebtn" data-act="sql-open">${GL.open}<span>Abrir archivo .sql</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-sample" title="Añade al final INSERT con datos inventados pero coherentes (respetan PK, FK y UNIQUE)">${GL.table}<span>Añadir datos de ejemplo</span></button><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><div class="tgroup"><span class="tlab">Workbench / phpMyAdmin</span><button class="ebtn" data-act="sql-wb" title="Guarda un archivo .sql para MySQL que se abre en MySQL Workbench (te dibuja el diagrama) y en phpMyAdmin">${GL.copy}<span>Exportar</span></button><button class="ebtn" data-act="wb-import" title="Abre un modelo de MySQL Workbench (.mwb) o un .sql exportado de Workbench o phpMyAdmin y dibuja el DED y el relacional">${GL.open}<span>Importar</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
         <textarea class="sqlbox" id="sqltxt" spellcheck="false" placeholder="Pulsa «Generar desde el DED» (o desde el relacional) para crear el script, o escríbelo aquí.">${esc(p.sql||'')}</textarea>`;
       document.getElementById('sqltxt').addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});
       document.getElementById('sqltxt').addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});
@@ -566,6 +568,10 @@ const App={
       const load=()=>{p.sql=f.text;this.touch(p);const t=document.getElementById('sqltxt');if(t)t.value=p.sql;this.drawSQL(p);};
       if(p.sql&&p.sql.trim()&&p.sql!==f.text)this.confirm('Abrir archivo SQL',`Se sustituirá el SQL de este proyecto por el de «${f.name}».`,'Sustituir',load);else load();return;}
     if(a==='sql-draw'){this.drawSQL(p);return;}
+    if(a==='wb-import'){this.modal(`<h3>Importar de MySQL Workbench o phpMyAdmin</h3><p>Elige uno de estos archivos y se dibujan solos el DED y el relacional (y su SQL queda en esta pestaña):</p>
+        <p class="news-h">MySQL Workbench</p><ul class="steps"><li>El modelo tal cual: el archivo <b>.mwb</b> (se respeta dónde tenías cada tabla).</li><li>O un script: <b>File › Export › Forward Engineer SQL CREATE Script…</b> y guárdalo como .sql.</li></ul>
+        <p class="news-h">phpMyAdmin</p><ul class="steps"><li>Entra en la base de datos, pestaña <b>Exportar</b>, formato <b>SQL</b> y pulsa <b>Exportar</b> (o <b>Continuar</b>).</li></ul>
+        <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="wb-pick">Elegir archivo…</button></div>`);return;}
     if(a==='sql-wb'){const from=p.ded.t.length?'ded':p.rel.t.length?'rel':null;if(!from){toast('Primero haz el DED (o el relacional): el archivo se crea a partir de sus tablas.','warn');return;}
       this._wbFrom=from;this.modal(`<h3>Exportar para MySQL Workbench y phpMyAdmin</h3><p>Se guarda un archivo <b>.sql</b> para MySQL hecho desde tu ${from==='ded'?'DED':'relacional'}, con la base de datos, las tablas, las claves y sus relaciones.</p>
         <label class="chk"><input type="checkbox" id="wb-data" checked><span class="chk-t">Incluir datos de ejemplo<small>INSERT coherentes, para tener filas con las que probar.</small></span><span class="sw"></span></label>
@@ -586,9 +592,10 @@ const App={
     if(a==='sql-copy'){const t=document.getElementById('sqltxt');if(!t||!t.value.trim()){toast('No hay SQL que copiar.');return;}
       try{await navigator.clipboard.writeText(t.value);toast('SQL copiado.');}catch(e){t.focus();t.select();toast('Pulsa Ctrl+C para copiarlo.');}return;}
   },
-  drawSQL(p){
+  drawSQL(p,pos){
     const t=document.getElementById('sqltxt'),txt=t?t.value:(p.sql||'');let r;
     try{r=parseSQL(txt);}catch(e){toast(e.message,'warn');return;}
+    if(pos)placeLike(r.tables,pos);
     const put=()=>{const clone=()=>r.tables.map(t=>({id:uid(),n:t.n,x:t.x,y:t.y,c:t.c.map(c=>[c[0],c[1],c[2]])}));
       if(this.ed.p===p)this.ed.hist.push({mode:'rel',data:JSON.stringify(cleanModel(p.rel,'rel'))},{mode:'ded',data:JSON.stringify(cleanModel(p.ded,'ded'))});
       p.rel={t:clone(),notes:p.rel.notes||[]};p.ded={t:clone(),notes:p.ded.notes||[]};if(p._views){delete p._views.rel;delete p._views.ded;}
@@ -644,6 +651,12 @@ const App={
     if(k==='imp-add'||k==='imp-rep'){const f=this._imp;this._imp=null;this.closeModal();if(f)f(k==='imp-add'?'add':'rep');return;}
     if(k==='repo'){window.api.updatePage();return;}
     if(k==='set-reset'){Settings.reset();Theme.set('system');this.renderSettings();toast('Ajustes restablecidos.');return;}
+    if(k==='wb-pick'){this.closeModal();const p=this.cur;
+      const f=await this.run(()=>window.api.openText({title:t('Importar de MySQL Workbench o phpMyAdmin'),filters:[{name:'Workbench / SQL',extensions:['mwb','sql','txt']}]}));if(!f)return;
+      let sql=f.text,pos=null;
+      if(f.kind==='mwb'){try{const r=mwbToSQL(f.text,f.name);sql=r.sql;pos=r.pos;}catch(e){toast(e.message,'warn');return;}}
+      const load=()=>{p.sql=sql;this.touch(p);const tx=document.getElementById('sqltxt');if(tx)tx.value=p.sql;this.drawSQL(p,pos);};
+      if(p.sql&&p.sql.trim()&&p.sql!==sql)this.confirm('Importar',`Se sustituirá el SQL de este proyecto por el de «${f.name}».`,'Sustituir',load);else load();return;}
     if(k==='wb-save'){const p=this.cur,from=this._wbFrom,data=document.getElementById('wb-data').checked;let r,sc;
       try{r=genSQL(p,from,'mysql');sc=schemaOf(p[from].t,from==='rel');}catch(err){toast(err.message,'warn');return;}
       let txt=r.sql;if(data)txt+=(LANG()==='en'?'\n-- Sample data\n':'\n-- Datos de ejemplo\n')+insertsSQL(sc,sampleRows(sc,Settings.get().sampleRows||5),'mysql');

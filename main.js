@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -398,6 +398,15 @@ h('file:openText', async (o, e) => {
   const r = await dialog.showOpenDialog(winOf(e) || win, { title: String(o.title || 'Abrir'), properties: ['openFile'], filters: Array.isArray(o.filters) ? o.filters : [] });
   if (r.canceled || !r.filePaths[0]) return null;
   const f = r.filePaths[0];
+  if (fs.statSync(f).size > 30 * 1024 * 1024) throw new Error('El archivo es demasiado grande (más de 30 MB).');
+  // Modelo de MySQL Workbench: es un zip con el modelo en document.mwb.xml
+  if (/\.mwb$/i.test(f)) {
+    const AdmZip = require('adm-zip');
+    let xml = null;
+    try { const z = new AdmZip(f), en = z.getEntry('document.mwb.xml'); if (en) xml = z.readAsText(en, 'utf8'); } catch (err) {}
+    if (!xml) throw new Error('No he podido leer el modelo de Workbench (¿el .mwb está dañado?).');
+    return { name: path.basename(f), kind: 'mwb', text: xml };
+  }
   if (fs.statSync(f).size > 10 * 1024 * 1024) throw new Error('El archivo es demasiado grande (más de 10 MB).');
-  return { name: path.basename(f), text: fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '') };
+  return { name: path.basename(f), kind: 'text', text: fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '') };
 });

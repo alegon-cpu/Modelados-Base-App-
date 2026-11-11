@@ -107,6 +107,62 @@ function parseSQL(text){
   layoutByFK(out);
   return {tables:out,warn:[...new Set(warn)]};
 }
+// Modelo de MySQL Workbench (.mwb → document.mwb.xml): se pasa a un script SQL y se guardan las posiciones del diagrama
+function mwbToSQL(xml,file){
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  if(doc.querySelector('parsererror')||!doc.documentElement||doc.documentElement.nodeName!=='data')throw new Error('Este archivo no parece un modelo de MySQL Workbench.');
+  const kid=(el,k)=>{for(const c of el.children)if(c.getAttribute('key')===k)return c;return null;};
+  const val=(el,k)=>{const c=kid(el,k);return c?c.textContent.trim():'';};
+  const num=(el,k)=>{const v=parseFloat(val(el,k));return isNaN(v)?-1:v;};
+  const objs=(el,k)=>{const c=kid(el,k);return c?[...c.children]:[];};
+  const BT=s=>'`'+String(s).replace(/`/g,'')+'`';
+  const typeOf=col=>{
+    const st=val(col,'simpleType'),ut=val(col,'userType');let base='';
+    if(st)base=st.split('.').pop().toUpperCase();
+    else if(ut){const u=ut.split('.').pop().toUpperCase();base=u==='BOOL'?'BOOLEAN':u;}
+    else{const ft=val(col,'formattedType');if(ft)return ft.toUpperCase();base='VARCHAR';}
+    const ex=val(col,'datatypeExplicitParams');let par='';
+    if(ex)par=ex.startsWith('(')?ex:'('+ex+')';
+    else{const len=num(col,'length'),pr=num(col,'precision'),sc=num(col,'scale');
+      if(len>0)par=`(${len})`;else if(pr>0)par=sc>=0?`(${pr},${sc})`:`(${pr})`;}
+    if(base==='VARCHAR'&&!par)par='(45)';
+    const fl=objs(col,'flags').map(f=>f.textContent.trim().toUpperCase());
+    return base+par+(fl.includes('UNSIGNED')?' UNSIGNED':'');};
+  const tables=[...doc.querySelectorAll('value[type="object"][struct-name="db.mysql.Table"]')];
+  if(!tables.length)throw new Error('El modelo de Workbench no tiene tablas.');
+  const tName={},cName={};
+  tables.forEach(t=>{tName[t.getAttribute('id')]=val(t,'name');objs(t,'columns').forEach(c=>cName[c.getAttribute('id')]=val(c,'name'));});
+  let sql=`-- ${LANG()==='en'?'Imported from the MySQL Workbench model':'Importado del modelo de MySQL Workbench'} ${file||''}\n\n`;
+  tables.forEach(t=>{
+    const lines=objs(t,'columns').map(c=>'  '+BT(val(c,'name'))+' '+typeOf(c)+(val(c,'isNotNull')==='1'?' NOT NULL':' NULL')+(val(c,'autoIncrement')==='1'?' AUTO_INCREMENT':''));
+    objs(t,'indices').forEach(ix=>{const cols=objs(ix,'columns').map(ic=>cName[val(ic,'referencedColumn')]).filter(Boolean);if(!cols.length)return;
+      const ty=val(ix,'indexType').toUpperCase();
+      if(val(ix,'isPrimary')==='1'||ty==='PRIMARY')lines.push(`  PRIMARY KEY (${cols.map(BT).join(', ')})`);
+      else if(ty==='UNIQUE'||val(ix,'unique')==='1')lines.push(`  UNIQUE INDEX ${BT(val(ix,'name')||cols[0])} (${cols.map(BT).join(', ')})`);});
+    objs(t,'foreignKeys').forEach(fk=>{const cols=objs(fk,'columns').map(l=>cName[l.textContent.trim()]).filter(Boolean),refc=objs(fk,'referencedColumns').map(l=>cName[l.textContent.trim()]).filter(Boolean),rt=tName[val(fk,'referencedTable')];
+      if(cols.length&&rt)lines.push(`  CONSTRAINT ${BT(val(fk,'name')||'fk')} FOREIGN KEY (${cols.map(BT).join(', ')}) REFERENCES ${BT(rt)} (${(refc.length?refc:cols).map(BT).join(', ')})`);});
+    sql+=`CREATE TABLE ${BT(val(t,'name'))} (\n${lines.join(',\n')}\n) ENGINE = InnoDB;\n\n`;});
+  // Dónde estaba cada tabla en el primer diagrama que la muestra
+  const pos={};
+  doc.querySelectorAll('value[type="object"][struct-name="workbench.physical.TableFigure"]').forEach(f=>{const n=tName[val(f,'table')];if(n&&!pos[lc(n)])pos[lc(n)]={x:num(f,'left'),y:num(f,'top')};});
+  return {sql,pos};
+}
+// Pone las tablas donde estaban en Workbench, separándolas lo justo para que no se pisen (si no se puede, se deja el orden automático)
+function placeLike(tables,pos){
+  if(!pos||!tables.every(t=>pos[lc(t.n)]&&pos[lc(t.n)].x>=0))return false;
+  const sz=tables.map(t=>tableSize(t)),P=tables.map(t=>pos[lc(t.n)]);
+  for(let k=1.2;k<=4;k+=0.2){
+    const at=P.map(p=>({x:p.x*k,y:p.y*k}));
+    let bad=false;
+    for(let i=0;i<at.length&&!bad;i++)for(let j=i+1;j<at.length;j++){
+      if(at[i].x<at[j].x+sz[j].w+40&&at[j].x<at[i].x+sz[i].w+40&&at[i].y<at[j].y+sz[j].h+40&&at[j].y<at[i].y+sz[i].h+40){bad=true;break;}}
+    if(bad)continue;
+    const x0=Math.min(...at.map(p=>p.x)),y0=Math.min(...at.map(p=>p.y)),x1=Math.max(...at.map((p,i)=>p.x+sz[i].w)),y1=Math.max(...at.map((p,i)=>p.y+sz[i].h));
+    const dx=W/2-(x0+x1)/2,dy=H/2-(y0+y1)/2;
+    tables.forEach((t,i)=>{t.x=Math.round(at[i].x+dx);t.y=Math.round(at[i].y+dy);});
+    return true;}
+  return false;
+}
 // Coloca las tablas por niveles: arriba las que no apuntan a nadie, debajo las que dependen de ellas
 function layoutByFK(tables){
   const by={};tables.forEach(t=>by[lc(t.n)]=t);const lev={};
