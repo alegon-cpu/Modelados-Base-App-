@@ -1,16 +1,17 @@
 {
   "name": "modelado-bases",
   "productName": "Modelado Bases",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "Diagramas E-R, relacionales y DED organizados en proyectos",
   "main": "main.js",
   "author": "Modelado Bases",
   "license": "MIT",
   "dependencies": {
-    "adm-zip": "0.5.16"
+    "adm-zip": "0.5.16",
+    "sql.js": "1.14.2"
   },
   "devDependencies": {
-    "electron": "33.2.1",
-    "@electron/packager": "18.3.6"
+    "@electron/packager": "18.3.6",
+    "electron": "33.2.1"
   }
 }

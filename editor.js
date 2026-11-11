@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='1.6.4';
+const VERSION='1.7';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -7,7 +7,7 @@ let uidN=0; const uid=(p='n')=>p+Date.now().toString(36)+(uidN++).toString(36)+M
 const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
 const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
 const lc=s=>String(s||'').trim().toLowerCase();
-const VIEWS={enun:'Enunciado',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'};
+const VIEWS={enun:'Enunciado',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
 const ICO={
   folder:`<svg class="ico" width="16" height="16" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 0 1 1-1h3.6l1.4 1.5h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="var(--folder)"/></svg>`,
@@ -16,6 +16,7 @@ const ICO={
   er:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="5.5" width="5" height="5" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M11.5 4.5 15 8l-3.5 3.5L8 8z" fill="none" stroke="var(--c-rel)" stroke-width="1.3"/><path d="M6 8h2" stroke="currentColor" stroke-width="1.3"/></svg>`,
   rel:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="7" width="6" height="7" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 5h3v2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`,
   ded:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M1 6h14" stroke="var(--ded-head)" stroke-width="2.4"/><path d="M4 9h6M4 11.5h4" stroke="currentColor" stroke-width="1.1"/></svg>`,
+  test:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><path d="M4.5 2.5v4.2L1.8 12a1.3 1.3 0 0 0 1.2 1.9h10a1.3 1.3 0 0 0 1.2-1.9l-2.7-5.3V2.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M3.5 2.5h9M3.6 9.5h8.8" stroke="currentColor" stroke-width="1.2"/></svg>`,
   sql:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><ellipse cx="8" cy="3.5" rx="5.5" ry="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`};
 function toast(msg,kind){document.querySelectorAll('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),kind==='warn'?5200:3200);}
 const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||'')}));
@@ -31,7 +32,7 @@ function noteSize(n){n.w=n.w||180;n.lines=noteLines(n);n.h=Math.max(46,18+n.line
 function noteSVG(n,cls=''){noteSize(n);const x=n.x,y=n.y,w=n.w,h=n.h,f=12;
   return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/><path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
     n.lines.map((l,i)=>`<text x="${x+10}" y="${y+21+i*16}" class="note-tx">${esc(l)}</text>`).join('');}
-const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,enun:p.enun||'',sql:p.sql||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')});
+const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')});
 function guessType(name,f){
   const s=lc(name);
   if(f&&(f.pk||f.fk))return /^(dni|nif|nie)/.test(s)?'CHAR(9)':/^(mat|isbn|iata|cod[a-z]*str)/.test(s)?'VARCHAR(20)':'INT';
@@ -195,6 +196,25 @@ const ALG={l:ai('<path d="M2.5 1.5v15" stroke="currentColor" stroke-width="1.4"/
   dv:ai('<rect x="5" y="1.5" width="8" height="3" fill="currentColor"/><rect x="5" y="7.5" width="8" height="3" fill="currentColor"/><rect x="5" y="13.5" width="8" height="3" fill="currentColor"/>')};
 const attrIcon=a=>a.f.k?GL.key:a.f.p?GL.partial:a.f.m?GL.multi:a.f.d?GL.deriv:a.f.c?GL.comp:GL.attr;
 
+/* ===================== Menú contextual ===================== */
+function closeCtx(){const m=document.querySelector('.ctxmenu');if(m)m.remove();}
+function openCtx(x,y,items){closeCtx();if(!items.length)return;
+  const m=document.createElement('div');m.className='ctxmenu';m.setAttribute('role','menu');
+  m.innerHTML=items.map((it,i)=>it.sep?'<div class="cx-sep" role="separator"></div>':it.row?`<div class="cx-row">${it.row.map((r,j)=>r.swatch?`<button class="cx-sw nc-${r.swatch}${r.on?' on':''}" data-r="${i}:${j}" title="${escA(r.title)}" aria-label="${escA(r.title)}"></button>`:`<button class="cx-ic" data-r="${i}:${j}" title="${escA(r.title)}" aria-label="${escA(r.title)}">${r.icon}</button>`).join('')}</div>`:
+    `<button class="cx-it${it.danger?' danger':''}" role="menuitem" data-i="${i}"${it.disabled?' disabled':''}><span class="cx-ck">${it.check?'✓':''}</span><span class="cx-lb">${esc(it.label)}</span>${it.key?`<span class="cx-k">${esc(it.key)}</span>`:''}</button>`).join('');
+  document.body.appendChild(m);
+  const r=m.getBoundingClientRect();m.style.left=Math.min(x,window.innerWidth-r.width-6)+'px';m.style.top=Math.min(y,window.innerHeight-r.height-6)+'px';
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-i],[data-r]');if(!b||b.disabled)return;let fn;
+    if(b.dataset.i!=null)fn=items[+b.dataset.i].fn;else{const [i,j]=b.dataset.r.split(':').map(Number);fn=items[i].row[j].fn;}closeCtx();fn&&fn();});
+  m.addEventListener('contextmenu',e=>e.preventDefault());
+  const first=m.querySelector('button:not([disabled])');if(first)first.focus({preventScroll:true});
+  m.addEventListener('keydown',e=>{const bs=[...m.querySelectorAll('button:not([disabled])')],i=bs.indexOf(document.activeElement);
+    if(e.key==='ArrowDown'){e.preventDefault();bs[(i+1)%bs.length].focus();}else if(e.key==='ArrowUp'){e.preventDefault();bs[(i-1+bs.length)%bs.length].focus();}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeCtx();}});
+}
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.ctxmenu'))closeCtx();},true);
+window.addEventListener('blur',closeCtx);window.addEventListener('resize',closeCtx);
+
 /* ===================== Editor ===================== */
 class Editor{
   constructor(app){this.app=app;this.p=null;this.mode='er';this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;this.hist=[];this.redo=[];this.editing=false;
@@ -232,6 +252,7 @@ class Editor{
     this.enT.addEventListener('input',()=>{this.p.enun=this.enT.value;this.app.touch(this.p);});
   }
   open(p,mode){
+    closeCtx();this.closeSearch&&this.cv&&this.closeSearch();
     if(this.p!==p){this.hist=[];this.redo=[];}
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
@@ -277,7 +298,7 @@ class Editor{
   fit(maxOne){const b=this.bbox();if(!b){this.centerView();return;}
     const pad=90,cw=this.cv.clientWidth||800,ch=this.cv.clientHeight||600,bw=b[2]-b[0]+2*pad,bh=b[3]-b[1]+2*pad;
     let z=Math.min(cw/bw,ch/bh);z=Math.min(maxOne?1:1.5,Math.max(ZMIN,z));const v=this.v;v.z=z;v.x=(b[0]+b[2])/2-cw/z/2;v.y=(b[1]+b[3])/2-ch/z/2;this.applyView();}
-  onWheel(e){e.preventDefault();if(!this.p)return;const k=(e.deltaMode===1?0.05:e.deltaMode===2?1:0.0016)*({slow:0.55,normal:1,fast:1.7}[Settings.get().zoomSpeed]||1);this.zoomAt(this.v.z*Math.exp(-e.deltaY*k),e.clientX,e.clientY);}
+  onWheel(e){e.preventDefault();closeCtx();if(!this.p)return;const k=(e.deltaMode===1?0.05:e.deltaMode===2?1:0.0016)*({slow:0.55,normal:1,fast:1.7}[Settings.get().zoomSpeed]||1);this.zoomAt(this.v.z*Math.exp(-e.deltaY*k),e.clientX,e.clientY);}
   viewCenter(){const j=()=>Math.round((Math.random()-.5)*60),v=this.v,s=this.viewSize();return{x:Math.round(Math.min(W-150,Math.max(150,v.x+s.w/2+j()))),y:Math.round(Math.min(H-120,Math.max(90,v.y+s.h/2+j())))};}
 
   freeSpot(w,h){ // busca un hueco libre cerca del centro de la vista (centro del elemento)
@@ -317,7 +338,7 @@ class Editor{
   }
   addAttr(owner,focus=true){
     if(!owner)return;this.snap();const X=this.X();
-    const nn={id:uid(),k:'attr',n:this.uniqueName('atributo',X.attrsOf(owner).map(a=>a.n)),x:owner.x,y:owner.y,f:{}};this.size(nn);
+    const nn={id:uid(),k:'attr',n:this.uniqueName(LANG()==='en'?'attribute':'atributo',X.attrsOf(owner).map(a=>a.n)),x:owner.x,y:owner.y,f:{}};this.size(nn);
     this.m.nodes.push(nn);this.m.links.push({id:uid(),a:owner.id,b:nn.id,c:null,mn:null,mx:null});
     if(isAtt(owner))owner.f.c=true;
     this.placeAttr(owner,nn);this.save();
@@ -328,7 +349,7 @@ class Editor{
     if(aId===bId)return;if(isNote(this.node(aId))||isNote(this.node(bId))){toast('Las notas no se unen a nada: son solo para apuntar cosas.');return;}const A=this.node(aId),B=this.node(bId);if(!A||!B)return;const L=this.m.links;
     if(isRel(A)&&isRel(B)){toast('No se pueden unir dos relaciones entre sí.','warn');return;}
     if(isEnt(A)&&isEnt(B)){ // dos entidades: se crea la relación en medio
-      this.snap();const r={id:uid(),k:'rel',n:this.uniqueName('relacion',this.m.nodes.filter(isRel).map(x=>x.n)),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};
+      this.snap();const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',this.m.nodes.filter(isRel).map(x=>x.n)),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};
       if(Math.hypot(A.x-B.x,A.y-B.y)<260){r.y+=90;}
       this.m.nodes.push(r);L.push({id:uid(),a:r.id,b:A.id,c:null,mn:null,mx:null},{id:uid(),a:r.id,b:B.id,c:null,mn:null,mx:null});
       this.save();this.selIds=new Set([r.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
@@ -365,11 +386,11 @@ class Editor{
     if(a==='note'){this.snap();const c=pos||this.freeSpot(180,50);const n={id:uid(),k:'note',x:Math.round(c.x-90),y:Math.round(c.y-23),w:180,c:'y',text:''};
       this.notes.push(n);this.save();this.selIds=new Set([n.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
     this.snap();
-    if(a==='table'){const c=pos||this.freeSpot(180,90);const t={id:uid(),n:this.uniqueName('tabla',this.m.t.map(x=>x.n)),x:Math.round(c.x-90),y:Math.round(c.y-(pos?14:60)),c:[['Cod','INT','pk']]};
+    if(a==='table'){const c=pos||this.freeSpot(180,90);const en=LANG()==='en',t={id:uid(),n:this.uniqueName(en?'table':'tabla',this.m.t.map(x=>x.n)),x:Math.round(c.x-90),y:Math.round(c.y-(pos?14:60)),c:[[en?'Id':'Cod','INT','pk']]};
       this.m.t.push(t);this.save();this.selIds=new Set([t.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
     const c=pos||this.freeSpot(a==='attr'?100:130,a==='attr'?30:50);
     const list=a==='attr'?[]:this.m.nodes.filter(a==='ent'?isEnt:isRel).map(x=>x.n);
-    const n={id:uid(),k:a,n:a==='attr'?'atributo':this.uniqueName(a==='ent'?'entidad':'relacion',list),x:Math.round(c.x),y:Math.round(c.y),f:{}};
+    const en=LANG()==='en',n={id:uid(),k:a,n:a==='attr'?(en?'attribute':'atributo'):this.uniqueName(a==='ent'?(en?'entity':'entidad'):(en?'relationship':'relacion'),list),x:Math.round(c.x),y:Math.round(c.y),f:{}};
     this.m.nodes.push(n);this.save();this.selIds=new Set([n.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();
   }
   // Arrastrar un botón (Entidad, Relación, Atributo, Tabla) hasta el lienzo
@@ -433,13 +454,13 @@ class Editor{
     this.selIds=new Set();this.selLink=null;this.pend=null;this.save();this.render();this.renderInsp();
   }
   selectAll(){this.selIds=new Set(this.items().map(n=>n.id));this.selLink=null;this.render();this.renderInsp();}
-  copy(cut){
+  copy(cut,silent){
     if(!this.selIds.size)return;
     if(this.isER){const X=this.X(),ids=new Set(this.selIds);const addKids=o=>X.attrsOf(o).forEach(a=>{if(!ids.has(a.id)){ids.add(a.id);addKids(a);}});[...ids].forEach(id=>{const n=X.N[id];if(n&&!isAtt(n))addKids(n);});
       Editor.clip={kind:'er',nodes:JSON.parse(JSON.stringify(this.m.nodes.filter(n=>ids.has(n.id)).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f})))),links:JSON.parse(JSON.stringify(this.m.links.filter(l=>ids.has(l.a)&&ids.has(l.b))))};}
     else Editor.clip={kind:'tab',t:JSON.parse(JSON.stringify(this.m.t.filter(t=>this.selIds.has(t.id)).map(t=>({n:t.n,x:t.x,y:t.y,c:t.c}))))};
     Editor.clip.notes=JSON.parse(JSON.stringify(this.notes.filter(n=>this.selIds.has(n.id))));
-    this.pasteN=0;const n=this.selIds.size;if(cut){this.deleteSel();toast(`${n} elemento(s) cortado(s).`);}else toast(`${n} elemento(s) copiado(s).`);
+    this.pasteN=0;const n=this.selIds.size;if(cut){this.deleteSel();toast(`${n} elemento(s) cortado(s).`);}else if(!silent)toast(`${n} elemento(s) copiado(s).`);
   }
   paste(){
     const C=Editor.clip;if(!C){toast('No hay nada copiado.');return;}
@@ -465,15 +486,86 @@ class Editor{
     if(ctrl&&k==='x'){e.preventDefault();this.copy(true);return true;}
     if(ctrl&&k==='v'){e.preventDefault();this.paste();return true;}
     if(ctrl&&k==='a'){e.preventDefault();this.selectAll();return true;}
+    if(ctrl&&k==='d'){e.preventDefault();this.duplicate();return true;}
+    if(e.key==='F2'){e.preventDefault();this.rename();return true;}
     if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();this.deleteSel();return true;}
     if(e.key==='Escape'){this.connect=false;this.from=null;this.pend=null;this.selIds=new Set();this.selLink=null;this.renderTools();this.render();this.renderInsp();return true;}
     const st=e.shiftKey?10:1;const arrows={arrowleft:[-st,0],arrowright:[st,0],arrowup:[0,-st],arrowdown:[0,st]};
     if(arrows[k]&&this.selIds.size){e.preventDefault();this.nudge(...arrows[k]);return true;}
     return false;
   }
+  /* ---------- Menú del botón derecho ---------- */
+  duplicate(){if(!this.selIds.size)return;const keep=Editor.clip;this.copy(false,true);this.pasteN=0;this.paste();Editor.clip=keep;}
+  rename(){const n=this.single();if(!n)return;this.main.classList.remove('noinsp');this.renderInsp();this.focusName();}
+  contextMenu(e,P){
+    const id=P.g&&P.g.dataset.id,lid=P.hl&&P.hl.dataset.lid,at=this.pt(e),items=[];
+    if(id&&!this.selIds.has(id)){this.selIds=new Set([id]);this.selLink=null;this.render();this.renderInsp();}
+    if(!id&&lid&&this.isER){this.selIds=new Set();this.selLink=lid;this.render();this.renderInsp();}
+    const n=id?this.node(id):null,multi=id&&this.selIds.size>1;
+    const I=(label,fn,o={})=>items.push({label,fn,...o}),SEP=()=>items.push({sep:true});
+    const flag=(k,label)=>I(label,()=>{this.snap();n.f[k]=!n.f[k];if(k==='k'&&n.f.k)n.f.p=false;if(k==='p'&&n.f.p)n.f.k=false;if(k==='c'&&n.f.c===false){}this.save();this.render();this.renderInsp();},{check:!!n.f[k]});
+    if(multi){
+      items.push({row:[['l','Alinear a la izquierda'],['c','Centrar en horizontal'],['r','Alinear a la derecha'],['t','Alinear arriba'],['m','Centrar en vertical'],['b','Alinear abajo'],['dh','Repartir en horizontal'],['dv','Repartir en vertical']].map(([k,t])=>({icon:ALG[k],title:t,fn:()=>this.align(k)}))});
+      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I(`Borrar ${this.selIds.size} elementos`,()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(isNote(n)){I('Editar texto',()=>this.rename(),{key:'F2'});
+      items.push({row:Object.entries(NOTE_COLORS).map(([k,t])=>({swatch:k,title:t,on:(n.c||'y')===k,fn:()=>{this.snap();n.c=k;this.save();this.render();this.renderInsp();}}))});
+      SEP();I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(n&&this.isER&&isEnt(n)){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir atributo',()=>this.addAttr(n));
+      I('Entidad débil',()=>{this.snap();n.k=n.k==='weak'?'ent':'weak';this.save();this.render();this.renderInsp();},{check:n.k==='weak'});
+      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(n&&this.isER&&isRel(n)){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir atributo',()=>this.addAttr(n));
+      I('Identificadora',()=>{this.snap();n.k=n.k==='idrel'?'rel':'idrel';this.save();this.render();this.renderInsp();},{check:n.k==='idrel'});
+      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(n&&this.isER&&isAtt(n)){const ow=this.X().ownerOf(n);I('Renombrar',()=>this.rename(),{key:'F2'});SEP();
+      flag('k','Clave primaria');if((ow&&ow.k==='weak')||n.f.p)flag('p','Clave parcial');flag('o','Opcional');flag('m','Multivaluado');flag('d','Derivado');flag('c','Compuesto');
+      SEP();if(ow)I(`Añadir otro atributo a «${ow.n}»`,()=>this.addAttr(ow));I('Borrar',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(n){I('Renombrar',()=>this.rename(),{key:'F2'});I('Añadir columna',()=>{this.rename();this.addColumn();});
+      SEP();I('Copiar',()=>this.copy(false),{key:'Ctrl+C'});I('Duplicar',()=>this.duplicate(),{key:'Ctrl+D'});SEP();I('Borrar tabla',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else if(lid&&this.isER){const l=this.m.links.find(x=>x.id===lid),X=this.X();
+      if(l&&X.cardable(l)){const c=mmOf(l),set=(k,v)=>()=>{this.snap();const cur=mmOf(l);cur[k]=v;l.mn=cur.mn;l.mx=cur.mx;l.c=(cur.mn!=null&&cur.mx!=null)?`(${cur.mn},${cur.mx})`:null;this.save();this.render();this.renderInsp();};
+        I('Mínimo 0',set('mn','0'),{check:c.mn==='0'});I('Mínimo 1',set('mn','1'),{check:c.mn==='1'});SEP();I('Máximo 1',set('mx','1'),{check:c.mx==='1'});I('Máximo N',set('mx','N'),{check:c.mx==='N'});SEP();}
+      I('Borrar línea',()=>this.deleteSel(),{danger:true,key:'Supr'});}
+    else{this.selIds=new Set();this.selLink=null;this.render();this.renderInsp();
+      const here=k=>()=>this.create(k,{x:at.x,y:at.y});
+      if(this.isER){I('Añadir entidad aquí',here('ent'));I('Añadir relación aquí',here('rel'));}else I('Añadir tabla aquí',here('table'));
+      I('Añadir nota aquí',here('note'));SEP();
+      I('Pegar',()=>this.paste(),{key:'Ctrl+V',disabled:!Editor.clip});I('Seleccionar todo',()=>this.selectAll(),{key:'Ctrl+A'});SEP();
+      I('Buscar…',()=>this.openSearch(),{key:'Ctrl+F'});I('Ajustar la vista',()=>this.fit());if(this.isER)I('Distribuir',()=>this.distribute());}
+    openCtx(e.clientX,e.clientY,items);
+  }
+  /* ---------- Buscar (Ctrl+F) ---------- */
+  openSearch(){
+    let box=this.cv.querySelector('.cv-search');
+    if(!box){box=document.createElement('div');box.className='cv-search';box.setAttribute('role','search');
+      box.innerHTML=`<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input type="search" placeholder="Buscar en el diagrama" aria-label="Buscar en el diagrama" spellcheck="false"><span class="cs-cnt" aria-live="polite"></span><button class="cs-b" data-s="prev" title="Anterior (Mayús+Enter)" aria-label="Anterior">‹</button><button class="cs-b" data-s="next" title="Siguiente (Enter)" aria-label="Siguiente">›</button><button class="cs-b" data-s="close" title="Cerrar (Esc)" aria-label="Cerrar búsqueda">✕</button><div class="cs-what"></div>`;
+      this.cv.appendChild(box);const inp=box.querySelector('input');
+      inp.addEventListener('input',()=>{this._sq=inp.value;this._si=0;this.runSearch(true);});
+      inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();this.stepSearch(ev.shiftKey?-1:1);}else if(ev.key==='Escape'){ev.preventDefault();this.closeSearch();}});
+      box.addEventListener('click',ev=>{const b=ev.target.closest('[data-s]');if(!b)return;if(b.dataset.s==='close')this.closeSearch();else this.stepSearch(b.dataset.s==='next'?1:-1);});
+      box.addEventListener('pointerdown',ev=>ev.stopPropagation());}
+    const inp=box.querySelector('input');inp.value=this._sq||'';inp.focus();inp.select();this.runSearch(true);
+  }
+  closeSearch(){const b=this.cv.querySelector('.cv-search');if(b)b.remove();this._sq='';}
+  searchHits(){
+    const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(),q=norm(this._sq).trim();if(!q)return[];
+    const out=[];
+    if(this.isER){const X=this.X();this.m.nodes.forEach(n=>{if(norm(n.n).includes(q)){const ow=isAtt(n)?X.ownerOf(n):null;
+      out.push({id:n.id,what:(isEnt(n)?'Entidad':isRel(n)?'Relación':'Atributo')+' «'+n.n+'»'+(ow?' de «'+ow.n+'»':'')});}});}
+    else this.m.t.forEach(t=>{if(norm(t.n).includes(q))out.push({id:t.id,what:'Tabla «'+t.n+'»'});
+      t.c.forEach(c=>{if(norm(c[0]).includes(q))out.push({id:t.id,what:'Columna «'+c[0]+'» de «'+t.n+'»'});});});
+    this.notes.forEach(n=>{if(norm(n.text).includes(q))out.push({id:n.id,what:'Nota'});});
+    return out;
+  }
+  runSearch(jump){const box=this.cv.querySelector('.cv-search');if(!box)return;const hits=this.searchHits(),cnt=box.querySelector('.cs-cnt'),wh=box.querySelector('.cs-what');
+    box.classList.toggle('none',!!this._sq&&!hits.length);
+    if(!hits.length){cnt.textContent=this._sq?'0':'';wh.textContent=this._sq?'No hay nada con ese nombre.':'';return;}
+    this._si=((this._si||0)%hits.length+hits.length)%hits.length;const h=hits[this._si];cnt.textContent=`${this._si+1}/${hits.length}`;wh.textContent=h.what;
+    if(jump){this.selIds=new Set([h.id]);this.selLink=null;this.render();this.renderInsp();this.centerOn(this.node(h.id));}}
+  stepSearch(d){this._si=(this._si||0)+d;this.runSearch(true);}
+  centerOn(n){if(!n)return;const b=this.boxOf(n),v=this.v;if(v.z<0.7)v.z=1;const s=this.viewSize();v.x=(b[0]+b[2])/2-s.w/2;v.y=(b[1]+b[3])/2-s.h/2;this.applyView();}
   /* ---------- Ratón ---------- */
   onDown(e){
-    if(e.button===2||e.button===1){e.preventDefault();this.pan={x0:e.clientX,y0:e.clientY,vx:this.v.x,vy:this.v.y};this.svg.setPointerCapture(e.pointerId);this.cv.classList.add('panning');return;}
+    if(e.button===2||e.button===1){e.preventDefault();closeCtx();this.pan={x0:e.clientX,y0:e.clientY,vx:this.v.x,vy:this.v.y,btn:e.button,g:e.target.closest('[data-id]'),hl:e.target.closest('[data-lid]'),moved:false};this.svg.setPointerCapture(e.pointerId);this.cv.classList.add('panning');return;}
     if(e.button!==0)return;
     e.preventDefault();
     const g=e.target.closest('[data-id]'),hl=e.target.closest('[data-lid]');
@@ -497,14 +589,14 @@ class Editor{
     if(!this.band.add){this.selIds=new Set();this.selLink=null;this.pend=null;}
   }
   onMove(e){
-    if(this.pan){this.v.x=this.pan.vx-(e.clientX-this.pan.x0)/this.v.z;this.v.y=this.pan.vy-(e.clientY-this.pan.y0)/this.v.z;this.applyView();return;}
+    if(this.pan){if(Math.hypot(e.clientX-this.pan.x0,e.clientY-this.pan.y0)>4)this.pan.moved=true;this.v.x=this.pan.vx-(e.clientX-this.pan.x0)/this.v.z;this.v.y=this.pan.vy-(e.clientY-this.pan.y0)/this.v.z;this.applyView();return;}
     if(this.drag){const d=this.drag,p=this.pt(e);let dx=p.x-d.x0,dy=p.y-d.y0;if(!d.moved){if(Math.hypot(dx,dy)<3)return;this.snap();d.moved=true;}
       if(Settings.get().snap&&d.list.length){const o=d.list[0];dx=Math.round((o.ox+dx)/20)*20-o.ox;dy=Math.round((o.oy+dy)/20)*20-o.oy;}
       d.list.forEach(it=>{it.n.x=Math.round(Math.min(W-20,Math.max(20,it.ox+dx)));it.n.y=Math.round(Math.min(H-20,Math.max(20,it.oy+dy)));});this.render();return;}
     if(this.band){const p=this.pt(e);this.band.x1=p.x;this.band.y1=p.y;this.render();}
   }
-  onUp(){
-    if(this.pan){this.pan=null;this.cv.classList.remove('panning');return;}
+  onUp(e){
+    if(this.pan){const P=this.pan;this.pan=null;this.cv.classList.remove('panning');if(!P.moved&&P.btn===2&&e&&e.type==='pointerup')this.contextMenu(e,P);return;}
     if(this.drag){const d=this.drag;this.drag=null;if(d.moved)this.save();else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
     if(this.band){const b=this.band;this.band=null;const x0=Math.min(b.x0,b.x1),x1=Math.max(b.x0,b.x1),y0=Math.min(b.y0,b.y1),y1=Math.max(b.y0,b.y1);
       if(x1-x0>4||y1-y0>4){const s=new Set(b.add?b.base:[]);this.items().forEach(n=>{const bb=this.boxOf(n);if(bb[0]<x1&&bb[2]>x0&&bb[1]<y1&&bb[3]>y0)s.add(n.id);});this.selIds=s;}

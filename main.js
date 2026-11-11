@@ -3,12 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.6.4';
+const VERSION = '1.7';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
 const base = () => { if (!cfg.dataDir) throw new Error('Primero elige dónde guardar la carpeta Modelados BDD.'); return cfg.dataDir; };
 function saveCfg() { try { fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2)); } catch (e) {} }
+// Idioma de los diálogos (lo dice la ventana al arrancar)
+let LG = 'es';
+const DT = { 'Elige dónde crear la carpeta ': 'Choose where to create the folder ', 'Elige dónde mover la carpeta ': 'Choose where to move the folder ', 'Mover': 'Move', 'Cancelar': 'Cancel',
+  'Mover proyectos': 'Move projects', 'Se moverá la carpeta ': 'The folder ', ' con todos tus proyectos a:': ' will be moved, with all your projects, to:', 'Importar carpeta de proyecto': 'Import project folder',
+  'Exportar a ERDPlus': 'Export to ERDPlus', 'Diagrama ERDPlus': 'ERDPlus diagram', 'Guardar imagen': 'Save image' };
+const T = s => LG === 'en' ? (DT[s] || s) : s;
 const bg = () => nativeTheme.shouldUseDarkColors ? '#1C1D1F' : '#F3F2EF';
 // Barra de título integrada: los botones de Windows se pintan con los colores del tema
 const TB_H = 36;
@@ -126,7 +132,7 @@ function bringProjects(fromDir, toDir) {
 h('base:setup', async useDefault => {
   let parent = app.getPath('documents');
   if (!useDefault) {
-    const r = await dialog.showOpenDialog(win, { title: 'Elige dónde crear la carpeta ' + DATA_NAME, defaultPath: parent, properties: ['openDirectory', 'createDirectory'] });
+    const r = await dialog.showOpenDialog(win, { title: T('Elige dónde crear la carpeta ') + DATA_NAME, defaultPath: parent, properties: ['openDirectory', 'createDirectory'] });
     if (r.canceled || !r.filePaths[0]) return null;
     parent = r.filePaths[0];
   }
@@ -143,13 +149,13 @@ h('base:setup', async useDefault => {
 h('base:choose', async () => {
   const cur = base();
   if (solos.size) throw new Error('Cierra antes las ventanas de proyecto que tienes abiertas.');
-  const r = await dialog.showOpenDialog(win, { title: 'Elige dónde mover la carpeta ' + DATA_NAME, defaultPath: path.dirname(cur), properties: ['openDirectory', 'createDirectory'] });
+  const r = await dialog.showOpenDialog(win, { title: T('Elige dónde mover la carpeta ') + DATA_NAME, defaultPath: path.dirname(cur), properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null;
   const dir = dataDirIn(r.filePaths[0]);
   if (path.resolve(dir) === path.resolve(cur)) return null;
   if (path.resolve(dir).startsWith(path.resolve(cur) + path.sep)) throw new Error('No puedes mover la carpeta dentro de sí misma.');
-  const ok = await dialog.showMessageBox(win, { type: 'question', buttons: ['Mover', 'Cancelar'], defaultId: 0, cancelId: 1, title: 'Mover proyectos',
-    message: 'Se moverá la carpeta ' + DATA_NAME + ' con todos tus proyectos a:', detail: dir });
+  const ok = await dialog.showMessageBox(win, { type: 'question', buttons: [T('Mover'), T('Cancelar')], defaultId: 0, cancelId: 1, title: T('Mover proyectos'),
+    message: T('Se moverá la carpeta ') + DATA_NAME + T(' con todos tus proyectos a:'), detail: dir });
   if (ok.response !== 0) return null;
   if (!fs.existsSync(dir)) moveDir(cur, dir);
   else { bringProjects(cur, dir); try { fs.rmdirSync(cur); } catch (e) {} }
@@ -170,7 +176,7 @@ h('proj:delete', folder => shell.trashItem(S.inside(base(), folder)));
 h('proj:dup', folder => S.duplicate(base(), folder));
 h('proj:reveal', folder => shell.openPath(S.inside(base(), folder)));
 h('proj:importDir', async (e) => {
-  const r = await dialog.showOpenDialog(winOf(e) || win, { title: 'Importar carpeta de proyecto', properties: ['openDirectory'] });
+  const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Importar carpeta de proyecto'), properties: ['openDirectory'] });
   if (r.canceled || !r.filePaths[0]) return [];
   if (path.resolve(path.dirname(r.filePaths[0])) === path.resolve(base())) throw new Error('Ese proyecto ya está en tu carpeta de proyectos.');
   return S.importDir(base(), r.filePaths[0]);
@@ -179,8 +185,8 @@ h('proj:importDir', async (e) => {
 h('file:erdplus', async (folder, name, text, e) => {
   let def = app.getPath('documents');
   try { def = S.inside(base(), folder); } catch (err) {}
-  const r = await dialog.showSaveDialog(winOf(e) || win, { title: 'Exportar a ERDPlus', defaultPath: path.join(def, S.safeName(name) + '.erdplus'),
-    filters: [{ name: 'Diagrama ERDPlus', extensions: ['erdplus'] }] });
+  const r = await dialog.showSaveDialog(winOf(e) || win, { title: T('Exportar a ERDPlus'), defaultPath: path.join(def, S.safeName(name) + '.erdplus'),
+    filters: [{ name: T('Diagrama ERDPlus'), extensions: ['erdplus'] }] });
   if (r.canceled || !r.filePath) return null;
   fs.writeFileSync(r.filePath, String(text), 'utf8');
   return r.filePath;
@@ -192,6 +198,20 @@ h('proj:saveCapture', (folder, name, b64) => {
   fs.writeFileSync(f, Buffer.from(String(b64), 'base64'));
   return f;
 });
+// Guardar un texto (exportar .sql para Workbench / phpMyAdmin)
+h('file:saveText', async (o, e) => {
+  o = o || {};
+  let def = app.getPath('documents');
+  try { if (o.folder) def = S.inside(base(), o.folder); } catch (err) {}
+  const r = await dialog.showSaveDialog(winOf(e) || win, { title: String(o.title || ''), defaultPath: path.join(def, S.safeName(String(o.name || 'script')) + (o.ext || '.sql')),
+    filters: Array.isArray(o.filters) ? o.filters : [] });
+  if (r.canceled || !r.filePath) return null;
+  fs.writeFileSync(r.filePath, String(o.text || ''), 'utf8');
+  return r.filePath;
+});
+h('win:reload', e => { e.sender.reload(); });
+h('app:lang', l => { LG = l === 'en' ? 'en' : 'es'; });
+h('sqljs:wasm', () => fs.readFileSync(path.join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')));
 h('file:show', f => { shell.showItemInFolder(path.resolve(String(f || ''))); });
 // ---------- Avisos de versión nueva (Releases de GitHub) ----------
 const REPO = 'alegon-cpu/Modelados-Base-App-';

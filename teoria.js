@@ -111,6 +111,8 @@ CREATE TABLE Matricula (<br>&nbsp;&nbsp;DNI CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Cod
 <tr><td><code>DECIMAL(8,2)</code></td><td>Números con decimales exactos (precios, notas): 8 cifras, 2 decimales.</td></tr>
 <tr><td><code>VARCHAR(n)</code></td><td>Texto de hasta n letras.</td></tr><tr><td><code>CHAR(n)</code></td><td>Texto de longitud fija (DNI: CHAR(9)).</td></tr>
 <tr><td><code>DATE</code> / <code>TIME</code> / <code>DATETIME</code></td><td>Fecha, hora, o las dos.</td></tr><tr><td><code>BOOLEAN</code></td><td>Sí o no.</td></tr></table>
+<h4>Diferencias entre gestores</h4><ul><li><b>MySQL</b>: <code>VARCHAR</code>, <code>BOOLEAN</code>, <code>USE base;</code>.</li><li><b>SQL Server</b>: <code>BIT</code> para sí/no, <code>GO</code> entre bloques.</li><li><b>Oracle</b>: <code>VARCHAR2</code>, <code>NUMBER</code>, sin <code>CREATE DATABASE</code> (las tablas van en tu usuario).</li><li><b>PostgreSQL</b>: <code>TIMESTAMP</code> en vez de <code>DATETIME</code>, <code>\\c base</code> para conectarte.</li></ul>
+<p>En la pestaña SQL eliges el gestor y la app te adapta los tipos.</p>
 <h4>Restricciones</h4>
 <ul><li><code>NOT NULL</code>: obligatoria. <code>NULL</code>: puede quedar vacía.</li><li><code>PRIMARY KEY</code>, <code>UNIQUE</code>, <code>FOREIGN KEY … REFERENCES</code>.</li>
 <li>Una tabla con FK se crea <b>después</b> de la tabla a la que apunta. Si dos tablas se apuntan entre sí, la FK se añade al final con <code>ALTER TABLE … ADD FOREIGN KEY</code>.</li></ul>
@@ -134,4 +136,100 @@ CREATE TABLE Matricula (<br>&nbsp;&nbsp;DNI CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Cod
 <dt>Participación</dt><dd>Si es obligatorio (mínimo 1) u opcional (mínimo 0) estar en la relación.</dd>
 <dt>Grado</dt><dd>Número de entidades que une una relación: binaria (2), ternaria (3)…</dd>
 <dt>Dominio</dt><dd>Los valores posibles de un atributo (su tipo de dato y límites).</dd></dl>`}
+];
+
+/* ---------- Theory (English) ---------- */
+const TEORIA_EN=[
+{id:'intro',t:'How to solve an exercise',k:'steps brief process',h:`
+<p>A database exercise is solved in four steps. Each one comes from the previous one:</p>
+<ol class="th-steps"><li><b>Entity-Relationship model (E-R).</b> Read the brief and draw <i>what things</i> there are (entities), <i>what data</i> they have (attributes) and <i>how they relate</i> (relationships with their cardinality).</li>
+<li><b>Relational model.</b> Turn the E-R into tables, each with its primary key (PK) and its foreign keys (FK).</li>
+<li><b>DSD</b> (data structure diagram, «DED» in Spanish). The same tables, drawn with their data types and the lines that join them.</li>
+<li><b>SQL.</b> The <code>CREATE TABLE</code> code that really creates those tables in the database.</li></ol>
+<div class="th-tip"><b>In the app:</b> make the E-R, click «Convert from my E-R» in the Relational and the DSD (with easy mode the relationships are converted too), and in the SQL tab click «Generate from the DSD». Then try it in the Test tab.</div>
+<h4>Reading the brief</h4>
+<ul><li>Important <b>nouns</b> (student, course, order) → possible <b>entities</b>.</li><li><b>Data</b> about each thing (name, date, price) → <b>attributes</b>.</li>
+<li><b>Verbs</b> joining two things (a student <i>enrols in</i> courses) → <b>relationships</b>.</li><li>Words like <i>each, can, at least, several, only one</i> → <b>cardinalities</b>.</li>
+<li>Whatever «identifies» or «cannot repeat» (ID number, code, plate) → <b>primary key</b>.</li></ul>`},
+{id:'entidades',t:'Entities',k:'entity strong weak rectangle double',h:`
+<p>An <b>entity</b> is something we want to store information about and that can be told apart from the rest: a student, a book, an order.</p>
+<div class="th-grid"><div class="th-card">${TH(GL.ent,'Entity (strong)')}<p>Rectangle. It has its own primary key: it identifies itself. Example: <i>Student</i> is identified by their ID number.</p></div>
+<div class="th-card">${TH(GL.weak,'Weak entity')}<p>Double rectangle. <b>It cannot be identified on its own</b>: it needs another entity (the strong one). It is joined to it with an <b>identifying relationship</b> (double diamond) and has a <b>partial key</b> (dashed underline).</p></div></div>
+<div class="th-ex"><b>Weak example:</b> <i>Room 12</i> exists in many hotels. You only know which one it is if you say which hotel. Room is weak of Hotel, and its full key is (HotelCode, RoomNumber).</div>
+<div class="th-tip">Ask yourself: «can I tell which one it is without saying whose it is?». If not, it is weak.</div>`},
+{id:'atributos',t:'Attributes',k:'attribute primary partial optional derived multivalued composite ellipse',h:`
+<p><b>Attributes</b> are the data of an entity or a relationship. They are drawn as ellipses joined to their owner.</p>
+<table class="th-tab"><tr><th>Type</th><th>How it is drawn</th><th>What for</th></tr>
+<tr><td>${TH(GL.attr,'Normal')}</td><td>Ellipse</td><td>Data with a single value: name, price.</td></tr>
+<tr><td>${TH(GL.key,'Primary key')}</td><td>Underlined name</td><td>Identifies each instance. It never repeats and is never empty.</td></tr>
+<tr><td>${TH(GL.partial,'Partial key')}</td><td>Dashed underline</td><td>In a weak entity: identifies it together with the strong entity's key.</td></tr>
+<tr><td>${TH(GL.opt,'Optional')}</td><td>(O) after the name</td><td>Can be empty (NULL): a landline, a second surname.</td></tr>
+<tr><td>${TH(GL.deriv,'Derived')}</td><td>Dashed ellipse</td><td>Calculated from others: age (from the birth date). Not stored in tables.</td></tr>
+<tr><td>${TH(GL.multi,'Multivalued')}</td><td>Double ellipse</td><td>Can have several values: several phone numbers, several emails.</td></tr>
+<tr><td>${TH(GL.comp,'Composite')}</td><td>Ellipse with other ellipses hanging</td><td>Made of parts: Address = street + number + city.</td></tr></table>
+<div class="th-tip">The primary key must be something that <b>never changes and never repeats</b>. If there is nothing like that in the brief, make up a code (CustomerId).</div>`},
+{id:'relaciones',t:'Relationships',k:'relationship diamond binary recursive ternary identifying degree attributes',h:`
+<p>A <b>relationship</b> joins entities and is drawn as a diamond with a verb: <i>Student — enrols in — Course</i>.</p>
+<div class="th-grid"><div class="th-card">${TH(GL.rel,'Binary')}<p>Joins two entities. The most common one.</p></div>
+<div class="th-card">${TH(GL.rel,'Recursive')}<p>Joins an entity with itself: an <i>Employee</i> manages other <i>Employees</i>.</p></div>
+<div class="th-card">${TH(GL.rel,'Ternary')}<p>Joins three entities at once, when the data only makes sense with all three: a <i>Doctor</i> prescribes a <i>Medicine</i> to a <i>Patient</i>.</p></div>
+<div class="th-card">${TH(GL.idrel,'Identifying')}<p>Double diamond. Joins a weak entity with the strong one that identifies it.</p></div></div>
+<h4>Attributes on a relationship</h4><p>If a piece of data belongs to neither entity but to the fact that they are related, it goes on the relationship. Example: the <i>grade</i> belongs not to the student nor to the course, but to <i>that student's enrolment in that course</i>.</p>`},
+{id:'cardinalidad',t:'Cardinality (maximum and minimum)',k:'cardinality minimum maximum participation 1:1 1:n n:m mandatory optional',h:`
+<p>Each line between a relationship and an entity gets a pair <b>(minimum, maximum)</b>. In this app (as in ERD Plus) the pair <b>next to an entity</b> says <b>how many instances of that entity</b> each instance of the other one can have.</p>
+<div class="th-ex"><b>Example:</b> Pizzeria — how many Animatronics can it have at most? <b>Many (N)</b>. And at least? <b>None (0)</b>. Next to Animatronic goes <b>(0,N)</b>.<br>
+Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b>1</b>. Next to Pizzeria goes <b>(1,1)</b>.</div>
+<table class="th-tab"><tr><th>Value</th><th>Means</th></tr><tr><td><b>Minimum 0</b></td><td>Optional participation: it may have none.</td></tr><tr><td><b>Minimum 1</b></td><td>Mandatory participation: it always has at least one.</td></tr>
+<tr><td><b>Maximum 1</b></td><td>At most one.</td></tr><tr><td><b>Maximum N</b></td><td>It can have many.</td></tr></table>
+<h4>Relationship type</h4><p>It comes from the <b>two maximums</b>:</p>
+<ul><li><b>1:1</b> → both maximums are 1 (a person has one passport).</li><li><b>1:N</b> → one maximum is 1 and the other N (a pizzeria has many animatronics).</li><li><b>N:M</b> → both maximums are N (a student, many courses; a course, many students).</li></ul>
+<div class="th-tip">Always ask both questions, one from each entity. The app shows them when you click the relationship or one of its lines.</div>`},
+{id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`
+<p>These are the rules to turn the E-R into the relational model. They are the same ones the «Convert from my E-R» button uses with easy mode.</p>
+<table class="th-tab"><tr><th>In the E-R</th><th>In the tables</th></tr><tr><td>Entity</td><td>A table with its attributes. The primary key is underlined.</td></tr>
+<tr><td>Composite attribute</td><td>Its parts are stored as columns (street, number, city).</td></tr><tr><td>Derived attribute</td><td>Not stored (it is calculated).</td></tr>
+<tr><td>Multivalued attribute</td><td>A separate table: the entity's PK + the attribute. Both form the PK.</td></tr>
+<tr><td><b>1:N</b> relationship</td><td>The PK of the «1» side goes as an <b>FK</b> to the «N» side table. If the minimum next to the 1 side is 0, the FK can be NULL.</td></tr>
+<tr><td><b>1:1</b> relationship</td><td>The FK goes to one of the two tables (better the one that participates mandatorily) and is marked <b>UNIQUE</b>.</td></tr>
+<tr><td><b>N:M</b> relationship</td><td>A new table with both entities' PKs as FKs; together they form its PK. The relationship's attributes go here.</td></tr>
+<tr><td><b>Weak</b> entity</td><td>Its table takes the strong entity's PK as an FK, and its PK is that FK + the partial key.</td></tr>
+<tr><td><b>Recursive</b> relationship</td><td>Like its type (1:N or N:M), but the FK is renamed (ManagerId → Employee).</td></tr><tr><td><b>Ternary</b> relationship</td><td>A new table with the PKs of the three entities.</td></tr></table>`},
+{id:'relacional',t:'Relational model',k:'relational table pk fk foreign key arrow notation',h:`
+<p>The relational model is written as a list of tables with their columns:</p>
+<div class="th-code">Student(<u>StudentId</u>, Name, Surname, BirthDate)<br>Course(<u>CourseCode</u>, Name, Hours)<br>Enrolment(<u>StudentId</u>, <u>CourseCode</u>, Grade)</div>
+<ul><li><b>Primary key (PK):</b> underlined. Identifies each row: it never repeats and cannot be NULL.</li><li><b>Foreign key (FK):</b> a column that points to another table's PK. In the app it is drawn with an arrow to the table it points to (as in ERD Plus).</li>
+<li><b>NN</b> (NOT NULL): the column cannot be empty. <b>Unique</b> (UNIQUE): it never repeats, but it is not the key.</li></ul>
+<div class="th-tip">A column can be both PK and FK: it happens in the tables of N:M relationships and in weak entities.</div>`},
+{id:'ded',t:'DSD (data structure diagram)',k:'dsd ded lines solid dashed crow foot types identifying',h:`
+<p>The DSD draws the tables with their columns and <b>data types</b>, and joins each FK to the table it points to.</p>
+<ul><li>${GL.pkcol} Primary key &nbsp; ${GL.fkcol} Foreign key &nbsp; ${GL.nncol} Cannot be null &nbsp; ${GL.uqcol} Unique</li></ul>
+<h4>The lines</h4><table class="th-tab"><tr><th>Line</th><th>When</th></tr><tr><td><b>Solid</b></td><td><b>Identifying</b> relationship: the FK is part of the child table's PK (weak entities and N:M tables).</td></tr>
+<tr><td><b>Dashed</b></td><td><b>Non-identifying</b> relationship: the FK is a normal column.</td></tr></table>
+<h4>The ends (crow's foot)</h4><ul><li><b>||</b> one and only one · <b>o|</b> zero or one · <b>|&lt;</b> one or many · <b>o&lt;</b> zero or many.</li>
+<li>On the parent side, the circle appears if the FK can be NULL (optional participation).</li><li>On the child side there is a crow's foot (many), unless the FK is UNIQUE (1:1).</li></ul>`},
+{id:'normalizacion',t:'Normalization (1NF, 2NF, 3NF)',k:'normalization normal form 1nf 2nf 3nf dependency redundancy',h:`
+<p>Normalizing means checking the tables so they do not repeat information and do not cause problems when inserting, updating or deleting.</p>
+<div class="th-card"><h4>1NF · First normal form</h4><p>Each cell has <b>a single value</b> (no lists like «612…, 699…») and there are no repeated groups of columns (Tel1, Tel2, Tel3). Solution: move those values to another table.</p></div>
+<div class="th-card"><h4>2NF · Second normal form</h4><p>It is in 1NF and, if the PK has several columns, <b>every column depends on the whole key</b>, not on part of it. In Enrolment(<u>StudentId</u>, <u>CourseCode</u>, CourseName, Grade), CourseName depends only on CourseCode: it must go in the Course table.</p></div>
+<div class="th-card"><h4>3NF · Third normal form</h4><p>It is in 2NF and <b>no column depends on another non-key column</b>. In Employee(<u>Id</u>, DeptCode, DeptName), DeptName depends on DeptCode: it must go in the Department table.</p></div>
+<div class="th-tip">If you make a good E-R and apply the conversion rules, the tables usually come out in 3NF already.</div>`},
+{id:'sql',t:'SQL to create the tables',k:'sql create table database primary key foreign key not null unique alter types varchar int date decimal dialect',h:`
+<div class="th-code">CREATE DATABASE school;<br>USE school;<br><br>CREATE TABLE Student (<br>&nbsp;&nbsp;StudentId CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Name VARCHAR(45) NOT NULL,<br>&nbsp;&nbsp;Phone VARCHAR(15) NULL,<br>&nbsp;&nbsp;PRIMARY KEY (StudentId)<br>);<br><br>
+CREATE TABLE Enrolment (<br>&nbsp;&nbsp;StudentId CHAR(9) NOT NULL,<br>&nbsp;&nbsp;CourseCode INT NOT NULL,<br>&nbsp;&nbsp;Grade DECIMAL(4,2) NULL,<br>&nbsp;&nbsp;PRIMARY KEY (StudentId, CourseCode),<br>&nbsp;&nbsp;FOREIGN KEY (StudentId) REFERENCES Student (StudentId),<br>&nbsp;&nbsp;FOREIGN KEY (CourseCode) REFERENCES Course (CourseCode)<br>);</div>
+<h4>Most used data types</h4><table class="th-tab"><tr><td><code>INT</code></td><td>Whole numbers (codes, quantities).</td></tr><tr><td><code>DECIMAL(8,2)</code></td><td>Exact decimal numbers (prices, grades): 8 digits, 2 decimals.</td></tr>
+<tr><td><code>VARCHAR(n)</code></td><td>Text up to n characters.</td></tr><tr><td><code>CHAR(n)</code></td><td>Fixed-length text (ID number: CHAR(9)).</td></tr><tr><td><code>DATE</code> / <code>TIME</code> / <code>DATETIME</code></td><td>Date, time, or both.</td></tr><tr><td><code>BOOLEAN</code></td><td>Yes or no.</td></tr></table>
+<h4>Differences between database systems</h4><ul><li><b>MySQL</b>: <code>VARCHAR</code>, <code>BOOLEAN</code>, <code>USE base;</code>.</li><li><b>SQL Server</b>: <code>BIT</code> for booleans, <code>GO</code> between blocks.</li><li><b>Oracle</b>: <code>VARCHAR2</code>, <code>NUMBER</code>, no <code>CREATE DATABASE</code> (tables go in your user schema).</li><li><b>PostgreSQL</b>: <code>TIMESTAMP</code> instead of <code>DATETIME</code>, <code>\\c base</code> to connect.</li></ul>
+<p>In the SQL tab choose the system and the app adapts the types for you.</p>
+<h4>Constraints</h4><ul><li><code>NOT NULL</code>: mandatory. <code>NULL</code>: may be empty.</li><li><code>PRIMARY KEY</code>, <code>UNIQUE</code>, <code>FOREIGN KEY … REFERENCES</code>.</li>
+<li>A table with an FK is created <b>after</b> the table it points to. If two tables point to each other, the FK is added at the end with <code>ALTER TABLE … ADD FOREIGN KEY</code>.</li></ul>`},
+{id:'errores',t:'Common mistakes',k:'mistakes errors tips review',h:`
+<ul class="th-list"><li><b>Putting the FK on the wrong side</b> of a 1:N: it always goes on the «many» side.</li><li><b>Forgetting the junction table</b> of an N:M: two tables cannot be joined N:M directly.</li>
+<li><b>Attributes in the wrong place:</b> the grade of an enrolment goes on the relationship, not on Student.</li><li><b>Storing derived data</b> (age, total) when it can be calculated.</li>
+<li><b>Keys that change or repeat</b> (the name) instead of a code or ID number.</li><li><b>Reading the cardinality backwards:</b> the pair next to an entity counts instances of that entity.</li>
+<li><b>Entities that are really attributes:</b> if it only has one piece of data and relates to nothing else, it is probably an attribute.</li></ul>`},
+{id:'glosario',t:'Glossary',k:'glossary definitions vocabulary',h:`
+<dl class="th-dl"><dt>Instance (occurrence)</dt><dd>Each element of an entity: the student Ana is an instance of Student.</dd><dt>Candidate key</dt><dd>Any attribute (or group) that could be the primary key. One is chosen; the others can be UNIQUE.</dd>
+<dt>Primary key (PK)</dt><dd>The key chosen to identify each row.</dd><dt>Foreign key (FK)</dt><dd>A column that stores another table's PK to relate them.</dd>
+<dt>Referential integrity</dt><dd>An FK can only hold values that exist in the table it points to (or NULL if allowed).</dd><dt>Participation</dt><dd>Whether being in the relationship is mandatory (minimum 1) or optional (minimum 0).</dd>
+<dt>Degree</dt><dd>Number of entities a relationship joins: binary (2), ternary (3)…</dd><dt>Domain</dt><dd>The possible values of an attribute (its data type and limits).</dd></dl>`}
 ];

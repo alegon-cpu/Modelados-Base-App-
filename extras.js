@@ -1,6 +1,6 @@
 /* ===================== Ajustes ===================== */
 const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
-  grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false};
+  grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:''};
 const Settings={
   _c:null,
   get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}return this._c={...SET_DEF,...v};},
@@ -14,7 +14,8 @@ const Settings={
     try{window.api.winZoom(c.uiScale/100).catch(()=>{});}catch(e){}
     if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();},
   init(){this.apply();try{window.api.winPref({start:this.get().winStart,onTop:this.get().onTop}).catch(()=>{});}catch(e){}
-    window.addEventListener('storage',e=>{if(e.key==='mb:set'){this._c=null;this.apply();if(typeof App!=='undefined'&&App.settingsOpen)App.renderSettings();}});}
+    const lang0=LANG();
+    window.addEventListener('storage',async e=>{if(e.key==='mb:set'){this._c=null;if(LANG()!==lang0){try{await App.flushAll();App.keepPlace();}catch(x){}window.api.reload();return;}this.apply();if(typeof App!=='undefined'&&App.settingsOpen)App.renderSettings();}});}
 };
 
 /* ===================== Importar desde ERDPlus ===================== */
@@ -63,7 +64,7 @@ const lastPart=s=>{const p=String(s||'').trim().match(/(?:[`"\[][^`"\]]+[`"\]]|[
 const colList=s=>splitTop(String(s||''),',').map(x=>lastPart((x.trim().match(/^(?:[`"\[][^`"\]]+[`"\]]|\S+)/)||[''])[0])).filter(Boolean);
 const RX_NAME='(?:[`"\\[][^`"\\]]+[`"\\]]|[^\\s(]+)';
 function parseSQL(text){
-  const clean=String(text||'').replace(/\/\*[\s\S]*?\*\//g,' ').split('\n').map(l=>l.replace(/(^|\s)(--|#).*$/,'$1')).join('\n');
+  const clean=String(text||'').replace(/^\s*GO\s*;?\s*$/gim,';').replace(/^\s*\\.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,' ').split('\n').map(l=>l.replace(/(^|\s)(--|#).*$/,'$1')).join('\n');
   const stmts=splitTop(clean,';').map(x=>x.trim()).filter(Boolean);
   const tables=[],byName={},warn=[],get=n=>byName[lc(n)];
   const fkRx=new RegExp('^(?:CONSTRAINT\\s+'+RX_NAME+'\\s+)?FOREIGN\\s+KEY\\s*(?:'+RX_NAME+'\\s*)?\\(([^)]*)\\)\\s*REFERENCES\\s+('+RX_NAME+')\\s*\\(([^)]*)\\)','i');

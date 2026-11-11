@@ -4,7 +4,7 @@
 //                            /E-R/diagrama.json (+ diagrama.svg)
 //                            /Relacional/diagrama.json (+ diagrama.svg)
 //                            /DED/diagrama.json (+ diagrama.svg)
-//                            /SQL/script.sql
+//                            /SQL/script.sql y pruebas.sql
 const fs = require('fs');
 const path = require('path');
 
@@ -51,6 +51,7 @@ function load(base, folder) {
     p[k] = v && typeof v === 'object' ? v : EMPTY[k]();
   }
   try { p.sql = fs.readFileSync(path.join(dir, 'SQL', 'script.sql'), 'utf8'); } catch (e) { p.sql = ''; }
+  try { p.test = fs.readFileSync(path.join(dir, 'SQL', 'pruebas.sql'), 'utf8'); } catch (e) { p.test = ''; }
   return p;
 }
 function list(base) {
@@ -72,6 +73,9 @@ function save(base, p, svgs) {
       else if (fs.existsSync(f)) fs.unlinkSync(f);
     }
   }
+  const tq = path.join(dir, 'SQL', 'pruebas.sql');
+  if (p.test && p.test.trim()) writeAtomic(tq, p.test);
+  else if (fs.existsSync(tq)) writeAtomic(tq, '');
   const sq = path.join(dir, 'SQL', 'script.sql');
   if (p.sql && p.sql.trim()) writeAtomic(sq, p.sql);
   else if (fs.existsSync(sq)) writeAtomic(sq, '');
@@ -80,7 +84,7 @@ function create(base, name) {
   fs.mkdirSync(base, { recursive: true });
   const folder = unique(base, name);
   const now = Date.now();
-  const p = { folder, name, created: now, updated: now, enun: '', sql: '', er: EMPTY.er(), rel: EMPTY.rel(), ded: EMPTY.ded() };
+  const p = { folder, name, created: now, updated: now, enun: '', sql: '', test: '', er: EMPTY.er(), rel: EMPTY.rel(), ded: EMPTY.ded() };
   save(base, p, null);
   return p;
 }

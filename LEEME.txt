@@ -23,7 +23,7 @@ Cada proyecto es una carpeta:
     E-R\         diagrama.json  y  diagrama.svg
     Relacional\  diagrama.json  y  diagrama.svg
     DED\         diagrama.json  y  diagrama.svg
-    SQL\         script.sql (pestaña SQL)
+    SQL\         script.sql (pestaña SQL) y pruebas.sql (pestaña Probar)
     Captura\     imagen con los tres diagramas (boton "Exportar ejercicio")
 
 AJUSTES Y TEORIA

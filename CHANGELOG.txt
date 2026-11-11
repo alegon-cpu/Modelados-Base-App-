@@ -41,6 +41,25 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7  (11/11/2026)
+------------------
+- Pestaña nueva "Probar" (Ctrl+6): prueba el SQL del ejercicio dentro de
+  la app con SQLite. Crea las tablas, rellena datos de ejemplo, escribe tus
+  SELECT o INSERT y comprueba que las claves ajenas se cumplen. Lo que
+  escribas se guarda en SQL\pruebas.sql.
+- Datos de ejemplo automaticos: INSERT coherentes (nombres, emails, fechas,
+  precios...) que respetan PK y FK.
+- Elegir el tipo de SQL: MySQL, SQL Server, Oracle o PostgreSQL.
+- "Para Workbench / phpMyAdmin" (pestaña SQL): guarda un .sql para MySQL
+  que MySQL Workbench convierte en diagrama (Reverse Engineer) y que
+  phpMyAdmin importa como base de datos, con los pasos explicados.
+- Menu del boton derecho (un clic sin mover): renombrar, duplicar, borrar,
+  pasar a debil, marcar como PK, color... Dejar pulsado sigue moviendo.
+- Buscar en el diagrama (Ctrl+F): entidades, atributos, tablas y columnas.
+- La app en ingles: sale sola si Windows esta en ingles, y se cambia en
+  Ajustes > Idioma. La teoria tambien esta traducida.
+- Atajos nuevos: F2 renombrar, Ctrl+D duplicar.
+
 v1.6.4  (11/11/2026)
 --------------------
 - Arreglado el fallo "ENOTEMPTY" al actualizar (no se podia borrar la

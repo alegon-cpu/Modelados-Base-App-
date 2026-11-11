@@ -45,12 +45,12 @@ function captureSVG(p){
   if(!secs.length)return null;
   const pad=50,M=64,gap=64;
   const W2=Math.round(Math.max(1000,...secs.map(([k])=>parts[k].b[2]-parts[k].b[0]+2*pad))+2*M);
-  const fecha=new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  const fecha=new Date().toLocaleDateString(LANG()==='en'?'en-GB':'es-ES',{day:'numeric',month:'long',year:'numeric'});
   let y=M,body=`<text x="${M}" y="${y+24}" class="h1">${esc(p.name)}</text><text x="${W2-M}" y="${y+24}" text-anchor="end" class="h2">${esc(fecha)}</text>`;
   y+=44;body+=`<line x1="${M}" y1="${y}" x2="${W2-M}" y2="${y}" class="sep"/>`;y+=34;
   secs.forEach(([k,title],i)=>{
     const {inner,b}=parts[k],w=b[2]-b[0]+2*pad,h=b[3]-b[1]+2*pad;
-    body+=`<text x="${M}" y="${y+16}" class="h3">${i+1}. ${esc(title)}</text>`;y+=30;
+    body+=`<text x="${M}" y="${y+16}" class="h3">${i+1}. ${esc(t(title))}</text>`;y+=30;
     const dx=M+(W2-2*M-w)/2-(b[0]-pad),dy=y-(b[1]-pad);
     body+=`<rect x="${M}" y="${y}" width="${W2-2*M}" height="${Math.ceil(h)}" class="frame"/><g transform="translate(${f1(dx)},${f1(dy)})">${inner}</g>`;
     y+=Math.ceil(h)+gap;
@@ -65,50 +65,6 @@ async function captureProject(p){
   const sc=Math.min(2,12000/Math.max(c.w,c.h));const cv=document.createElement('canvas');cv.width=Math.round(c.w*sc);cv.height=Math.round(c.h*sc);
   const x=cv.getContext('2d');x.scale(sc,sc);x.drawImage(img,0,0,c.w,c.h);
   return window.api.saveCapture(p.folder,p.name,cv.toDataURL('image/png').split(',')[1]);
-}
-
-/* ===================== SQL a partir del DED o del relacional ===================== */
-const slug=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'base_datos';
-const qid=s=>{s=String(s||'').trim()||'sin_nombre';return /^[A-Za-z_][A-Za-z0-9_]*$/.test(s)?s:'`'+s.replace(/`/g,'')+'`';};
-function genSQL(p,from){
-  const src=p[from].t,warn=[];
-  if(!src.length)throw new Error(`Tu ${from==='ded'?'DED':'relacional'} no tiene tablas todavía.`);
-  const m={t:src.map(t=>({n:t.n,c:t.c}))};
-  if(tableDups(m))throw new Error('Hay nombres repetidos (en rojo). Cámbialos antes de generar el SQL.');
-  const T={};src.forEach(t=>T[lc(t.n)]=t);
-  const cols=t=>t.c.filter(c=>String(c[0]).trim()).map(c=>({n:String(c[0]).trim(),ty:String(c[1]||'').trim(),f:parseF(c[2])}));
-  const pkOf=t=>cols(t).filter(c=>c.f.pk);
-  const fksOf=t=>{ // agrupa las FK de una tabla por la tabla a la que apuntan
-    const out=[],groups={};cols(t).forEach(c=>{if(c.f.fk){const k=lc(c.f.fk);(groups[k]=groups[k]||[]).push(c);}});
-    Object.entries(groups).forEach(([k,g])=>{const par=T[k];if(!par){warn.push(`${t.n}: la FK apunta a «${g[0].f.fk}», que no existe.`);return;}
-      const pk=pkOf(par);if(!pk.length){warn.push(`${t.n}: «${par.n}» no tiene clave primaria a la que apuntar.`);return;}
-      if(g.length===pk.length&&pk.length>1)out.push({cs:g.map(c=>c.n),par,ref:pk.map(c=>c.n)});
-      else g.forEach(c=>{const same=pk.find(x=>lc(x.n)===lc(c.n))||pk.find(x=>lc(c.n).startsWith(lc(x.n)))||pk[0];out.push({cs:[c.n],par,ref:[same.n]});});});
-    return out;};
-  // Orden: primero las tablas a las que apuntan las demás
-  const order=[],state={},late=[];
-  const visit=t=>{const k=lc(t.n);if(state[k]===2)return;if(state[k]===1)return;state[k]=1;fksOf(t).forEach(f=>{if(f.par!==t&&state[lc(f.par.n)]!==1)visit(f.par);});state[k]=2;order.push(t);};
-  const w0=warn.length;src.forEach(visit);warn.length=w0; // las avisos se repiten al recorrer; se recalculan abajo
-  const done=new Set();let body='';
-  order.forEach(t=>{
-    const cs=cols(t),pk=pkOf(t),lines=[];
-    if(!cs.length)warn.push(`La tabla «${t.n}» no tiene columnas.`);
-    if(!pk.length)warn.push(`La tabla «${t.n}» no tiene clave primaria.`);
-    cs.forEach(c=>{let ty=c.ty||guessType(c.n,c.f);if(from==='rel'&&(!c.ty||c.ty==='VARCHAR(45)'))ty=guessType(c.n,c.f);
-      lines.push(`  ${qid(c.n)} ${ty.toUpperCase()}${c.f.pk||!c.f.nul?' NOT NULL':' NULL'}`);});
-    if(pk.length)lines.push(`  PRIMARY KEY (${pk.map(c=>qid(c.n)).join(', ')})`);
-    cs.filter(c=>c.f.uq&&!(c.f.pk&&pk.length===1)).forEach(c=>lines.push(`  UNIQUE (${qid(c.n)})`));
-    fksOf(t).forEach(f=>{const fk=`FOREIGN KEY (${f.cs.map(qid).join(', ')}) REFERENCES ${qid(f.par.n)} (${f.ref.map(qid).join(', ')})`;
-      if(f.par===t||done.has(lc(f.par.n)))lines.push('  '+fk);else late.push(`ALTER TABLE ${qid(t.n)} ADD ${fk};`);});
-    body+=`CREATE TABLE ${qid(t.n)} (\n${lines.join(',\n')}\n);\n\n`;done.add(lc(t.n));
-  });
-  const db=slug(p.name),fecha=new Date().toLocaleDateString('es-ES');
-  let out=`-- ${p.name}\n-- Generado desde el ${from==='ded'?'DED':'modelo relacional'} con Modelado Bases (${fecha})\n`;
-  if(from==='rel')out+=`-- El relacional no tiene tipos: revisa los tipos de cada columna.\n`;
-  [...new Set(warn)].forEach(w=>out+=`-- Aviso: ${w}\n`);
-  out+=`\nDROP DATABASE IF EXISTS ${db};\nCREATE DATABASE ${db};\nUSE ${db};\n\n`+body;
-  if(late.length)out+=`-- Claves ajenas que se añaden al final (las tablas se apuntan entre sí)\n${late.join('\n')}\n`;
-  return {sql:out.replace(/\n+$/,'\n'),warn:[...new Set(warn)]};
 }
 
 /* ===================== Exportar a ERDPlus ===================== */
@@ -135,7 +91,7 @@ const b64u={enc(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharC
   dec(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}};
 async function pipeBytes(data,stream){return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());}
 async function toCode(list){
-  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,er:q.er,rel:q.rel,ded:q.ded};})});
+  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,er:q.er,rel:q.rel,ded:q.ded};})});
   return 'MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
 }
 async function fromCode(txt){
@@ -194,14 +150,38 @@ const SET_SECS=[['apariencia','Apariencia',ico('<circle cx="9" cy="9" r="6.5" fi
   ['acerca','Acerca de',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 8v4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="5.5" r="1" fill="currentColor"/>')]];
 const kb=s=>s.split('+').map(k=>`<kbd>${k}</kbd>`).join('+');
 const CONTROLS=[
-  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['Ctrl+A','Seleccionar todo'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
-  ['Editar',[['Ctrl+C','Copiar'],['Ctrl+X','Cortar'],['Ctrl+V','Pegar'],['Supr','Borrar lo seleccionado (también Retroceso)'],['Ctrl+Z','Deshacer'],['Ctrl+Y','Rehacer'],['Esc','Cancelar / quitar la selección']]],
+  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['Ctrl+A','Seleccionar todo'],['Ctrl+F','Buscar en el diagrama'],['Clic derecho','Menú con opciones del elemento (sin mover el ratón)'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
+  ['Editar',[['Ctrl+C','Copiar'],['Ctrl+X','Cortar'],['Ctrl+V','Pegar'],['Ctrl+D','Duplicar'],['F2','Renombrar'],['Supr','Borrar lo seleccionado (también Retroceso)'],['Ctrl+Z','Deshacer'],['Ctrl+Y','Rehacer'],['Esc','Cancelar / quitar la selección']]],
   ['Unir y relacionar',[['Mayús+clic','Une lo seleccionado con el elemento que pulses'],['Dos entidades','Al unirlas se crea una relación en medio'],['Mayús+clic en Rel/DED','Relaciona dos tablas: eliges quién recibe la clave'],['Clic en una línea','Poner máximo y mínimo de esa línea']]],
   ['Panel',[['Enter en un atributo','Crea otro atributo en la misma entidad'],['Enter en una columna','Crea otra columna debajo'],['Enter en el nombre de la tabla','Añade una columna']]],
-  ['General',[['Ctrl+S','Guardar'],['Ctrl+1 … Ctrl+5','Enunciado, E-R, Relacional, DED, SQL'],['F1','Ver estos controles'],['Ctrl+,','Ajustes'],['F11','Pantalla completa']]]
+  ['General',[['Ctrl+S','Guardar'],['Ctrl+1 … Ctrl+6','Enunciado, E-R, Relacional, DED, SQL, Probar'],['F1','Ver estos controles'],['Ctrl+,','Ajustes'],['F11','Pantalla completa']]]
 ];
-const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL: el script CREATE TABLE se genera desde el DED o el relacional, se puede editar, y también al revés: de un SQL dibuja las tablas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
+const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL para MySQL, SQL Server, Oracle o PostgreSQL, con datos de ejemplo; se puede editar, y también al revés: de un SQL dibuja las tablas.", "Pestaña Probar: una base de datos SQLite de verdad dentro de la app para ejecutar consultas y comprobar las claves ajenas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
+const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you choose. Each one with its brief, E-R, relational, DSD, SQL and tests.",
+  "E-R: entities (normal and weak), relationships (and identifying ones) and every kind of attribute. Maximum and minimum with simple questions; the type (1:1, 1:N, N:M) appears by itself.",
+  "Relational and DSD: tables with PK, FK, NN and Unique. They can be created from the E-R (with or without the relationships) and related with Shift+click.",
+  "SQL for MySQL, SQL Server, Oracle or PostgreSQL, with sample data. And the other way round: from an SQL script it draws the tables.",
+  "Test tab: a real SQLite database inside the app to run queries and check the foreign keys.",
+  "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
+  "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
+  "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
+const NOVEDADES_EN=["Right-click menu on every element (rename, add attribute, weak entity, primary key, optional, duplicate, delete…). Holding the right button and dragging still moves the canvas.",
+  "Find in the diagram with Ctrl+F: entities, relationships, attributes, tables, columns and notes.",
+  "The app is now also in English (Settings › Appearance › Language).",
+  "New Test tab in every project: a SQLite database inside the app. Create it from the DSD or the SQL, fill it with sample data, run queries and check that the foreign keys work.",
+  "Sample data: consistent INSERTs that respect PK, FK and UNIQUE.",
+  "SQL for MySQL, SQL Server, Oracle or PostgreSQL: the types and details change for each one.",
+  "Shortcuts: F2 rename, Ctrl+D duplicate, Ctrl+F find, Ctrl+6 Test tab.",
+  "«For Workbench / phpMyAdmin» (SQL tab): saves a MySQL .sql file that MySQL Workbench turns into a diagram and phpMyAdmin imports as a database."];
 const NOVEDADES=[
+  '1.7: menú del botón derecho en cada elemento (renombrar, añadir atributo, entidad débil, clave primaria, opcional, duplicar, borrar…). Mantener pulsado y arrastrar sigue moviendo el lienzo.',
+  '1.7: buscar en el diagrama con Ctrl+F: entidades, relaciones, atributos, tablas, columnas y notas.',
+  '1.7: la app también está en inglés (Ajustes › Apariencia › Idioma).',
+  '1.7: nueva pestaña Probar en cada proyecto: una base de datos SQLite dentro de la app. Créala desde el DED o el SQL, rellénala con datos de ejemplo, ejecuta consultas y comprueba que las claves ajenas funcionan.',
+  '1.7: datos de ejemplo: INSERT coherentes que respetan PK, FK y UNIQUE.',
+  '1.7: SQL para MySQL, SQL Server, Oracle o PostgreSQL: cambian los tipos y los detalles de cada uno.',
+  '1.7: atajos nuevos: F2 renombrar, Ctrl+D duplicar, Ctrl+F buscar, Ctrl+6 pestaña Probar.',
+  '1.7: «Para Workbench / phpMyAdmin» (pestaña SQL): guarda un .sql para MySQL que MySQL Workbench convierte en diagrama y phpMyAdmin importa como base de datos.',
   '1.6.4: arreglado el fallo «ENOTEMPTY» al actualizar. La descarga de las versiones nuevas se ve abajo, con su porcentaje.',
   '1.6.3: aspecto de aplicación, con la barra de título integrada y los botones de Windows.',
   '1.6.3: Ajustes (rueda dentada arriba a la derecha o Ctrl+,): tema y color, ventana (al abrir, siempre encima, pantalla completa), accesibilidad (tamaño, alto contraste, líneas gruesas, colores para daltonismo), lienzo y actualizaciones.',
@@ -240,7 +220,7 @@ const App={
   get autosave(){return true;},
   async start(){
     if(this.solo)document.body.classList.add('solo');
-    Settings.init();Theme.init();Splits.init();this.ed=new Editor(this);this.bind();
+    Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();
     window.api.onCloseRequest(()=>this.onCloseRequest());
     window.api.onWindows(l=>{this.locked=new Set(l);this.renderTree();if(this.cur&&this.view)this.renderMain();});
     window.api.onWindowClosed(f=>this.afterWindow(f));
@@ -249,9 +229,11 @@ const App={
     if(this.solo){await this.startSolo();return;}
     if(!this.base){this.showSetup();this.maybeNews();setTimeout(()=>this.checkUpdates(false),1500);return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
-    await this.reload();this.maybeNews();
+    let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
+    await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}this.maybeNews();
     setTimeout(()=>this.checkUpdates(false),1500);
   },
+  keepPlace(){try{sessionStorage.setItem('mb:reopen',JSON.stringify({f:this.cur&&this.cur.folder,v:this.view,set:this.settingsOpen?this._sec:null}));}catch(e){}},
   async startSolo(){
     try{const p=await window.api.load(this.solo);p._id=uid('p');this.projects=[p];this.cur=p;this.view='er';this.status('ok','Todo guardado');
       document.title=p.name+' · Modelado Bases';}
@@ -321,7 +303,8 @@ const App={
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6.3)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
+  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>n.slice(VERSION.length+2));
+    this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${en?'':`<details class="older"><summary>Cambios anteriores (1.5 – 1.6.4)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showSettings(sec){this._sec=sec||this._sec||'apariencia';this.settingsOpen=true;
     this.modal(`<div class="set-wrap"><nav class="set-nav" aria-label="Ajustes"><p class="set-title">Ajustes</p>${SET_SECS.map(([k,t,ic])=>`<button class="set-nb" data-sec="${k}">${ic}<span>${t}</span></button>`).join('')}</nav><div class="set-body" id="setbody"></div><button class="set-x" data-m="close" aria-label="Cerrar ajustes" title="Cerrar (Esc)">✕</button></div>`,'settings');
     this.renderSettings();},
@@ -335,6 +318,7 @@ const App={
     if(sec==='apariencia'){const th=Theme.get();
       h=H('Apariencia')+`<div class="set-row"><div class="set-lab"><b>Tema</b><small>Auto sigue el modo de Windows.</small></div><div class="seg">${[['light','Claro'],['dark','Oscuro'],['system','Auto']].map(([v,l])=>`<button class="segb" data-theme-set="${v}" aria-pressed="${th===v}">${l}</button>`).join('')}</div></div>`+
         seg('accent','Color principal','Botones, pestañas y selección.',[['green','Verde'],['blue','Azul'],['purple','Morado'],['orange','Naranja']])+
+        `<div class="set-row"><div class="set-lab"><b>Idioma</b><small>Idioma de la aplicación.</small></div><div class="seg" role="group" aria-label="Idioma"><button class="segb notr" data-setv="lang" data-v="es" aria-pressed="${LANG()==='es'}">Español</button><button class="segb notr" data-setv="lang" data-v="en" aria-pressed="${LANG()==='en'}">English</button></div></div>`+
         `<div class="set-prev"><span class="set-chip">Así se ve</span><button class="ebtn pri" tabindex="-1">Botón</button><button class="ebtn" aria-pressed="true" tabindex="-1">Activado</button></div>`;}
     else if(sec==='ventana'){h=H('Ventana')+seg('winStart','Al abrir la app','',[['max','Maximizada'],['remember','Como la dejé'],['normal','Ventana normal']])+
         tog('onTop','Siempre visible encima','La ventana se queda por encima de las demás (útil para copiar de un PDF).')+
@@ -349,10 +333,10 @@ const App={
         `<p class="set-sub">Para alinear varios elementos, selecciónalos (arrastrando en un hueco) y usa los botones de «Alinear» y «Repartir» del panel derecho.</p>`;}
     else if(sec==='actualizaciones'){h=H('Actualizaciones',`Tienes la versión <b>${VERSION}</b>.`)+tog('autoUpdate','Actualizar automáticamente','Las versiones nuevas se descargan solas y se instalan al cerrar la app. Si lo quitas, te avisará y elegirás tú.')+
         `<div class="set-row"><div class="set-lab"><b>Buscar ahora</b></div><button class="ebtn" data-m="upd-check">Buscar actualizaciones</button></div>`;}
-    else if(sec==='teoria'){const q=lc(this._thq||''),list=TEORIA.filter(t=>!q||lc(t.t+' '+t.k+' '+t.h.replace(/<[^>]+>/g,' ')).includes(q));
-      if(!list.some(t=>t.id===this._th))this._th=(list[0]||TEORIA[0]).id;const cur=TEORIA.find(t=>t.id===this._th);
+    else if(sec==='teoria'){const TL=LANG()==='en'?TEORIA_EN:TEORIA,q=lc(this._thq||''),list=TL.filter(t=>!q||lc(t.t+' '+t.k+' '+t.h.replace(/<[^>]+>/g,' ')).includes(q));
+      if(!list.some(t=>t.id===this._th))this._th=(list[0]||TL[0]).id;const cur=TL.find(t=>t.id===this._th);
       h=`<div class="th-wrap"><div class="th-side"><input type="search" class="th-q" id="thq" placeholder="Buscar en la teoría" value="${escA(this._thq||'')}" aria-label="Buscar en la teoría">
-        <div class="th-list">${list.map((t,i)=>`<button class="th-nb" data-th="${t.id}" aria-current="${t.id===this._th}"><span class="th-n">${TEORIA.indexOf(t)+1}</span>${esc(t.t)}</button>`).join('')||'<p class="set-sub">Nada coincide.</p>'}</div></div>
+        <div class="th-list">${list.map((t,i)=>`<button class="th-nb" data-th="${t.id}" aria-current="${t.id===this._th}"><span class="th-n">${TL.indexOf(t)+1}</span>${esc(t.t)}</button>`).join('')||'<p class="set-sub">Nada coincide.</p>'}</div></div>
         <article class="th-art" id="thart"><h3>${esc(cur.t)}</h3>${cur.h}</article></div>`;}
     else if(sec==='acerca'){h=H('Acerca de')+`<div class="about"><div class="about-logo"><svg viewBox="0 0 18 18" width="40" height="40" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><div><b>Modelado Bases ${VERSION}</b><small>E-R, relacional, DED y SQL para ejercicios de bases de datos.</small></div></div>
         <div class="set-row"><div class="set-lab"><b>Novedades y resumen</b></div><button class="ebtn" data-m="news">Ver novedades</button></div>
@@ -362,7 +346,7 @@ const App={
     body.innerHTML=h;
     const q=document.getElementById('thq');if(q){q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderSettings();const n=document.getElementById('thq');if(n){n.focus();n.setSelectionRange(pos,pos);}});}
   },
-  showControls(){this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+5'):esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><div class="mrow"><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
+  showControls(){this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+6'):esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><div class="mrow"><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
   async reload(selectFolder){
     // Conserva en memoria los proyectos con cambios sin guardar
     const keep={};this.projects.forEach(p=>{if(p._dirty)keep[p.folder]=p;});
@@ -432,13 +416,14 @@ const App={
       if(modalOpen){if(e.key==='Escape'){this.closeModal();}return;}
       if(e.key==='F1'){e.preventDefault();this.showControls();return;}
       if(ctrl&&e.key===','){e.preventDefault();this.showSettings();return;}
+      if(ctrl&&e.key.toLowerCase()==='f'&&this.cur&&['er','rel','ded'].includes(this.view)&&this.ed.p&&!this.locked.has(this.cur.folder)){e.preventDefault();this.ed.openSearch();return;}
       if(ctrl&&e.key.toLowerCase()==='s'){e.preventDefault();this.saveNow();return;}
-      if(ctrl&&/^[1-5]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
+      if(ctrl&&/^[1-6]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
       if(typing||!this.cur||!['er','rel','ded'].includes(this.view)||!this.ed.p||this.locked.has(this.cur.folder))return;
       this.ed.key(e);
     });
   },
-  counts(p){const ents=p.er.nodes.filter(n=>n.k==='ent'||n.k==='weak').length;return{enun:p.enun&&p.enun.trim()?'✓':'',er:ents?ents+' ent.':'',rel:p.rel.t.length?p.rel.t.length+' tab.':'',ded:p.ded.t.length?p.ded.t.length+' tab.':'',sql:p.sql&&p.sql.trim()?'✓':''};},
+  counts(p){const ents=p.er.nodes.filter(n=>n.k==='ent'||n.k==='weak').length;return{enun:p.enun&&p.enun.trim()?'✓':'',er:ents?ents+' ent.':'',rel:p.rel.t.length?p.rel.t.length+' tab.':'',ded:p.ded.t.length?p.ded.t.length+' tab.':'',sql:p.sql&&p.sql.trim()?'✓':'',test:Pruebas.dbs[p._id]?'BD':''};},
   renderCounts(p){const c=this.counts(p);Object.keys(c).forEach(v=>{const el=document.querySelector(`.pi[data-pid="${p._id}"][data-view="${v}"] .cnt`);if(el)el.textContent=c[v];});},
   renderTree(){
     const t=document.getElementById('tree');if(this.solo){t.innerHTML='';return;}
@@ -477,10 +462,12 @@ const App={
       v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div>`;
       document.getElementById('enun').addEventListener('input',e=>{p.enun=e.target.value;this.touch(p);});
     } else if(this.view==='sql'){
-      v.innerHTML=`<div class="ed-tools"><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-draw">${GL.ded}<span>Dibujar desde este SQL</span></button><button class="ebtn" data-act="sql-open">${GL.open}<span>Abrir archivo .sql</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
+      const dl=Settings.get().sqlDialect||'mysql';
+      v.innerHTML=`<div class="ed-tools"><div class="tgroup"><span class="tlab">Para</span><div class="seg dial" role="group" aria-label="Gestor de base de datos">${Object.entries(DIALECTS).map(([k,l])=>`<button class="segb" data-act="sql-dialect" data-v="${k}" aria-pressed="${dl===k}">${l}</button>`).join('')}</div></div><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-draw">${GL.fromer}<span>Dibujar desde este SQL</span></button><button class="ebtn" data-act="sql-open">${GL.open}<span>Abrir archivo .sql</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-sample" title="Añade al final INSERT con datos inventados pero coherentes (respetan PK, FK y UNIQUE)">${GL.table}<span>Añadir datos de ejemplo</span></button><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-wb" title="Guarda un archivo .sql para MySQL que se abre en MySQL Workbench (te dibuja el diagrama) y en phpMyAdmin">${GL.open}<span>Para Workbench / phpMyAdmin</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
         <textarea class="sqlbox" id="sqltxt" spellcheck="false" placeholder="Pulsa «Generar desde el DED» (o desde el relacional) para crear el script, o escríbelo aquí.">${esc(p.sql||'')}</textarea>`;
       document.getElementById('sqltxt').addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});
       document.getElementById('sqltxt').addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});
+    } else if(this.view==='test'){Pruebas.render(v,p);
     } else {this.ed.mount(v);this.ed.open(p,this.view);}
   },
   go(p,view){this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
@@ -492,7 +479,7 @@ const App={
   },
   onMain(e){
     const vt=e.target.closest('.vtabs [data-view]');if(vt){this.go(this.cur,vt.dataset.view);return;}
-    const b=e.target.closest('.ph [data-act], .welcome [data-act]')||(this.view==='sql'&&e.target.closest('#view [data-act]'));if(b)this.action(b);
+    const b=e.target.closest('.ph [data-act], .welcome [data-act]')||((this.view==='sql'||this.view==='test')&&e.target.closest('#view [data-act]'));if(b)this.action(b);
   },
   async run(fn,okMsg){try{const r=await fn();if(okMsg&&r!==null&&r!==undefined)toast(typeof okMsg==='function'?okMsg(r):okMsg);return r;}catch(e){toast(e.message,'warn');this.status('bad',e.message);return null;}},
   confirm(title,text,btn,cb,extra=''){this._cf=cb;this.modal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>${extra}<div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="cf-ok">${esc(btn)}</button></div>`);},
@@ -511,8 +498,8 @@ const App={
       toast(r.migrated?`Carpeta lista. He traído ${r.migrated} proyecto(s) de la versión anterior.`:'Carpeta Modelados BDD lista en '+r.dir);return;}
     if(!this.base){toast('Primero elige dónde guardar la carpeta Modelados BDD.');return;}
     if(a==='newproj'){
-      const names=new Set(this.projects.map(x=>x.name.toLowerCase()));let n=this.projects.length+1;while(names.has(('proyecto '+n)))n++;
-      const np=await this.run(()=>window.api.create('proyecto '+n));if(!np)return;np._id=uid('p');this.projects.push(np);this.go(np,'er');
+      const base=LANG()==='en'?'project ':'proyecto ',names=new Set(this.projects.map(x=>x.name.toLowerCase()));let n=this.projects.length+1;while(names.has((base+n)))n++;
+      const np=await this.run(()=>window.api.create(base+n));if(!np)return;np._id=uid('p');this.projects.push(np);this.go(np,'er');
       const i=document.getElementById('pname');if(i){i.focus();i.select();}return;}
     if(a==='import'){this.modal(`<h3>Importar código</h3><p>Pega el código que te han pasado (empieza por <code>MB1-</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
       <textarea id="imptxt" spellcheck="false" placeholder="MB1-…"></textarea>
@@ -545,13 +532,13 @@ const App={
       clearTimeout(p._t);p._t=null;clearTimeout(p._rn);if(p._rn){p._rn=null;await this.doRename(p);}
       await (p._q||Promise.resolve());
       const ok=await this.run(()=>window.api.remove(p.folder).then(()=>true));if(!ok)return;
-      this.projects=this.projects.filter(x=>x!==p);this.cur=null;this.updateStatus();this.renderTree();this.renderMain();toast('Proyecto movido a la papelera de reciclaje.');return;}
+      Pruebas.forget(p._id);this.projects=this.projects.filter(x=>x!==p);this.cur=null;this.updateStatus();this.renderTree();this.renderMain();toast('Proyecto movido a la papelera de reciclaje.');return;}
     if(a==='sql-ded'||a==='sql-rel'){const from=a==='sql-ded'?'ded':'rel';let r;
       try{r=genSQL(p,from);}catch(e){toast(e.message,'warn');return;}
       const put=()=>{p.sql=r.sql;this.touch(p);const t=document.getElementById('sqltxt');if(t)t.value=p.sql;toast(r.warn.length?`SQL generado con ${r.warn.length} aviso(s): míralos al principio.`:'SQL generado.',r.warn.length?'warn':'');};
       if(p.sql&&p.sql.trim()&&p.sql!==r.sql)this.confirm('Generar el SQL de nuevo',`Se sustituirá el SQL actual por uno nuevo hecho desde el ${from==='ded'?'DED':'relacional'}. Si lo habías cambiado a mano, esos cambios se pierden.`,'Sustituir',put);else put();return;}
     if(a==='erdplus-import'){
-      const f=await this.run(()=>window.api.openText({title:'Importar de ERDPlus',filters:[{name:'Diagrama de ERDPlus',extensions:['erdplus','json']}]}));if(!f)return;
+      const f=await this.run(()=>window.api.openText({title:t('Importar de ERDPlus'),filters:[{name:t('Diagrama de ERDPlus'),extensions:['erdplus','json']}]}));if(!f)return;
       let er;try{er=fromERDPlus(f.text);}catch(e){toast(e.message,'warn');return;}
       const put=kind=>{if(this.ed.p===p)this.ed.hist.push({mode:'er',data:JSON.stringify(cleanModel(p.er,'er'))});
         if(kind==='rep')p.er={nodes:er.nodes,links:er.links,notes:[...(p.er.notes||[]),...er.notes]};
@@ -563,10 +550,27 @@ const App={
       if(!p.er.nodes.length){put('rep');return;}
       this._imp=put;this.modal(`<h3>Tu E-R no está vacío</h3><p>¿Qué hago con el diagrama de ERDPlus?</p><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn" data-m="imp-add">Añadirlo al lado</button><button class="ebtn pri" data-m="imp-rep">Sustituir mi E-R</button></div>`);return;}
     if(a==='sql-open'){
-      const f=await this.run(()=>window.api.openText({title:'Abrir archivo SQL',filters:[{name:'SQL',extensions:['sql','txt']}]}));if(!f)return;
+      const f=await this.run(()=>window.api.openText({title:t('Abrir archivo SQL'),filters:[{name:'SQL',extensions:['sql','txt']}]}));if(!f)return;
       const load=()=>{p.sql=f.text;this.touch(p);const t=document.getElementById('sqltxt');if(t)t.value=p.sql;this.drawSQL(p);};
       if(p.sql&&p.sql.trim()&&p.sql!==f.text)this.confirm('Abrir archivo SQL',`Se sustituirá el SQL de este proyecto por el de «${f.name}».`,'Sustituir',load);else load();return;}
     if(a==='sql-draw'){this.drawSQL(p);return;}
+    if(a==='sql-wb'){const from=p.ded.t.length?'ded':p.rel.t.length?'rel':null;if(!from){toast('Primero haz el DED (o el relacional): el archivo se crea a partir de sus tablas.','warn');return;}
+      this._wbFrom=from;this.modal(`<h3>Exportar para MySQL Workbench y phpMyAdmin</h3><p>Se guarda un archivo <b>.sql</b> para MySQL hecho desde tu ${from==='ded'?'DED':'relacional'}, con la base de datos, las tablas, las claves y sus relaciones.</p>
+        <label class="chk"><input type="checkbox" id="wb-data" checked><span class="chk-t">Incluir datos de ejemplo<small>INSERT coherentes, para tener filas con las que probar.</small></span><span class="sw"></span></label>
+        <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="wb-save">Guardar .sql</button></div>`);return;}
+    if(a==='tst-build'){await Pruebas.build(p,b.dataset.v);return;}
+    if(a==='tst-fill'){Pruebas.fill(p);return;}
+    if(a==='tst-fk'){Pruebas.fkCheck(p);return;}
+    if(a==='tst-empty'){this.confirm('Vaciar datos','Se borrarán todas las filas de la base de prueba (las tablas se quedan).','Vaciar',()=>Pruebas.empty(p));return;}
+    if(a==='tst-run'){Pruebas.run(p);return;}
+    if(a==='tst-show'){Pruebas.show(p,b.dataset.v);return;}
+    if(a==='sql-dialect'){Settings.set('sqlDialect',b.dataset.v);document.querySelectorAll('[data-act=sql-dialect]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+      toast(`Los próximos «Generar» y datos de ejemplo serán para ${DIALECTS[b.dataset.v]}.`);return;}
+    if(a==='sql-sample'){const from=p.ded.t.length?'ded':p.rel.t.length?'rel':null;if(!from){toast('Primero haz el DED (o el relacional): los datos se inventan a partir de sus tablas.','warn');return;}
+      let sc;try{sc=schemaOf(p[from].t,from==='rel');}catch(e){toast(e.message,'warn');return;}
+      const d=Settings.get().sqlDialect||'mysql',data=sampleRows(sc,Settings.get().sampleRows||5),txt=(LANG()==='en'?`\n-- Sample data (${DIALECTS[d]}), made up from the ${from==='ded'?'DSD':'relational'}\n`:`\n-- Datos de ejemplo (${DIALECTS[d]}), inventados a partir del ${from==='ded'?'DED':'relacional'}\n`)+insertsSQL(sc,data,d);
+      p.sql=(p.sql||'').replace(/\s*$/,'\n')+txt;this.touch(p);const t=document.getElementById('sqltxt');if(t){t.value=p.sql;t.scrollTop=t.scrollHeight;}
+      toast(data.warn.length?data.warn[0]:'Datos de ejemplo añadidos al final del script.',data.warn.length?'warn':'');return;}
     if(a==='sql-copy'){const t=document.getElementById('sqltxt');if(!t||!t.value.trim()){toast('No hay SQL que copiar.');return;}
       try{await navigator.clipboard.writeText(t.value);toast('SQL copiado.');}catch(e){t.focus();t.select();toast('Pulsa Ctrl+C para copiarlo.');}return;}
   },
@@ -608,7 +612,7 @@ const App={
     for(const src of list){
       let name=String(src.name||'proyecto importado').trim()||'proyecto importado';if(names.has(name.toLowerCase()))name+=' (importado)';names.add(name.toLowerCase());
       const np=await this.run(()=>window.api.create(name));if(!np)continue;
-      np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.updated=Date.now();
+      np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.test=String(src.test||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.updated=Date.now();
       await this.run(()=>window.api.save(plainProject(np),exportSVGs(np)));got.push(np.folder);
     }
     if(got.length){await this.reload(got[0]);toast(got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`);}
@@ -617,7 +621,8 @@ const App={
     if(e.target.id==='modal'){this.closeModal();return;}
     if(e.target.closest('[data-theme-set]')&&this.settingsOpen){setTimeout(()=>this.renderSettings(),0);return;}
     const sb=e.target.closest('[data-sec]');if(sb){this._sec=sb.dataset.sec;this.renderSettings();document.getElementById('setbody').scrollTop=0;return;}
-    const sv=e.target.closest('[data-setv]');if(sv){const v=sv.dataset.v;Settings.set(sv.dataset.setv,/^\d+$/.test(v)?+v:v);this.renderSettings();return;}
+    const sv=e.target.closest('[data-setv]');if(sv&&sv.dataset.setv==='lang'){if(sv.dataset.v!==LANG()){Settings.set('lang',sv.dataset.v);await this.flushAll();this.keepPlace();window.api.reload();}return;}
+    if(sv){const v=sv.dataset.v;Settings.set(sv.dataset.setv,/^\d+$/.test(v)?+v:v);this.renderSettings();return;}
     const tn=e.target.closest('[data-th]');if(tn){this._th=tn.dataset.th;this.renderSettings();const a=document.getElementById('thart');if(a)a.scrollTop=0;return;}
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this.closeModal();return;}
@@ -627,6 +632,17 @@ const App={
     if(k==='imp-add'||k==='imp-rep'){const f=this._imp;this._imp=null;this.closeModal();if(f)f(k==='imp-add'?'add':'rep');return;}
     if(k==='repo'){window.api.updatePage();return;}
     if(k==='set-reset'){Settings.reset();Theme.set('system');this.renderSettings();toast('Ajustes restablecidos.');return;}
+    if(k==='wb-save'){const p=this.cur,from=this._wbFrom,data=document.getElementById('wb-data').checked;let r,sc;
+      try{r=genSQL(p,from,'mysql');sc=schemaOf(p[from].t,from==='rel');}catch(err){toast(err.message,'warn');return;}
+      let txt=r.sql;if(data)txt+=(LANG()==='en'?'\n-- Sample data\n':'\n-- Datos de ejemplo\n')+insertsSQL(sc,sampleRows(sc,Settings.get().sampleRows||5),'mysql');
+      this.closeModal();if(p._rn){clearTimeout(p._rn);p._rn=null;await this.doRename(p);}
+      const f=await this.run(()=>window.api.saveText({title:t('Exportar para MySQL Workbench y phpMyAdmin'),folder:p.folder,name:p.name,ext:'.sql',text:txt,filters:[{name:'SQL',extensions:['sql']}]}));
+      if(!f)return;
+      this.modal(`<h3>Archivo .sql guardado</h3><div class="folder-demo" style="margin:0 0 10px">${esc(f)}</div>
+        <p class="news-h">MySQL Workbench</p><ol class="steps"><li>Menú <b>File › Import › Reverse Engineer MySQL Create Script…</b></li><li>Elige este archivo y marca <b>Place imported objects on a diagram</b>.</li><li>Pulsa <b>Execute</b> y luego <b>Finish</b>: te dibuja el diagrama (EER) con las tablas y sus relaciones.</li><li>Para crear la base de datos de verdad: <b>File › Open SQL Script…</b>, abre el archivo y pulsa el rayo (ejecutar).</li></ol>
+        <p class="news-h">phpMyAdmin</p><ol class="steps"><li>Entra en phpMyAdmin (por ejemplo, desde XAMPP) y abre la pestaña <b>Importar</b>.</li><li>Elige este archivo y pulsa <b>Importar</b> (o <b>Continuar</b>). Se crea la base de datos con sus tablas.</li><li>Dentro de la base, en <b>Más › Diseñador</b>, verás las tablas y sus relaciones.</li></ol>
+        <p class="tnote">Ojo: el archivo empieza con DROP DATABASE IF EXISTS, así que si ya tenías una base con ese nombre, se sustituye.</p>
+        <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`,'wide');return;}
     if(k==='upd-get'){this.downloadUpdate(b);return;}
     if(k==='upd-install'){this.installUpdate(b);return;}
     if(k==='upd-later'){try{localStorage.setItem('mb:upd:later',String(Date.now()));}catch(e){}this.closeModal();return;}
