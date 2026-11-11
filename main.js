@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.7.3';
+const VERSION = '1.7.4';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -32,7 +32,64 @@ function boundsVisible(b) {
   return !!b && screen.getAllDisplays().some(d => { const a = d.workArea; return b.x < a.x + a.width - 80 && b.x + b.width > a.x + 80 && b.y >= a.y - 10 && b.y < a.y + a.height - 60; });
 }
 
-if (!app.requestSingleInstanceLock()) { app.exit(0); }
+// ---------- Modo instalador ----------
+// Para actualizar, la app vieja abre la versión NUEVA (ya descomprimida en Temp) con --mb-install.
+// Esa copia no abre ventanas: espera a que la vieja se cierre, copia sus archivos encima y vuelve a abrir el programa.
+const ARG = k => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : null; };
+const INSTALLER = !!ARG('mb-install');
+if (INSTALLER) {
+  process.noAsar = true;
+  app.disableHardwareAcceleration();
+  try { app.setPath('userData', path.join(app.getPath('temp'), 'modelado-bases-instalador')); } catch (e) {}
+  runInstaller().catch(() => app.exit(1));
+} else if (!app.requestSingleInstanceLock()) { app.exit(0); }
+async function runInstaller() {
+  const dst = ARG('mb-install'), src = ARG('mb-src') || path.dirname(process.execPath);
+  const pid = parseInt(ARG('mb-pid') || '0', 10), log = ARG('mb-log'), relaunch = process.argv.includes('--mb-relaunch');
+  const L = m => { if (log) try { fs.appendFileSync(log, new Date().toTimeString().slice(0, 8) + ' ' + m + '\r\n'); } catch (e) {} };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const alive = p => { if (!p) return false; try { process.kill(p, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
+  L('inicio (instalador ' + VERSION + '): ' + src + ' -> ' + dst);
+  for (let i = 0; i < 120 && alive(pid); i++) await sleep(500);
+  if (alive(pid)) { L('la app vieja no se cierra: se cierra a la fuerza'); try { process.kill(pid); } catch (e) {} await sleep(1500); }
+  await sleep(800);
+  const copyDir = (a, b) => {
+    fs.mkdirSync(b, { recursive: true });
+    for (const d of fs.readdirSync(a, { withFileTypes: true })) {
+      const x = path.join(a, d.name), y = path.join(b, d.name);
+      if (d.isDirectory()) copyDir(x, y); else fs.copyFileSync(x, y);
+    }
+  };
+  let ok = false, err = '';
+  for (let t = 0; t < 25 && !ok; t++) {
+    try { copyDir(src, dst); ok = true; }
+    catch (e) {
+      err = (e.code || '') + ' ' + e.message; L('reintento ' + (t + 1) + ': ' + err);
+      // Algún proceso viejo del programa (GPU, crashpad...) sigue usando los archivos: se cierra
+      if (t === 4 && process.platform === 'win32') {
+        try {
+          require('child_process').execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+            `Get-Process | Where-Object { $_.Id -ne ${process.pid} -and $_.Path -and $_.Path.StartsWith('${dst.replace(/'/g, "''")}\\', [StringComparison]::OrdinalIgnoreCase) } | Stop-Process -Force`],
+            { windowsHide: true, timeout: 20000, stdio: 'ignore' });
+          L('procesos viejos cerrados');
+        } catch (e2) { L('no se pudieron cerrar procesos viejos: ' + e2.message); }
+      }
+      await sleep(1500);
+    }
+  }
+  L(ok ? 'copiado ok' : 'no se pudo copiar: ' + err);
+  if (relaunch) {
+    const exe = path.join(dst, process.platform === 'win32' ? 'Modelado Bases.exe' : 'Modelado Bases');
+    try {
+      const c = require('child_process').spawn(exe, [], { cwd: dst, detached: true, stdio: 'ignore' });
+      c.on('error', e => L('no se pudo abrir: ' + e.message));
+      c.on('spawn', () => L('abierta'));
+      c.unref();
+    } catch (e) { L('no se pudo abrir: ' + e.message); }
+    await sleep(1500);
+  }
+  app.exit(0);
+}
 // Si ya hay una copia abierta, se enseña su ventana (o se abre una si se había quedado sin ninguna)
 app.on('second-instance', () => {
   if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
@@ -79,6 +136,7 @@ function sendSolos() {
 }
 
 app.whenReady().then(() => {
+  if (INSTALLER) return;
   cfgFile = path.join(app.getPath('userData'), 'config.json');
   try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) { cfg = {}; }
   if (cfg.dataDir) { try { fs.mkdirSync(cfg.dataDir, { recursive: true }); } catch (e) {} }
@@ -316,39 +374,15 @@ async function prepareUpdate(url, sender) {
   prepared = { url, work, zip, src };
   return prepared;
 }
-// Script que espera a que la app se cierre, copia la versión nueva encima y (si se pide) la vuelve a abrir
+// Abre la versión nueva en modo instalador: espera a que esta se cierre, copia sus archivos y (si se pide) vuelve a abrir el programa
 function launchInstaller(p, relaunch) {
-  const q = s => "'" + String(s).replace(/'/g, "''") + "'";
   const dst = installDir(), log = path.join(p.work, 'update.log');
-  const ps = [
-    "$ErrorActionPreference = 'SilentlyContinue'",
-    `$pidApp = ${process.pid}`,
-    `$src = ${q(p.src)}`, `$dst = ${q(dst)}`, `$log = ${q(log)}`,
-    "$exe = Join-Path $dst 'Modelado Bases.exe'",
-    "function L($m) { ((Get-Date -Format 'HH:mm:ss') + ' ' + $m) | Out-File -Append -Encoding utf8 $log }",
-    // Todos los procesos que salen de la carpeta del programa (Electron abre varios: ventana, GPU, crashpad...)
-    "function Left { Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($dst + '\\', [StringComparison]::OrdinalIgnoreCase) } }",
-    "L ('inicio: ' + $src + ' -> ' + $dst)",
-    'for ($i = 0; $i -lt 120; $i++) { if (-not (Get-Process -Id $pidApp -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 }',
-    'for ($i = 0; $i -lt 20; $i++) { if (-not (Left)) { break }; Start-Sleep -Milliseconds 500 }',
-    "$rest = @(Left); if ($rest.Count) { L ('cerrando a la fuerza: ' + (($rest | ForEach-Object { $_.Id }) -join ',')); $rest | Stop-Process -Force; Start-Sleep -Seconds 2 }",
-    '$ok = $false',
-    'for ($t = 0; $t -lt 6; $t++) { robocopy $src $dst /E /R:3 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null; $code = $LASTEXITCODE; if ($code -lt 8) { $ok = $true; break }; L (\'robocopy \' + $code); Left | Stop-Process -Force; Start-Sleep -Seconds 2 }',
-    "if ($ok) { L 'copiado ok' } else { L 'no se pudo copiar' }",
-    relaunch ? [
-      'Start-Process -FilePath $exe -WorkingDirectory $dst',
-      'Start-Sleep -Seconds 6',
-      "if (-not (Left)) { L 'no se abrio, otra vez'; Start-Process -FilePath $exe -WorkingDirectory $dst }",
-      "L 'abierta'"
-    ].join('\r\n') : '',
-    `if ($ok) { Start-Sleep -Seconds 3; Remove-Item -LiteralPath ${q(path.join(p.work, 'x'))} -Recurse -Force; Remove-Item -LiteralPath ${q(p.zip)} -Force }`
-  ].join('\r\n');
-  const script = path.join(p.work, 'update.ps1');
-  fs.writeFileSync(script, '﻿' + ps, 'utf8');
+  const exe = path.join(p.src, 'Modelado Bases.exe');
+  try { fs.appendFileSync(log, new Date().toTimeString().slice(0, 8) + ' la app ' + VERSION + ' abre el instalador\r\n'); } catch (e) {}
+  const args = ['--mb-install=' + dst, '--mb-pid=' + process.pid, '--mb-log=' + log].concat(relaunch ? ['--mb-relaunch'] : []);
   const { spawn } = require('child_process');
   return new Promise((res, rej) => {
-    const c = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', script],
-      { detached: true, stdio: 'ignore', windowsHide: true });
+    const c = spawn(exe, args, { cwd: p.src, detached: true, stdio: 'ignore' });
     c.once('error', err => rej(new Error('No se pudo iniciar el instalador (' + err.message + ').')));
     c.once('spawn', () => { c.unref(); res(); });
   });

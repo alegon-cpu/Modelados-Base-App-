@@ -10,9 +10,8 @@ awk -v a="v$VER" -v b="v$SHORT" '
   on { print }' CHANGELOG.txt | sed -e '/^[[:space:]]*$/d'
 cat <<'TXT'
 
-Si ya tienes Modelado Bases 1.6.2 o posterior, no tienes que hacer nada: la app se actualiza sola al cerrarla.
-Si tienes la 1.6.1, la app te avisa y basta con pulsar «Actualizar ahora».
-Si después de actualizar la app no se vuelve a abrir sola, ábrela tú desde su carpeta.
+Desde la 1.7.4 no tienes que hacer nada: la app se actualiza sola al cerrarla (o con «Reiniciar y actualizar»).
+Si tienes una versión anterior a la 1.7.4 y no se actualiza, instala esta a mano una vez: cierra la app, descarga el zip de abajo y extráelo encima de la carpeta del programa.
 
 Si es la primera vez:
 1. Descarga el zip de abajo (Assets).

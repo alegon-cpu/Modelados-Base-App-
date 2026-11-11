@@ -41,6 +41,12 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v1.7.4  (11/11/2026)
+--------------------
+- Arreglado: al actualizar, la version nueva no se instalaba. Ahora es la
+  propia version nueva la que se instala (sin PowerShell): espera a que se
+  cierre la vieja, copia sus archivos y vuelve a abrir la app.
+
 v1.7.3  (11/11/2026)
 --------------------
 - Boton "Distribuir" tambien en el relacional y en el DED (y en el menu
