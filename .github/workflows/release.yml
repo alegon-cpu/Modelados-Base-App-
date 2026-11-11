@@ -1,0 +1,48 @@
+name: Publicar versión
+
+# Se ejecuta al subir una etiqueta como v1.6.1: construye el zip de Windows y crea la Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Comprobar que la etiqueta coincide con package.json
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if [ "v$V" != "$GITHUB_REF_NAME" ]; then
+            echo "La etiqueta $GITHUB_REF_NAME no coincide con la versión de package.json ($V)"; exit 1
+          fi
+
+      - name: Pruebas
+        run: node test-storage.js
+
+      - name: Construir el zip de Windows
+        run: bash build.sh
+
+      - name: Publicar la Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=${GITHUB_REF_NAME#v}
+          bash release-notes.sh > notes.md
+          cat notes.md
+          gh release create "$GITHUB_REF_NAME" "Modelado-Bases-$V-Windows.zip" \
+            --title "Modelado Bases ${V%.0}" --notes-file notes.md --latest

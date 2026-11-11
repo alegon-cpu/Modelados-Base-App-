@@ -1,0 +1,527 @@
+/* ===================== Imágenes SVG de cada diagrama (se guardan junto a diagrama.json) ===================== */
+const LIGHT={'er-stroke':'#2B2A27','surface':'#FFFFFF','ink':'#22211F','card':'#A2441C','muted':'#6B6A64','bad':'#C0362C',
+  'c-ent':'#2F5D8A','e-fill':'#EDF3F9','c-rel':'#9C6510','r-fill':'#FBF2E0','c-att':'#3D7A4E','a-fill':'#EEF6EF','c-key':'#7A4FB8','k-fill':'#F3EDFB',
+  'ded-border':'#A9B2C0','ded-head':'#33557F','ded-head-ink':'#FFFFFF','pk':'#8E5FD0','fk':'#B4364E','pk-ink':'#6B3FA8','fk-ink':'#A3304A','col':'#2A7F8F','accent':'#2F6B4F',
+  'f-mono':"Consolas,'JetBrains Mono','Courier New',monospace"};
+const SVG_RULES=`.ln{stroke:var(--er-stroke);stroke-width:1.2}.mk{stroke:var(--er-stroke);stroke-width:1.5;fill:none}.mo{fill:var(--surface);stroke:var(--er-stroke);stroke-width:1.5}
+.ent{fill:var(--e-fill);stroke:var(--c-ent);stroke-width:1.5}.dia{fill:var(--r-fill);stroke:var(--c-rel);stroke-width:1.5}.att{fill:var(--a-fill);stroke:var(--c-att);stroke-width:1.2}.att.key{fill:var(--k-fill);stroke:var(--c-key)}.att.dr{stroke-dasharray:4 3}
+.ent.in,.dia.in{fill:none}.dup{stroke:var(--bad);stroke-width:2.4}
+.tx{fill:var(--ink);font:11px var(--f-mono)}.txk{fill:var(--pk-ink);font-weight:600}.tb{font:600 13px var(--f-mono);fill:var(--c-ent)}.tr{font:600 12px var(--f-mono);fill:var(--c-rel)}.tt{font:600 10px var(--f-mono);fill:var(--muted)}
+.ul{stroke:var(--pk-ink);stroke-width:1}.ul.p{stroke-dasharray:3 2}.card{font:600 11px var(--f-mono);fill:var(--card);paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}.cardq{fill:var(--muted)}
+.tbox{fill:var(--surface);stroke:var(--ded-border);stroke-width:1}.thd{fill:var(--ded-head)}.thx{font:600 12.5px var(--f-mono);fill:var(--ded-head-ink)}.cx{font:11.5px var(--f-mono);fill:var(--ink)}.cpk{fill:var(--pk-ink);font-weight:600}.cfk{fill:var(--fk-ink)}.cty{fill:var(--muted);font-weight:400}.uq{font:600 9px var(--f-mono);fill:var(--col)}
+.lk{stroke:var(--muted);stroke-width:1.4;fill:none}.lk.dash{stroke-dasharray:6 4}.lkm{stroke:var(--muted);stroke-width:1.5;fill:none}.lko{fill:var(--surface);stroke:var(--muted);stroke-width:1.5}
+.ipk{fill:var(--pk)}.ifk{fill:var(--fk)}.icol{fill:var(--col)}.inul{fill:none;stroke:var(--col);stroke-width:1.3}
+.rbox{fill:var(--surface);stroke:var(--ink);stroke-width:1.1}.rnm{font:600 12.5px var(--f-mono);fill:var(--c-ent)}.rcol{font:12px var(--f-mono);fill:var(--ink)}.rpk{font-weight:700;fill:var(--pk-ink)}.rfk{fill:var(--fk-ink)}.rul{stroke:var(--pk-ink);stroke-width:1.1}
+.rtag{font:600 9.5px var(--f-mono);fill:var(--muted)}.rarr{fill:none;stroke:var(--fk);stroke-width:1.1}.rhead{fill:var(--fk)}
+.thx.dup{fill:#FFC2BD}.cx.dup,.rnm.dup,.rcol.dup{fill:var(--bad);text-decoration:underline}`;
+const SVG_CSS=SVG_RULES.replace(/var\(--([\w-]+)\)/g,(_,k)=>LIGHT[k]||'#000');
+function svgParts(p){
+  const ed=new Editor(null);ed.p={er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')};
+  const out={};
+  for(const mode of ['er','rel','ded']){
+    ed.mode=mode;const m=ed.p[mode];
+    if(mode==='er'?!m.nodes.length:!m.t.length){out[mode]=null;continue;}
+    let inner,b;
+    if(mode==='er'){inner=ed.erString(false);const ns=m.nodes;b=[Math.min(...ns.map(n=>n.x-n.w/2)),Math.min(...ns.map(n=>n.y-n.h/2)),Math.max(...ns.map(n=>n.x+n.w/2)),Math.max(...ns.map(n=>n.y+n.h/2))];}
+    else{inner=ed.tablesString(false);const box=t=>mode==='ded'?[t.x,t.y,t.x+t.w,t.y+t.h]:[t.x-26,t.y,t.x+t.rw,t.y+18+t.rh];const bs=m.t.map(box);b=[Math.min(...bs.map(x=>x[0])),Math.min(...bs.map(x=>x[1])),Math.max(...bs.map(x=>x[2])),Math.max(...bs.map(x=>x[3]))];}
+    out[mode]={inner,b};
+  }
+  return out;
+}
+function standalone({inner,b}){
+  const pad=60,x0=Math.floor(b[0]-pad),y0=Math.floor(b[1]-pad),w=Math.ceil(b[2]-b[0]+2*pad),h=Math.ceil(b[3]-b[1]+2*pad);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}"><style>${SVG_CSS}</style><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#ffffff"/>${inner}</svg>\n`;
+}
+function exportSVGs(p){const parts=svgParts(p),o={};for(const k of ['er','rel','ded'])o[k]=parts[k]?standalone(parts[k]):null;return o;}
+
+/* ===================== Captura: E-R, relacional y DED en una sola imagen ===================== */
+const SECCIONES=[['er','Modelo Entidad-Relación'],['rel','Modelo relacional'],['ded','Diagrama de estructura de datos (DED)']];
+function captureSVG(p){
+  const parts=svgParts(p),secs=SECCIONES.filter(([k])=>parts[k]);
+  if(!secs.length)return null;
+  const pad=50,M=64,gap=64;
+  const W2=Math.round(Math.max(1000,...secs.map(([k])=>parts[k].b[2]-parts[k].b[0]+2*pad))+2*M);
+  const fecha=new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  let y=M,body=`<text x="${M}" y="${y+24}" class="h1">${esc(p.name)}</text><text x="${W2-M}" y="${y+24}" text-anchor="end" class="h2">${esc(fecha)}</text>`;
+  y+=44;body+=`<line x1="${M}" y1="${y}" x2="${W2-M}" y2="${y}" class="sep"/>`;y+=34;
+  secs.forEach(([k,title],i)=>{
+    const {inner,b}=parts[k],w=b[2]-b[0]+2*pad,h=b[3]-b[1]+2*pad;
+    body+=`<text x="${M}" y="${y+16}" class="h3">${i+1}. ${esc(title)}</text>`;y+=30;
+    const dx=M+(W2-2*M-w)/2-(b[0]-pad),dy=y-(b[1]-pad);
+    body+=`<rect x="${M}" y="${y}" width="${W2-2*M}" height="${Math.ceil(h)}" class="frame"/><g transform="translate(${f1(dx)},${f1(dy)})">${inner}</g>`;
+    y+=Math.ceil(h)+gap;
+  });
+  const H2=Math.round(y-gap+M);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W2}" height="${H2}" viewBox="0 0 ${W2} ${H2}"><style>${SVG_CSS}.h1{font:600 24px 'Segoe UI',Arial,sans-serif;fill:#22211F}.h2{font:14px 'Segoe UI',Arial,sans-serif;fill:#6B6A64}.h3{font:600 16px 'Segoe UI',Arial,sans-serif;fill:#22211F}.sep{stroke:#22211F;stroke-width:1.2}.frame{fill:#FFFFFF;stroke:#E2E0DB}</style><rect width="${W2}" height="${H2}" fill="#F6F5F2"/>${body}</svg>`;
+  return {svg,w:W2,h:H2};
+}
+async function captureProject(p){
+  const c=captureSVG(p);if(!c)return null;
+  const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(c.svg);await img.decode();
+  const sc=Math.min(2,12000/Math.max(c.w,c.h));const cv=document.createElement('canvas');cv.width=Math.round(c.w*sc);cv.height=Math.round(c.h*sc);
+  const x=cv.getContext('2d');x.scale(sc,sc);x.drawImage(img,0,0,c.w,c.h);
+  return window.api.saveCapture(p.folder,p.name,cv.toDataURL('image/png').split(',')[1]);
+}
+
+/* ===================== SQL a partir del DED o del relacional ===================== */
+const slug=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'base_datos';
+const qid=s=>{s=String(s||'').trim()||'sin_nombre';return /^[A-Za-z_][A-Za-z0-9_]*$/.test(s)?s:'`'+s.replace(/`/g,'')+'`';};
+function genSQL(p,from){
+  const src=p[from].t,warn=[];
+  if(!src.length)throw new Error(`Tu ${from==='ded'?'DED':'relacional'} no tiene tablas todavía.`);
+  const m={t:src.map(t=>({n:t.n,c:t.c}))};
+  if(tableDups(m))throw new Error('Hay nombres repetidos (en rojo). Cámbialos antes de generar el SQL.');
+  const T={};src.forEach(t=>T[lc(t.n)]=t);
+  const cols=t=>t.c.filter(c=>String(c[0]).trim()).map(c=>({n:String(c[0]).trim(),ty:String(c[1]||'').trim(),f:parseF(c[2])}));
+  const pkOf=t=>cols(t).filter(c=>c.f.pk);
+  const fksOf=t=>{ // agrupa las FK de una tabla por la tabla a la que apuntan
+    const out=[],groups={};cols(t).forEach(c=>{if(c.f.fk){const k=lc(c.f.fk);(groups[k]=groups[k]||[]).push(c);}});
+    Object.entries(groups).forEach(([k,g])=>{const par=T[k];if(!par){warn.push(`${t.n}: la FK apunta a «${g[0].f.fk}», que no existe.`);return;}
+      const pk=pkOf(par);if(!pk.length){warn.push(`${t.n}: «${par.n}» no tiene clave primaria a la que apuntar.`);return;}
+      if(g.length===pk.length&&pk.length>1)out.push({cs:g.map(c=>c.n),par,ref:pk.map(c=>c.n)});
+      else g.forEach(c=>{const same=pk.find(x=>lc(x.n)===lc(c.n))||pk.find(x=>lc(c.n).startsWith(lc(x.n)))||pk[0];out.push({cs:[c.n],par,ref:[same.n]});});});
+    return out;};
+  // Orden: primero las tablas a las que apuntan las demás
+  const order=[],state={},late=[];
+  const visit=t=>{const k=lc(t.n);if(state[k]===2)return;if(state[k]===1)return;state[k]=1;fksOf(t).forEach(f=>{if(f.par!==t&&state[lc(f.par.n)]!==1)visit(f.par);});state[k]=2;order.push(t);};
+  const w0=warn.length;src.forEach(visit);warn.length=w0; // las avisos se repiten al recorrer; se recalculan abajo
+  const done=new Set();let body='';
+  order.forEach(t=>{
+    const cs=cols(t),pk=pkOf(t),lines=[];
+    if(!cs.length)warn.push(`La tabla «${t.n}» no tiene columnas.`);
+    if(!pk.length)warn.push(`La tabla «${t.n}» no tiene clave primaria.`);
+    cs.forEach(c=>{let ty=c.ty||guessType(c.n,c.f);if(from==='rel'&&(!c.ty||c.ty==='VARCHAR(45)'))ty=guessType(c.n,c.f);
+      lines.push(`  ${qid(c.n)} ${ty.toUpperCase()}${c.f.pk||!c.f.nul?' NOT NULL':' NULL'}`);});
+    if(pk.length)lines.push(`  PRIMARY KEY (${pk.map(c=>qid(c.n)).join(', ')})`);
+    cs.filter(c=>c.f.uq&&!(c.f.pk&&pk.length===1)).forEach(c=>lines.push(`  UNIQUE (${qid(c.n)})`));
+    fksOf(t).forEach(f=>{const fk=`FOREIGN KEY (${f.cs.map(qid).join(', ')}) REFERENCES ${qid(f.par.n)} (${f.ref.map(qid).join(', ')})`;
+      if(f.par===t||done.has(lc(f.par.n)))lines.push('  '+fk);else late.push(`ALTER TABLE ${qid(t.n)} ADD ${fk};`);});
+    body+=`CREATE TABLE ${qid(t.n)} (\n${lines.join(',\n')}\n);\n\n`;done.add(lc(t.n));
+  });
+  const db=slug(p.name),fecha=new Date().toLocaleDateString('es-ES');
+  let out=`-- ${p.name}\n-- Generado desde el ${from==='ded'?'DED':'modelo relacional'} con Modelado Bases (${fecha})\n`;
+  if(from==='rel')out+=`-- El relacional no tiene tipos: revisa los tipos de cada columna.\n`;
+  [...new Set(warn)].forEach(w=>out+=`-- Aviso: ${w}\n`);
+  out+=`\nDROP DATABASE IF EXISTS ${db};\nCREATE DATABASE ${db};\nUSE ${db};\n\n`+body;
+  if(late.length)out+=`-- Claves ajenas que se añaden al final (las tablas se apuntan entre sí)\n${late.join('\n')}\n`;
+  return {sql:out.replace(/\n+$/,'\n'),warn:[...new Set(warn)]};
+}
+
+/* ===================== Exportar a ERDPlus ===================== */
+function toERDPlus(er){
+  const X=erIdx(er),shapes=[],connectors=[],ids={};let next=1;
+  const ed=new Editor(null);er.nodes.forEach(n=>ed.size(n));
+  const x0=Math.min(...er.nodes.map(n=>n.x-n.w/2))-60,y0=Math.min(...er.nodes.map(n=>n.y-n.h/2))-60;
+  const X0=n=>Math.round(n.x-n.w/2-x0),Y0=n=>Math.round(n.y-n.h/2-y0);
+  er.nodes.forEach(n=>ids[n.id]=next++);
+  er.nodes.filter(isEnt).forEach(n=>shapes.push({type:'Entity',details:{name:n.n,type:n.k==='weak'?'weak':'regular',x:X0(n),y:Y0(n),id:ids[n.id]}}));
+  er.nodes.filter(isAtt).forEach(n=>{const f=n.f||{};
+    shapes.push({type:'Attribute',details:{name:n.n,isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id]}});
+    const ow=X.ownerOf(n);if(ow)connectors.push({type:'Connector',details:{id:next++},source:ids[n.id],destination:ids[ow.id]});});
+  er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);
+    const slots=en.map((x,i)=>({slotIndex:i,minimum:'',maximum:'',participation:x.mn==='1'?'mandatory':'optional',cardinality:x.mx==='1'?'one':'many',role:'',entityId:ids[x.e.id]}));
+    shapes.push({type:'Relationship',details:{name:r.n,isIdentifying:r.k==='idrel',x:X0(r),y:Y0(r),slots,id:ids[r.id]}});
+    en.forEach((x,i)=>connectors.push({type:'RelationshipConnector',details:{slotIndex:i,id:next++},source:ids[x.e.id],destination:ids[r.id]}));});
+  const width=Math.max(800,...er.nodes.map(n=>X0(n)+n.w+60)),height=Math.max(600,...er.nodes.map(n=>Y0(n)+n.h+60));
+  return JSON.stringify({version:2,www:'erdplus.com',shapes,connectors,width,height});
+}
+
+/* ===================== Código para exportar / importar ===================== */
+const b64u={enc(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');},
+  dec(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}};
+async function pipeBytes(data,stream){return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());}
+async function toCode(list){
+  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,er:q.er,rel:q.rel,ded:q.ded};})});
+  return 'MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
+}
+async function fromCode(txt){
+  const t=String(txt||'').trim();let json;
+  if(t.startsWith('{'))json=t;
+  else{const m=t.replace(/\s+/g,'');if(!m.startsWith('MB1-'))throw new Error('Ese texto no es un código de Modelado Bases. Debe empezar por MB1-');
+    let bytes;try{bytes=b64u.dec(m.slice(4));json=new TextDecoder().decode(await pipeBytes(bytes,new DecompressionStream('deflate-raw')));}catch(e){throw new Error('El código está incompleto o dañado. Cópialo entero otra vez.');}}
+  let d;try{d=JSON.parse(json);}catch(e){throw new Error('El código está incompleto o dañado. Cópialo entero otra vez.');}
+  const list=(Array.isArray(d.proyectos)?d.proyectos:(d&&d.er?[d]:[])).filter(p=>p&&typeof p==='object');
+  if(!list.length)throw new Error('El código no contiene ningún proyecto.');
+  return list;
+}
+
+/* ===================== Tema claro / oscuro ===================== */
+const Theme={
+  get(){try{return localStorage.getItem('mb:theme')||'system';}catch(e){return 'system';}},
+  apply(m){if(m==='light'||m==='dark')document.documentElement.setAttribute('data-theme',m);else document.documentElement.removeAttribute('data-theme');
+    document.querySelectorAll('[data-theme-set]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.themeSet===m)));
+    try{window.api.setTheme&&window.api.setTheme(m).catch(()=>{});}catch(e){}},
+  set(m){try{localStorage.setItem('mb:theme',m);}catch(e){}this.apply(m);if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();},
+  init(){this.apply(this.get());document.addEventListener('click',e=>{const b=e.target.closest('[data-theme-set]');if(b)this.set(b.dataset.themeSet);});
+    window.addEventListener('storage',e=>{if(e.key==='mb:theme')this.apply(this.get());});}
+};
+
+/* ===================== Cambiar el tamaño de cada parte ===================== */
+const SPLITS={side:{v:'--side-w',def:248,min:170,dir:1},en:{v:'--en-w',def:300,min:170,dir:1},in:{v:'--in-w',def:300,min:220,dir:-1}};
+const Splits={
+  get(n){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(SPLITS[n].v))||SPLITS[n].def;},
+  max(n){const W=window.innerWidth,other=k=>k===n?0:(k==='en'&&!document.querySelector('.ed-main.withenun')?0:k==='side'&&document.body.classList.contains('solo')?0:this.get(k));
+    return Math.max(SPLITS[n].min,W-300-other('side')-other('en')-other('in')-60);},
+  set(n,px,save){const c=SPLITS[n];px=Math.round(Math.min(this.max(n),Math.max(c.min,px)));document.documentElement.style.setProperty(c.v,px+'px');
+    if(save){try{localStorage.setItem('mb:w:'+n,String(px));}catch(e){}if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();}},
+  init(){
+    for(const n of Object.keys(SPLITS)){let v=null;try{v=localStorage.getItem('mb:w:'+n);}catch(e){}if(v)document.documentElement.style.setProperty(SPLITS[n].v,(+v)+'px');}
+    document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-split]');if(!h||e.button!==0)return;e.preventDefault();
+      const n=h.dataset.split,x0=e.clientX,w0=this.get(n);h.classList.add('drag');document.body.classList.add('resizing');h.setPointerCapture(e.pointerId);
+      const mv=ev=>this.set(n,w0+SPLITS[n].dir*(ev.clientX-x0),false);
+      const up=()=>{h.classList.remove('drag');document.body.classList.remove('resizing');h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);this.set(n,this.get(n),true);};
+      h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
+    document.addEventListener('dblclick',e=>{const h=e.target.closest('[data-split]');if(h)this.set(h.dataset.split,SPLITS[h.dataset.split].def,true);});
+    document.addEventListener('keydown',e=>{const h=e.target.closest&&e.target.closest('[data-split]');if(!h)return;const n=h.dataset.split,st=e.shiftKey?64:16;
+      if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();this.set(n,this.get(n)+SPLITS[n].dir*(e.key==='ArrowRight'?st:-st),true);}
+      if(e.key==='Home'){e.preventDefault();this.set(n,SPLITS[n].def,true);}});
+    window.addEventListener('resize',()=>{for(const n of Object.keys(SPLITS))if(this.get(n)>this.max(n))this.set(n,this.max(n),false);});
+  }
+};
+
+/* ===================== Textos: controles y novedades ===================== */
+const kb=s=>s.split('+').map(k=>`<kbd>${k}</kbd>`).join('+');
+const CONTROLS=[
+  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['Ctrl+A','Seleccionar todo'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)']]],
+  ['Editar',[['Ctrl+C','Copiar'],['Ctrl+X','Cortar'],['Ctrl+V','Pegar'],['Supr','Borrar lo seleccionado (también Retroceso)'],['Ctrl+Z','Deshacer'],['Ctrl+Y','Rehacer'],['Esc','Cancelar / quitar la selección']]],
+  ['Unir y relacionar',[['Mayús+clic','Une lo seleccionado con el elemento que pulses'],['Dos entidades','Al unirlas se crea una relación en medio'],['Mayús+clic en Rel/DED','Relaciona dos tablas: eliges quién recibe la clave'],['Clic en una línea','Poner máximo y mínimo de esa línea']]],
+  ['Panel',[['Enter en un atributo','Crea otro atributo en la misma entidad'],['Enter en una columna','Crea otra columna debajo'],['Enter en el nombre de la tabla','Añade una columna']]],
+  ['General',[['Ctrl+S','Guardar'],['Ctrl+1 … Ctrl+5','Enunciado, E-R, Relacional, DED, SQL'],['F1','Ver estos controles']]]
+];
+const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "E-R: entidades (normales y débiles), relaciones (y de identificación) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL: el script CREATE TABLE se genera desde el DED o el relacional, y se puede editar.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir y arrastrar los botones hasta donde quieras.", "Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Avisa de las versiones nuevas."];
+const NOVEDADES=[
+  '1.6.1: «Actualizar ahora»: la app descarga la versión nueva, se cierra y se vuelve a abrir ya actualizada, sin descomprimir nada.',
+  '1.6: avisa cuando hay una versión nueva y la descarga con un solo botón (a tu carpeta Descargas). También puedes buscarla tú desde «Buscar actualizaciones» (pulsando la versión, arriba a la izquierda).',
+  '1.5.7: vuelve «Exportar ejercicio»: guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura. Y «Capturas de todos» en la barra lateral.',
+  '1.5.6: Entidad, Relación, Atributo y Tabla se pueden arrastrar desde la barra hasta donde las quieras (o pulsarlas, como antes).',
+  '1.5.6: «Código de todos» en la barra lateral ya no se corta.',
+  '1.5.5: «Distribuir» rehecho: entidades en cuadrícula según sus relaciones, cada relación entre sus entidades y los atributos alrededor sin pisar las líneas.',
+  '1.5.5: las claves primarias ahora son violetas, para no confundirlas con las relaciones.',
+  '1.5.1: el guardado vuelve a ser automático, y además puedes guardar a mano con Ctrl+S o con el botón Guardar.',
+  'La rueda del ratón hace zoom directamente.',
+  'Selección de varias cosas arrastrando, y copiar, cortar y pegar (Ctrl+C, Ctrl+X, Ctrl+V).',
+  'Mayús+clic para unir. Al unir dos entidades se crea la relación en medio.',
+  'Cada atributo se edita desde el propio atributo. Preguntas de cardinalidad más cortas: «Pizzería ¿cuántas/os Animatrónico puede tener como…».',
+  'Nombres repetidos en rojo. No deja pasar el E-R a tablas si falta una PK o una relación está a medias.',
+  'Modo fácil: al pasar desde el E-R también se pasan las relaciones (FK y tablas N:M). Las tablas salen colocadas como en tu E-R.',
+  'Relacionar tablas en el relacional y el DED: eliges quién recibe la clave y el tipo (1:N, 1:1, N:M).',
+  'Nueva pestaña SQL: genera el CREATE TABLE desde el DED o el relacional, y lo puedes editar.',
+  'Exportar a ERDPlus, botón Distribuir, Vaciar diagrama y Vaciar proyecto.',
+  'Abrir un proyecto en su propia ventana, a pantalla completa.',
+  'Se guarda solo cada vez que cambias algo, y también a mano con Ctrl+S o el botón Guardar. Columnas NOT NULL por defecto.',
+  'Botón Controles con todos los atajos. Colores suaves para cada tipo de elemento y nuevo aspecto.',
+];
+
+/* ===================== App ===================== */
+const SOLO=new URLSearchParams(location.search).get('solo');
+const App={
+  projects:[], cur:null, view:'er', open:{}, ed:null, base:'', locked:new Set(), solo:SOLO,
+  get autosave(){return true;},
+  async start(){
+    if(this.solo)document.body.classList.add('solo');
+    Theme.init();Splits.init();this.ed=new Editor(this);this.bind();
+    window.api.onCloseRequest(()=>this.onCloseRequest());
+    window.api.onWindows(l=>{this.locked=new Set(l);this.renderTree();if(this.cur&&this.view)this.renderMain();});
+    window.api.onWindowClosed(f=>this.afterWindow(f));
+    try{this.base=await window.api.baseGet();}catch(e){}
+    this.renderFoot();
+    if(this.solo){await this.startSolo();return;}
+    if(!this.base){this.showSetup();this.maybeNews();setTimeout(()=>this.checkUpdates(false),1500);return;}
+    try{this.locked=new Set(await window.api.windows());}catch(e){}
+    await this.reload();this.maybeNews();
+    setTimeout(()=>this.checkUpdates(false),1500);
+  },
+  async startSolo(){
+    try{const p=await window.api.load(this.solo);p._id=uid('p');this.projects=[p];this.cur=p;this.view='er';this.status('ok','Todo guardado');
+      document.title=p.name+' · Modelado Bases';}
+    catch(e){this.status('bad','No se pudo abrir el proyecto: '+e.message);}
+    this.renderMain();
+  },
+  async checkUpdates(manual){
+    if(this.solo)return;
+    let r;try{r=await window.api.updateCheck();}catch(e){if(manual)toast('No se ha podido comprobar: no hay conexión o GitHub no responde.','warn');return;}
+    if(!r.tag||!r.newer){if(manual)toast(`Ya tienes la última versión (${VERSION}).`);return;}
+    let skip=null,later=0;try{skip=localStorage.getItem('mb:upd:skip');later=+localStorage.getItem('mb:upd:later')||0;}catch(e){}
+    if(!manual&&(skip===r.tag||Date.now()-later<20*3600e3))return;
+    const show=()=>{
+      if(!document.getElementById('modal').hidden){setTimeout(show,1200);return;}
+      this._upd=r;const ver=String(r.tag).replace(/^v/i,''),mb=r.asset&&r.asset.size?` (${(r.asset.size/1048576).toFixed(0)} MB)`:'';
+      this.modal(`<h3>Hay una versión nueva: ${esc(ver)}</h3><p>Tienes la ${esc(VERSION)}. Tus proyectos no se tocan al actualizar.</p>
+        ${r.body?`<div class="relnotes">${esc(r.body)}</div>`:''}
+        <div class="dlbar" id="dlbar" hidden><div class="dlfill" id="dlfill"></div></div><p class="mmeta" id="dltxt" hidden></p>
+        <div class="mrow"><button class="lnk mmeta" data-m="upd-skip">No avisar de esta versión</button>${r.canInstall?'<button class="ebtn" data-m="upd-get">Solo descargar el zip</button>':''}<button class="ebtn" data-m="upd-later">Más tarde</button>${r.canInstall?`<button class="ebtn pri" data-m="upd-install">Actualizar ahora${mb}</button>`:`<button class="ebtn pri" data-m="upd-get">${r.asset?'Descargar'+mb:'Abrir la página de descarga'}</button>`}</div>
+        ${r.canInstall?'<p class="mmeta" style="margin:6px 0 0">«Actualizar ahora» descarga la versión nueva, cierra la app y la vuelve a abrir ya actualizada.</p>':''}`);};
+    show();
+  },
+  bindProgress(){
+    if(this._dlBound)return;
+    {{this._dlBound=true;window.api.onUpdateProgress(({got,total,phase})=>{const f=document.getElementById('dlfill'),t=document.getElementById('dltxt');if(!f)return;
+      if(phase==='extract'){f.style.width='100%';t.textContent='Preparando la instalación…';return;}
+      const pc=total?Math.min(100,got/total*100):0;f.style.width=pc.toFixed(1)+'%';t.textContent=`${(got/1048576).toFixed(1)} MB${total?' de '+(total/1048576).toFixed(1)+' MB':''}`;});}}
+  },
+  async installUpdate(btn){
+    const r=this._upd;if(!r||!r.asset)return;
+    document.querySelectorAll('.mbox [data-m]').forEach(b=>b.disabled=true);btn.textContent='Descargando…';
+    const bar=document.getElementById('dlbar'),txt=document.getElementById('dltxt');bar.hidden=false;txt.hidden=false;
+    this.bindProgress();
+    try{await this.flushAll();await window.api.updateInstall(r.asset.url);
+      txt.textContent='Listo. Modelado Bases se va a cerrar y se abrirá sola con la versión nueva en unos segundos.';btn.textContent='Instalando…';}
+    catch(e){document.querySelectorAll('.mbox [data-m]').forEach(b=>b.disabled=false);btn.textContent='Reintentar';txt.textContent='No se pudo actualizar: '+e.message+' Puedes usar «Solo descargar el zip».';}
+  },
+  async downloadUpdate(btn){
+    const r=this._upd;if(!r)return;
+    if(!r.asset){window.api.updatePage();this.closeModal();return;}
+    btn.disabled=true;btn.textContent='Descargando…';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=true);
+    const bar=document.getElementById('dlbar'),fill=document.getElementById('dlfill'),txt=document.getElementById('dltxt');bar.hidden=false;txt.hidden=false;
+    this.bindProgress();
+    try{
+      const f=await window.api.updateDownload(r.asset.url);
+      this.modal(`<h3>Descarga completa</h3><p>La versión nueva está en tu carpeta <b>Descargas</b>:</p><div class="folder-demo" style="margin:0">${esc(f)}</div>
+        <p style="margin-top:10px">Para instalarla: <b>cierra Modelado Bases</b>, descomprime el zip y abre el programa nuevo (puedes sustituir la carpeta del anterior). Tus proyectos siguen en <b>Modelados BDD</b>.</p>
+        <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
+    }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
+  },
+  maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
+  showNews(){this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news">${RESUMEN.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news">${NOVEDADES.filter(n=>n.startsWith(VERSION+':')).map(n=>`<li>${esc(n.slice(VERSION.length+2))}</li>`).join('')}</ul><details class="older"><summary>Cambios anteriores (1.5 – 1.6)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details><div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
+  showControls(){this.modal(`<h3>Controles</h3><div class="ctrls">${CONTROLS.map(([t,rows])=>`<section><h4>${t}</h4><dl>${rows.map(([k,v])=>`<dt>${!k.includes(' ')?kb(k):k.startsWith('Ctrl+1')?kb('Ctrl+1')+' … '+kb('Ctrl+5'):esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>`).join('')}</div><div class="mrow"><button class="ebtn pri" data-m="close">Cerrar</button></div>`,'wide');},
+  async reload(selectFolder){
+    // Conserva en memoria los proyectos con cambios sin guardar
+    const keep={};this.projects.forEach(p=>{if(p._dirty)keep[p.folder]=p;});
+    try{this.projects=(await window.api.list()).map(p=>keep[p.folder]||Object.assign(p,{_id:uid('p')}));this.updateStatus();}
+    catch(e){this.projects=[];this.status('bad','No se pudo leer la carpeta: '+e.message);}
+    const want=selectFolder||(this.cur&&this.cur.folder);
+    this.cur=want?this.projects.find(p=>p.folder===want)||null:null;
+    if(this.cur)this.open[this.cur._id]=true;
+    this.renderTree();this.renderMain();
+  },
+  async afterWindow(folder){ // se cerró la ventana de un proyecto: se vuelve a leer del disco
+    try{const p=await window.api.load(folder);const i=this.projects.findIndex(x=>x.folder===folder);
+      if(i>=0){p._id=this.projects[i]._id;const was=this.cur===this.projects[i];this.projects[i]=p;if(was)this.cur=p;}else await this.reload();}
+    catch(e){await this.reload();return;}
+    this.renderTree();this.renderMain();
+  },
+  showSetup(){
+    this.status('busy','Falta elegir la carpeta');document.getElementById('tree').innerHTML='';
+    document.getElementById('mainv').innerHTML=`<header class="ph"><span class="pname static">Modelado Bases</span></header>
+      <div class="view"><div class="welcome"><h2>¿Dónde quieres guardar tus proyectos?</h2>
+      <p>La app crea una carpeta llamada <b>Modelados BDD</b> y guarda ahí dentro todos tus proyectos. Elige en qué lugar de tu ordenador quieres tenerla (por ejemplo, Documentos, el Escritorio o un USB).</p>
+      <div class="folder-demo">${ICO.folder} (el sitio que elijas)<br><span class="d">└─</span> ${ICO.folder} Modelados BDD<br>&nbsp;&nbsp;&nbsp;<span class="d">└─</span> ${ICO.folder} proyecto 1 …</div>
+      <p>Si tenías proyectos de una versión anterior, se traen aquí solos. Podrás moverla más tarde desde «Cambiar…» en la barra de abajo.</p>
+      <div class="row"><button class="ebtn pri" data-act="setup-choose">Elegir ubicación…</button><button class="ebtn" data-act="setup-default">Usar Documentos</button></div></div></div>`;
+  },
+  status(kind,txt){const d=document.getElementById('sdot');d.className='dot '+kind;document.getElementById('stxt').textContent=txt;},
+  dirtyList(){return this.projects.filter(p=>p._dirty);},
+  updateStatus(){const n=this.dirtyList().length;const sb=document.getElementById('savebtn');if(sb)sb.disabled=!n;
+    if(n)this.status('busy',this.autosave?'Guardando…':(n===1?'Cambios sin guardar':`Cambios sin guardar en ${n} proyectos`));else this.status('ok','Todo guardado');},
+  renderFoot(){const el=document.getElementById('bpath');el.textContent=this.base||'—';el.title=this.base||'';
+},
+  queue(p,fn){p._q=(p._q||Promise.resolve()).then(fn).catch(e=>{this.status('bad','Error al guardar: '+e.message);});return p._q;},
+  touch(p){p.updated=Date.now();const was=p._dirty;p._dirty=true;clearTimeout(p._t);p._t=null;
+    if(this.autosave)p._t=setTimeout(()=>this.flush(p),600);
+    this.updateStatus();this.renderCounts(p);if(!was)this.markDirty(p);},
+  markDirty(p){const el=document.querySelector(`.pf[data-pid="${p._id}"]`);if(el)el.classList.toggle('dirty',!!p._dirty);},
+  flush(p){clearTimeout(p._t);p._t=null;if(!p._dirty)return p._q||Promise.resolve();p._dirty=false;
+    return this.queue(p,async()=>{try{await window.api.save(plainProject(p),exportSVGs(p));}catch(e){p._dirty=true;throw e;}finally{this.markDirty(p);this.updateStatus();}});},
+  async flushAll(){
+    this.projects.forEach(p=>{if(p._rn){clearTimeout(p._rn);p._rn=null;this.doRename(p);}});
+    await Promise.all(this.projects.filter(p=>p._dirty).map(p=>this.flush(p)));
+    await Promise.all(this.projects.map(p=>p._q).filter(Boolean));
+  },
+  async saveNow(){const n=this.dirtyList().length;await this.flushAll();if(n&&!this.dirtyList().length)toast('Guardado.');},
+  doRename(p){return this.queue(p,async()=>{const nf=await window.api.rename(p.folder,p.name);p.folder=nf;this.updateStatus();});},
+  renameSoon(p){clearTimeout(p._rn);p._rn=setTimeout(()=>{p._rn=null;this.doRename(p);},900);},
+  async onCloseRequest(){
+    window.api.ack().catch(()=>{});
+    this.projects.forEach(p=>{if(p._rn){clearTimeout(p._rn);p._rn=null;this.doRename(p);}});
+    await Promise.all(this.projects.map(p=>p._q).filter(Boolean));
+    await this.flushAll();
+    const d=this.dirtyList();
+    if(!d.length){window.api.ready();return;}
+    this.modal(`<h3>No se han podido guardar algunos cambios</h3><p>${d.length===1?`El proyecto <b>${esc(d[0].name)}</b> tiene cambios que no has guardado.`:`Estos proyectos tienen cambios sin guardar: ${d.map(p=>'<b>'+esc(p.name)+'</b>').join(', ')}.`}</p>
+      <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn danger" data-m="quit-nosave">Salir sin guardar</button><button class="ebtn pri" data-m="quit-save">Guardar y salir</button></div>`);
+    document.querySelector('[data-m="quit-save"]').focus();
+  },
+  bind(){
+    document.querySelector('.side').addEventListener('click',e=>this.onSide(e));
+    document.getElementById('statusbar').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)this.action(b);});
+    document.getElementById('mainv').addEventListener('click',e=>this.onMain(e));
+    document.getElementById('modal').addEventListener('click',e=>this.onModal(e));
+    document.addEventListener('keydown',e=>{
+      const tg=e.target.tagName,typing=tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA',ctrl=e.ctrlKey||e.metaKey,modalOpen=!document.getElementById('modal').hidden;
+      if(modalOpen){if(e.key==='Escape'){this.closeModal();}return;}
+      if(e.key==='F1'){e.preventDefault();this.showControls();return;}
+      if(ctrl&&e.key.toLowerCase()==='s'){e.preventDefault();this.saveNow();return;}
+      if(ctrl&&/^[1-5]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
+      if(typing||!this.cur||!['er','rel','ded'].includes(this.view)||!this.ed.p||this.locked.has(this.cur.folder))return;
+      this.ed.key(e);
+    });
+  },
+  counts(p){const ents=p.er.nodes.filter(n=>n.k==='ent'||n.k==='weak').length;return{enun:p.enun&&p.enun.trim()?'✓':'',er:ents?ents+' ent.':'',rel:p.rel.t.length?p.rel.t.length+' tab.':'',ded:p.ded.t.length?p.ded.t.length+' tab.':'',sql:p.sql&&p.sql.trim()?'✓':''};},
+  renderCounts(p){const c=this.counts(p);Object.keys(c).forEach(v=>{const el=document.querySelector(`.pi[data-pid="${p._id}"][data-view="${v}"] .cnt`);if(el)el.textContent=c[v];});},
+  renderTree(){
+    const t=document.getElementById('tree');if(this.solo){t.innerHTML='';return;}
+    if(!this.projects.length){t.innerHTML=`<div class="tree-h">Mis proyectos</div><p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
+    t.innerHTML=`<div class="tree-h">Mis proyectos</div>`+this.projects.map(p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
+      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
+      ${op?`<div class="sub">${Object.entries(VIEWS).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;}).join('');
+  },
+  renderMain(){
+    const mv=document.getElementById('mainv');
+    if(!this.cur){
+      if(this.solo){mv.innerHTML=`<div class="view"><div class="welcome"><h2>No se pudo abrir el proyecto</h2><p>Cierra esta ventana y ábrelo desde la ventana principal.</p></div></div>`;return;}
+      mv.innerHTML=`<header class="ph"><span class="pname static">Modelado Bases</span></header>
+      <div class="view"><div class="welcome"><h2>${this.projects.length?'Elige un proyecto o crea uno nuevo':'Crea tu primer proyecto'}</h2>
+      <p>Cada proyecto es una carpeta dentro de <b>Modelados BDD</b>, con su enunciado y una subcarpeta para el E-R, el relacional, el DED y el SQL.</p>
+      <div class="folder-demo">${ICO.folder} proyecto 1<br><span class="d">├─</span> Enunciado.txt<br><span class="d">├─</span> ${ICO.folder} E-R<br><span class="d">├─</span> ${ICO.folder} Relacional<br><span class="d">├─</span> ${ICO.folder} DED<br><span class="d">├─</span> ${ICO.folder} SQL<br><span class="d">└─</span> ${ICO.folder} Captura</div>
+      <p>Para pasarle un proyecto a otra persona, pulsa <b>Exportar código</b> y envíale el código. Ella lo pega en <b>Importar código</b>.</p><p><b>Exportar ejercicio</b> guarda una imagen con el E-R, el relacional y el DED en la subcarpeta <b>Captura</b>.</p>
+      <div class="row"><button class="ebtn pri add" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import">Importar código</button><button class="ebtn" data-act="controls">Controles</button></div></div></div>`;
+      return;
+    }
+    const p=this.cur;
+    if(!this.solo&&this.locked.has(p.folder)){
+      mv.innerHTML=`<header class="ph"><span class="pname static">${esc(p.name)}</span></header><div class="view"><div class="welcome"><h2>Este proyecto está abierto en otra ventana</h2>
+        <p>Para no pisar los cambios, edítalo allí. Cuando cierres esa ventana, volverá a aparecer aquí con todo lo que hayas hecho.</p>
+        <div class="row"><button class="ebtn pri" data-act="focuswin">Ir a esa ventana</button></div></div></div>`;return;}
+    const B=(a,t,cls='',tip='')=>`<button class="ebtn ${cls}" data-act="${a}"${tip?` title="${tip}"`:''}>${t}</button>`;
+    mv.innerHTML=`<header class="ph">
+      <input class="pname" id="pname" value="${escA(p.name)}" aria-label="Nombre del proyecto" spellcheck="false">
+      <div class="ph-acts">${this.solo?'':B('window','Abrir en ventana','','Abre solo este proyecto en una ventana nueva, a pantalla completa')+'<span class="ph-sep"></span>'}${B('capture','Exportar ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Exportar código','','Genera un código para pasar el proyecto a otra persona')}${B('erdplus','Exportar a ERDPlus','','Guarda el E-R en un archivo .erdplus que se abre en erdplus.com')}<span class="ph-sep"></span>${B('reveal','Abrir carpeta')}${this.solo?'':B('dup','Duplicar')}${B('clearproj','Vaciar proyecto','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></header>
+      <div class="vtabs" role="tablist">${Object.entries(VIEWS).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
+      <div class="view" id="view"></div>`;
+    document.getElementById('pname').addEventListener('input',e=>{p.name=e.target.value.trim()||'Sin nombre';const nm=document.querySelector(`.pf[data-pid="${p._id}"] .nm`);if(nm)nm.textContent=p.name;if(this.solo)document.title=p.name+' · Modelado Bases';this.renameSoon(p);});
+    const v=document.getElementById('view');
+    if(this.view==='enun'){
+      v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div>`;
+      document.getElementById('enun').addEventListener('input',e=>{p.enun=e.target.value;this.touch(p);});
+    } else if(this.view==='sql'){
+      v.innerHTML=`<div class="ed-tools"><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
+        <textarea class="sqlbox" id="sqltxt" spellcheck="false" placeholder="Pulsa «Generar desde el DED» (o desde el relacional) para crear el script, o escríbelo aquí.">${esc(p.sql||'')}</textarea>`;
+      document.getElementById('sqltxt').addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});
+      document.getElementById('sqltxt').addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});
+    } else {this.ed.mount(v);this.ed.open(p,this.view);}
+  },
+  go(p,view){this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
+  byId(id){return this.projects.find(x=>x._id===id);},
+  onSide(e){
+    const pf=e.target.closest('.pf');if(pf){const p=this.byId(pf.dataset.pid);const op=pf.getAttribute('aria-expanded')==='true';this.open[p._id]=!op;if(!op&&this.cur!==p){this.go(p,'er');return;}this.renderTree();return;}
+    const pi=e.target.closest('.pi');if(pi){this.go(this.byId(pi.dataset.pid),pi.dataset.view);return;}
+    const b=e.target.closest('[data-act]');if(b)this.action(b);
+  },
+  onMain(e){
+    const vt=e.target.closest('.vtabs [data-view]');if(vt){this.go(this.cur,vt.dataset.view);return;}
+    const b=e.target.closest('.ph [data-act], .welcome [data-act]')||(this.view==='sql'&&e.target.closest('#view [data-act]'));if(b)this.action(b);
+  },
+  async run(fn,okMsg){try{const r=await fn();if(okMsg&&r!==null&&r!==undefined)toast(typeof okMsg==='function'?okMsg(r):okMsg);return r;}catch(e){toast(e.message,'warn');this.status('bad',e.message);return null;}},
+  confirm(title,text,btn,cb,extra=''){this._cf=cb;this.modal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>${extra}<div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="cf-ok">${esc(btn)}</button></div>`);},
+  async action(b){
+    const a=b.dataset.act,p=this.cur;
+    if(a==='controls'){this.showControls();return;}
+    if(a==='news'){this.showNews();return;}
+    if(a==='save'){this.saveNow();return;}
+    if(a==='setup-choose'||a==='setup-default'){
+      const r=await this.run(()=>window.api.baseSetup(a==='setup-default'));if(!r)return;
+      this.base=r.dir;this.renderFoot();await this.reload();
+      toast(r.migrated?`Carpeta lista. He traído ${r.migrated} proyecto(s) de la versión anterior.`:'Carpeta Modelados BDD lista en '+r.dir);return;}
+    if(!this.base){toast('Primero elige dónde guardar la carpeta Modelados BDD.');return;}
+    if(a==='newproj'){
+      const names=new Set(this.projects.map(x=>x.name.toLowerCase()));let n=this.projects.length+1;while(names.has(('proyecto '+n)))n++;
+      const np=await this.run(()=>window.api.create('proyecto '+n));if(!np)return;np._id=uid('p');this.projects.push(np);this.go(np,'er');
+      const i=document.getElementById('pname');if(i){i.focus();i.select();}return;}
+    if(a==='import'){this.modal(`<h3>Importar código</h3><p>Pega el código que te han pasado (empieza por <code>MB1-</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
+      <textarea id="imptxt" spellcheck="false" placeholder="MB1-…"></textarea>
+      <div class="mrow"><button class="lnk mmeta" data-m="dir">o importar una carpeta de proyecto…</button><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="code">Importar</button></div>`);document.getElementById('imptxt').focus();return;}
+    if(a==='captureall'){if(!this.projects.length){toast('No tienes proyectos.');return;}await this.flushAll();await this.captureMany(this.projects);return;}
+    if(a==='exportall'){if(!this.projects.length){toast('No tienes proyectos que exportar.');return;}this.showCode(this.projects,'Código de todos tus proyectos ('+this.projects.length+')');return;}
+    if(a==='basereveal'){this.run(()=>window.api.baseReveal());return;}
+    if(a==='basechoose'){await this.flushAll();const keep=this.cur&&this.cur.folder;const nb=await this.run(()=>window.api.baseChoose());if(nb){this.base=nb;this.renderFoot();await this.reload(keep);toast('Carpeta movida. Tus proyectos están ahora en '+nb);}return;}
+    if(!p)return;
+    if(a==='focuswin'){this.run(()=>window.api.focusWindow(p.folder));return;}
+    if(a==='window'){if(p._rn){clearTimeout(p._rn);p._rn=null;await this.doRename(p);}await this.flush(p);await (p._q||Promise.resolve());
+      if(p._dirty){toast('No se pudo guardar antes de abrir la ventana.','warn');return;}
+      await this.run(()=>window.api.openWindow(p.folder,p.name));return;}
+    if(a==='reveal'){this.run(()=>window.api.reveal(p.folder));return;}
+    if(a==='capture'){await this.flushAll();await this.captureMany([p]);return;}
+    if(a==='export'){this.showCode([p],'Código del proyecto «'+p.name+'»');return;}
+    if(a==='erdplus'){
+      if(!p.er.nodes.length){toast('Tu E-R está vacío.');return;}
+      let txt;try{txt=toERDPlus(cleanModel(p.er,'er'));}catch(e){toast('No se pudo generar: '+e.message,'warn');return;}
+      if(p._rn){clearTimeout(p._rn);p._rn=null;await this.doRename(p);}
+      const f=await this.run(()=>window.api.saveERDPlus(p.folder,p.name,txt));
+      if(f)this.modal(`<h3>Archivo para ERDPlus guardado</h3><p>Para abrirlo: entra en <b>erdplus.com</b>, crea o abre un diagrama y usa <b>Open</b> (o <b>Import</b>) para elegir este archivo:</p><div class="folder-demo" style="margin:0">${esc(f)}</div><div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
+      return;}
+    if(a==='dup'){await this.flushAll();const c=await this.run(()=>window.api.dup(p.folder));if(!c)return;c._id=uid('p');this.projects.push(c);this.go(c,this.view);toast('Proyecto duplicado.');return;}
+    if(a==='clearproj'){this.confirm('Vaciar proyecto',`Se borrarán el E-R, el relacional, el DED y el SQL de «${p.name}». El proyecto y su carpeta se quedan.`,'Continuar…',()=>{
+        setTimeout(()=>this.modal(`<h3>¿Seguro que quieres vaciarlo?</h3><p>Esto no se puede deshacer con Ctrl+Z.</p><label class="chk"><input type="checkbox" id="cl-enun"><span class="chk-ic">${GL.enun}</span><span class="chk-t">Vaciar también el enunciado</span><span class="sw"></span></label>
+          <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="clear-go">Sí, vaciar</button></div>`),0);});return;}
+    if(a==='delproj'){
+      if(!b.dataset.armed){b.dataset.armed=1;b.textContent='¿Eliminar? Pulsa otra vez';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Eliminar';}},3000);return;}
+      clearTimeout(p._t);p._t=null;clearTimeout(p._rn);if(p._rn){p._rn=null;await this.doRename(p);}
+      await (p._q||Promise.resolve());
+      const ok=await this.run(()=>window.api.remove(p.folder).then(()=>true));if(!ok)return;
+      this.projects=this.projects.filter(x=>x!==p);this.cur=null;this.updateStatus();this.renderTree();this.renderMain();toast('Proyecto movido a la papelera de reciclaje.');return;}
+    if(a==='sql-ded'||a==='sql-rel'){const from=a==='sql-ded'?'ded':'rel';let r;
+      try{r=genSQL(p,from);}catch(e){toast(e.message,'warn');return;}
+      const put=()=>{p.sql=r.sql;this.touch(p);const t=document.getElementById('sqltxt');if(t)t.value=p.sql;toast(r.warn.length?`SQL generado con ${r.warn.length} aviso(s): míralos al principio.`:'SQL generado.',r.warn.length?'warn':'');};
+      if(p.sql&&p.sql.trim()&&p.sql!==r.sql)this.confirm('Generar el SQL de nuevo',`Se sustituirá el SQL actual por uno nuevo hecho desde el ${from==='ded'?'DED':'relacional'}. Si lo habías cambiado a mano, esos cambios se pierden.`,'Sustituir',put);else put();return;}
+    if(a==='sql-copy'){const t=document.getElementById('sqltxt');if(!t||!t.value.trim()){toast('No hay SQL que copiar.');return;}
+      try{await navigator.clipboard.writeText(t.value);toast('SQL copiado.');}catch(e){t.focus();t.select();toast('Pulsa Ctrl+C para copiarlo.');}return;}
+  },
+  modal(html,cls=''){const m=document.getElementById('modal');m.innerHTML=`<div class="mbox ${cls}" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;(m.querySelector('.ebtn.pri')||m.querySelector('button'))?.focus({preventScroll:true});const bx=m.querySelector('.mbox');if(bx)bx.scrollTop=0;},
+  closeModal(){const m=document.getElementById('modal');m.hidden=true;m.innerHTML='';},
+  async showCode(list,title){
+    let code;try{code=await toCode(list);}catch(e){toast('No se pudo generar el código: '+e.message);return;}
+    this.modal(`<h3>${esc(title)}</h3><p>Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo: <b>Importar código</b> y pegarlo.</p>
+      <textarea id="exptxt" readonly spellcheck="false">${esc(code)}</textarea>
+      <div class="mrow"><span class="mmeta">${code.length.toLocaleString('es-ES')} caracteres</span><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="copy">Copiar código</button></div>`);
+    const t=document.getElementById('exptxt');t.focus();t.select();
+  },
+  async captureMany(list){
+    const done=[],empty=[];this.status('busy','Generando capturas…');
+    for(const p of list){if(p._rn){clearTimeout(p._rn);p._rn=null;await this.doRename(p);}
+      try{const f=await captureProject(p);if(f)done.push([p,f]);else empty.push(p.name);}catch(e){toast('Error con «'+p.name+'»: '+e.message,'warn');}}
+    this.updateStatus();
+    if(!done.length){toast(empty.length?'No hay nada que capturar: los diagramas están vacíos.':'No se ha podido generar ninguna captura.');return;}
+    this.modal(`<h3>${done.length===1?'Captura guardada':done.length+' capturas guardadas'}</h3><p>Cada imagen tiene el E-R, el relacional y el DED del proyecto, y está en su subcarpeta <b>Captura</b>.</p>
+      <div class="folder-demo" style="margin:0">${done.map(([p,f])=>`${ICO.folder} ${esc(p.name)} <span class="d">›</span> Captura <span class="d">›</span> ${esc(f.split(/[\\/]/).pop())}`).join('<br>')}</div>
+      ${empty.length?`<p style="margin-top:8px">Sin diagramas (no se ha generado imagen): ${empty.map(esc).join(', ')}</p>`:''}
+      <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(done[done.length-1][1])}">Mostrar en la carpeta</button></div>`);
+  },
+  async importCode(txt){
+    let list;try{list=await fromCode(txt);}catch(e){toast(e.message,'warn');return;}
+    this.closeModal();
+    const names=new Set(this.projects.map(p=>p.name.toLowerCase()));const got=[];
+    for(const src of list){
+      let name=String(src.name||'proyecto importado').trim()||'proyecto importado';if(names.has(name.toLowerCase()))name+=' (importado)';names.add(name.toLowerCase());
+      const np=await this.run(()=>window.api.create(name));if(!np)continue;
+      np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.updated=Date.now();
+      await this.run(()=>window.api.save(plainProject(np),exportSVGs(np)));got.push(np.folder);
+    }
+    if(got.length){await this.reload(got[0]);toast(got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`);}
+  },
+  async onModal(e){
+    if(e.target.id==='modal'){this.closeModal();return;}
+    const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
+    if(k==='close'){this.closeModal();return;}
+    if(k==='controls'){this.showControls();return;}
+    if(k==='upd-get'){this.downloadUpdate(b);return;}
+    if(k==='upd-install'){this.installUpdate(b);return;}
+    if(k==='upd-later'){try{localStorage.setItem('mb:upd:later',String(Date.now()));}catch(e){}this.closeModal();return;}
+    if(k==='upd-skip'){try{localStorage.setItem('mb:upd:skip',this._upd.tag);}catch(e){}this.closeModal();return;}
+    if(k==='upd-check'){this.closeModal();this.checkUpdates(true);return;}
+    if(k==='cf-ok'){const cb=this._cf;this._cf=null;this.closeModal();if(cb)cb();return;}
+    if(k==='fe-add'||k==='fe-rep'){const cb=this._feCb;this._feCb=null;this.closeModal();if(cb)cb(k==='fe-rep');return;}
+    if(k==='clear-go'){const p=this.cur,en=document.getElementById('cl-enun').checked;this.closeModal();if(!p)return;
+      p.er={nodes:[],links:[]};p.rel={t:[]};p.ded={t:[]};p.sql='';if(en)p.enun='';this.ed.hist=[];this.ed.redo=[];this.touch(p);this.renderMain();toast('Proyecto vaciado.');return;}
+    if(k==='quit-save'){b.disabled=true;await this.flushAll();if(this.dirtyList().length){toast('No se pudo guardar todo. Revisa la barra de abajo.','warn');b.disabled=false;return;}window.api.ready();return;}
+    if(k==='quit-nosave'){window.api.ready();return;}
+    if(k==='code'){await this.importCode(document.getElementById('imptxt').value);return;}
+    if(k==='copy'){const t=document.getElementById('exptxt');
+      try{await navigator.clipboard.writeText(t.value);b.textContent='Copiado';}catch(err){t.focus();t.select();b.textContent='Pulsa Ctrl+C';}return;}
+    if(k==='showfile'){this.run(()=>window.api.showFile(b.dataset.f));this.closeModal();return;}
+    if(k==='dir'){this.closeModal();
+      const got=await this.run(()=>window.api.importDir());
+      if(got&&got.length){await this.reload(got[0]);toast(got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`);}
+      else if(got)toast('No se ha encontrado ningún proyecto ahí.');}
+  }
+};
+App.start();

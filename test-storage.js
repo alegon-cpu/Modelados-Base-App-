@@ -1,0 +1,14 @@
+const S=require('./storage'),fs=require('fs'),path=require('path'),os=require('os');
+const base=fs.mkdtempSync(path.join(os.tmpdir(),'base-'));const assert=require('assert');
+const p=S.create(base,'proyecto 1');p.er.nodes.push({id:'a',k:'ent',n:'pizzeria',x:1,y:2,f:{}});p.enun='Hola';S.save(base,p,{er:'<svg/>'});
+assert.deepStrictEqual(fs.readdirSync(path.join(base,'proyecto 1')).sort(),['DED','E-R','Enunciado.txt','Relacional','proyecto.json']);
+assert(fs.existsSync(path.join(base,'proyecto 1','E-R','diagrama.svg')));
+let nf=S.rename(base,'proyecto 1','Proyecto 1');assert.strictEqual(nf,'Proyecto 1');
+nf=S.rename(base,nf,'Mi BD: pizzas?');assert.strictEqual(nf,'Mi BD- pizzas-');
+const d=S.duplicate(base,nf);assert.strictEqual(d.name,'Mi BD: pizzas? (copia)');
+const zip=path.join(os.tmpdir(),'x.zip');S.exportZip(base,[nf,d.folder],zip);
+const base2=fs.mkdtempSync(path.join(os.tmpdir(),'b2-'));const imp=S.importZip(base2,zip,os.tmpdir());assert.strictEqual(imp.length,2);
+const l=S.list(base2);assert.strictEqual(l[0].er.nodes[0].n,'pizzeria');assert.strictEqual(l[0].enun,'Hola');
+const imp2=S.importZip(base2,zip,os.tmpdir());assert.ok(imp2[0].includes('(2)'));
+assert.throws(()=>S.load(base,'../etc'));
+console.log('storage OK',l.map(x=>x.folder),imp2);

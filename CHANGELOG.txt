@@ -1,0 +1,133 @@
+MODELADO BASES - CHANGELOG
+==========================
+
+QUE ES Y QUE PUEDE HACER
+------------------------
+Modelado Bases es un programa para Windows para hacer, paso a paso, el
+modelo Entidad-Relacion, el modelo relacional, el DED y el SQL de un
+ejercicio de bases de datos, todo en el mismo proyecto.
+
+- Proyectos: cada uno es una carpeta dentro de "Modelados BDD" (tu eliges
+  donde) con Enunciado.txt y las subcarpetas E-R, Relacional, DED y SQL.
+  El enunciado se puede ver siempre al lado del lienzo.
+- E-R: entidades normales y debiles, relaciones normales e identificadoras,
+  y atributos clave, clave parcial, opcionales, derivados, multivaluados y
+  compuestos. Al pulsar una linea eliges maximo y minimo respondiendo a una
+  pregunta ("Pizzeria ¿cuantas/os Animatronico puede tener como..."); el
+  tipo 1:1, 1:N o N:M sale solo.
+- Relacional y DED: tablas con columnas PK, FK, NN (not null) y Unico,
+  con sus flechas y lineas dibujadas solas. "Pasar desde mi E-R" crea las
+  tablas; con el modo facil tambien pasa las relaciones (FK y tablas N:M).
+  Mayus+clic entre dos tablas para relacionarlas.
+- Exportar ejercicio: una imagen PNG con el E-R, el relacional y el DED
+  juntos, en la subcarpeta Captura del proyecto (o de todos a la vez).
+- SQL: genera el script (CREATE DATABASE, CREATE TABLE, PRIMARY KEY,
+  FOREIGN KEY...) desde el DED o el relacional. Lo puedes editar.
+- Te avisa: nombres repetidos en rojo, entidades sin PK o relaciones sin
+  cardinalidad antes de pasar a tablas.
+- Lienzo: rueda para zoom, clic derecho para moverte, seleccion multiple,
+  copiar/pegar, deshacer/rehacer, "Distribuir" para ordenar el diagrama y
+  botones que se pueden pulsar o arrastrar hasta su sitio.
+- Guardado automatico y tambien manual (Ctrl+S).
+- Compartir: "Exportar codigo" / "Importar codigo" para pasar uno o todos
+  los proyectos a otra persona. Exportar el E-R a ERDPlus.
+- Abrir un proyecto en su propia ventana. Tema claro, oscuro o automatico.
+- Todos los atajos: boton "Controles" (o F1).
+- Se actualiza sola: avisa cuando hay una version nueva y la instala con
+  un boton ("Actualizar ahora").
+
+HISTORIAL DE VERSIONES
+======================
+
+v1.6.1  (11/11/2026)
+--------------------
+- "Actualizar ahora": cuando hay una version nueva, la app la descarga,
+  se cierra y se vuelve a abrir ya actualizada, sin descomprimir nada.
+  (Si el programa esta en una carpeta protegida, como Archivos de
+  programa, descarga el zip como antes.)
+
+v1.6  (11/11/2026)
+------------------
+- Avisos de version nueva: al abrir, la app mira si hay una version mas
+  reciente publicada y la descarga con un solo boton en tu carpeta
+  Descargas. Tambien "Buscar actualizaciones" (pulsando la version).
+  Sin conexion no pasa nada: la app funciona igual.
+
+v1.5.7  (10/11/2026)
+--------------------
+- Vuelve "Exportar ejercicio": imagen PNG con el E-R, el relacional y el
+  DED en la subcarpeta Captura. "Capturas de todos" en la barra lateral.
+
+v1.5.6  (10/11/2026)
+--------------------
+- Entidad, Relacion, Atributo y Tabla se pueden arrastrar desde la barra
+  y soltar donde quieras (o pulsar, como antes). Un atributo soltado
+  encima de una entidad o relacion se une a ella.
+- "Codigo de todos" en la barra lateral: ya no se corta al estrecharla.
+- Las novedades incluyen un resumen de todo lo que hace el programa.
+
+v1.5.5  (10/11/2026)
+--------------------
+- Distribuir rehecho: las entidades se colocan en cuadricula segun sus
+  relaciones (las que se relacionan quedan al lado), cada relacion va entre
+  sus entidades y los atributos se reparten alrededor de su dueño sin pisar
+  las lineas ni a otros elementos. Lo suelto va en una fila debajo.
+- Las claves primarias (PK) ahora son violetas en el E-R, el Relacional y el
+  DED, para no confundirlas con las relaciones (ambar).
+
+v1.5.1  (10/11/2026)
+--------------------
+- El guardado es automatico otra vez (cada cambio se guarda solo) y
+  tambien manual: Ctrl+S o el boton Guardar de la barra de abajo.
+- Al cerrar se guarda lo pendiente; solo avisa si algo no se pudo guardar.
+- Quitada la opcion "Guardado automatico" (ya siempre lo es).
+
+v1.5  (10/11/2026)
+------------------
+- Rueda del raton = zoom directo. Clic derecho y arrastrar para moverte.
+- Seleccion multiple arrastrando en un hueco (o Ctrl+clic). Ctrl+C, Ctrl+X,
+  Ctrl+V, Ctrl+A. Ctrl+Z deshace y Ctrl+Y rehace. Supr o Retroceso borra.
+- Unir con Mayus+clic. Al unir dos entidades se crea la relacion en medio.
+- Los tipos de cada atributo se editan dentro del propio atributo. Enter en
+  un atributo crea otro en la misma entidad.
+- Preguntas de cardinalidad cortas: "Pizzeria ¿cuantas/os Animatronico puede
+  tener como... maximo / minimo". Sin textos de explicacion.
+- Nombres repetidos en rojo (entidades, atributos de la misma entidad, tablas
+  y columnas). No deja pasar el E-R a tablas si falta una PK, hay repetidos o
+  una relacion esta a medias: te dice que cambiar.
+- Modo facil (boton estrella): al pasar desde el E-R tambien pasa las
+  relaciones (FK, tablas N:M, debiles, multivaluados). Apagado: solo
+  entidades y atributos. Las tablas salen colocadas como en el E-R.
+- Relacional y DED: Mayus+clic entre dos tablas para relacionarlas. Eliges
+  que tabla recibe la clave, el tipo (1:N, 1:1, N:M), si es obligatoria y si
+  es identificadora. Enter en una columna crea otra. Columnas NOT NULL (NN)
+  por defecto.
+- Pestaña SQL (al lado de DED): genera el CREATE TABLE desde el DED o el
+  relacional. Se puede editar y volver a generar. Se guarda en SQL\script.sql.
+- Exportar a ERDPlus (archivo .erdplus). Boton Distribuir en el E-R.
+- Vaciar el diagrama actual, y Vaciar proyecto (pregunta dos veces y deja
+  elegir si se vacia tambien el enunciado).
+- Abrir en ventana: el proyecto en su propia ventana, a pantalla completa.
+- Boton Controles (o F1) con todos los atajos.
+- El panel de la derecha se esconde si no hay nada seleccionado (la chincheta
+  lo deja fijo).
+- Colores suaves por tipo: entidades azul, relaciones ambar, atributos verde,
+  claves doradas, claves ajenas rosas. Nuevo aspecto.
+- Las novedades salen la primera vez que abres cada version.
+- Quitado "Exportar ejercicio" (capturas). (Vuelve en la 1.5.7.)
+
+v1.0  (10/11/2026)  Primera version
+-----------------------------------
+- Proyectos como carpetas en "Modelados BDD" (tu eliges donde). Cada uno con
+  Enunciado, E-R, Relacional, DED y Captura. Todo se guarda solo.
+- E-R: entidades, relaciones y atributos. Con una entidad seleccionada, sus
+  atributos se crean unidos y colocados. Al pulsar una linea se elige maximo y
+  minimo; el tipo (1:1, 1:N, N:M) sale solo.
+- Relacional y DED: tablas con columnas PK, FK, Opcional y Unico. Flechas,
+  lineas y marcas salen solas. "Pasar entidades de mi E-R" crea las tablas.
+- Lienzo: clic derecho y arrastrar para moverte, Ctrl + rueda para zoom,
+  "Ajustar" para verlo todo. Zona de trabajo grande, sin barras.
+- Enunciado siempre a la vista. Paneles redimensionables (arrastra los bordes).
+- Exportar codigo / Importar codigo para pasar proyectos a otra persona.
+- Exportar ejercicio: imagen PNG con E-R, Relacional y DED en la carpeta Captura.
+- Tema claro, oscuro o automatico. Deshacer (Ctrl+Z) y borrar (Supr).

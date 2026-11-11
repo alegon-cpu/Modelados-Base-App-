@@ -1,0 +1,41 @@
+MODELADO BASES
+==============
+
+Programa para hacer diagramas Entidad-Relacion, Relacionales y DED,
+organizados en proyectos.
+
+COMO ABRIRLO
+1. Descomprime este .zip en una carpeta (por ejemplo, en Documentos).
+2. Entra en la carpeta y haz doble clic en "Modelado Bases.exe".
+   Consejo: clic derecho en "Modelado Bases.exe" > Enviar a > Escritorio (crear acceso directo).
+
+La primera vez, Windows puede mostrar "Windows protegio su PC" porque el
+programa no esta firmado. Pulsa "Mas informacion" y luego "Ejecutar de todas formas".
+
+DONDE SE GUARDAN TUS PROYECTOS
+La primera vez que lo abras te pregunta donde crear la carpeta  Modelados BDD.
+Todos tus proyectos van dentro. Para moverla: "Cambiar..." en la barra de abajo.
+Cada proyecto es una carpeta:
+
+  proyecto 1\
+    proyecto.json
+    Enunciado.txt
+    E-R\         diagrama.json  y  diagrama.svg
+    Relacional\  diagrama.json  y  diagrama.svg
+    DED\         diagrama.json  y  diagrama.svg
+    SQL\         script.sql (pestaña SQL)
+    Captura\     imagen con los tres diagramas (boton "Exportar ejercicio")
+
+MOVERTE POR EL LIENZO
+- Clic derecho y arrastrar: moverte.  Rueda: zoom.  "Ajustar": ver todo.
+- Todos los atajos: boton "Controles" abajo a la derecha (o F1).
+
+GUARDAR
+- Todo se guarda solo cada vez que cambias algo.
+- Tambien puedes guardar a mano: Ctrl+S o el boton "Guardar" de abajo.
+
+PASAR UN PROYECTO A OTRA PERSONA
+- "Exportar codigo": copia el codigo y enviaselo.
+- La otra persona: "Importar codigo" y lo pega.
+
+No necesita internet. No se instala nada: para borrarlo, borra la carpeta.
