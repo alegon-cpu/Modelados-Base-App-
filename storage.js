@@ -46,6 +46,7 @@ function load(base, folder) {
   let enun = '';
   try { enun = fs.readFileSync(path.join(dir, 'Enunciado.txt'), 'utf8'); } catch (e) {}
   const p = { folder, name: meta.name || folder, created: meta.created || 0, updated: meta.updated || 0, enun };
+  if (meta.act && typeof meta.act === 'object') p.act = meta.act;
   for (const [k, s] of Object.entries(SUBS)) {
     const v = readJSON(path.join(dir, s, 'diagrama.json'), null);
     p[k] = v && typeof v === 'object' ? v : EMPTY[k]();
@@ -63,7 +64,7 @@ function list(base) {
 }
 function save(base, p, svgs) {
   const dir = inside(base, p.folder);
-  writeAtomic(path.join(dir, 'proyecto.json'), JSON.stringify({ app: 'modelado-bases', version: 2, name: p.name, created: p.created, updated: p.updated }, null, 2));
+  writeAtomic(path.join(dir, 'proyecto.json'), JSON.stringify(Object.assign({ app: 'modelado-bases', version: 2, name: p.name, created: p.created, updated: p.updated }, p.act ? { act: p.act } : {}), null, 2));
   writeAtomic(path.join(dir, 'Enunciado.txt'), p.enun || '');
   for (const [k, s] of Object.entries(SUBS)) {
     writeAtomic(path.join(dir, s, 'diagrama.json'), JSON.stringify(p[k] || EMPTY[k](), null, 1));

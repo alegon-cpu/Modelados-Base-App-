@@ -18,8 +18,8 @@ const TEORIA=[
 <li>Lo que «identifica» o «no se puede repetir» (DNI, código, matrícula) → <b>clave primaria</b>.</li></ul>`},
 
 {id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades lineas relacionar empezar',h:`
-<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. Solo hay <b>entidades</b> y <b>líneas</b> entre ellas: ni atributos, ni rombos, ni nombres de relación.</p>
-<ol><li>Lee el enunciado y pon una entidad por cada sustantivo importante (Alumno, Curso, Profesor…).</li><li>Une con una línea las que se relacionan (Mayús + clic, o «Unir»).</li><li>Si ya lo intuyes, pulsa la línea y marca si será 1:1, 1:N o N:M (es opcional).</li><li>Pulsa <b>Pasar al E-R</b>: se crean las entidades que falten y un rombo por cada línea, para ponerle allí el verbo, los atributos y las cardinalidades.</li></ol>
+<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. Solo hay <b>entidades</b> (con los nombres de sus atributos, sin decir de qué tipo son) y <b>líneas</b> entre ellas con marcas de cero, uno o muchos. Ni rombos ni nombres de relación.</p>
+<ol><li>Lee el enunciado y pon una entidad por cada sustantivo importante (Alumno, Curso, Profesor…).</li><li>Une con una línea las que se relacionan (Mayús + clic, o «Unir»).</li><li>En la zona de arriba escribe cada entidad con sus atributos: <code>Alumno; DNI, Nombre, FechaNac</code>. Solo los nombres: la clave y el tipo los decides en el E-R.</li><li>Pulsa una línea y elige, junto a cada entidad, cuántas puede haber: <b>○</b> cero, <b>|</b> uno, <b>pata</b> muchos (es opcional).</li><li>Pulsa <b>Pasar al E-R</b>: se crean las entidades que falten con sus atributos y un rombo por cada línea con sus cardinalidades. Allí marcas las claves y le pones el verbo a cada relación.</li></ol>
 <p class="th-tip">Si una entidad no tiene ninguna línea, quizá sobra, o es un atributo de otra.</p>`},
 {id:'entidades',t:'Entidades',k:'entidad fuerte debil rectangulo doble',h:`
 <p>Una <b>entidad</b> es algo de lo que queremos guardar información y que se puede distinguir de los demás: un alumno, un libro, un pedido.</p>
@@ -82,14 +82,6 @@ Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como m�
 <h4>Cardinalidad en una ternaria</h4><p>Para cada entidad se pregunta: <b>fijando una pareja de las otras dos</b>, ¿cuántas de esta puede haber? Ejemplo: para un profesor y una asignatura, ¿en cuántos grupos? → (1,N).</p>
 <h4>Al pasar a tablas</h4><p>Siempre sale una <b>tabla nueva</b> con las PK de las tres entidades como FK. La PK de esa tabla la forman las FK de los lados con máximo N (si todos son 1, basta con dos).</p>
 <p class="th-tip">En la app: selecciona las tres entidades (arrastrando en un hueco o con Ctrl+clic) y pulsa «Relación ternaria entre las 3». También puedes unir una tercera entidad a una relación con Mayús + clic.</p>`},
-
-{id:'notaciones',t:'Notaciones: Chen, pata de gallo y UML',k:'notacion chen pata de gallo crow foot uml multiplicidad patas',h:`
-<p>El mismo E-R se puede dibujar de varias formas. En la app se cambia en la barra («Notación») o en Ajustes › Lienzo.</p>
-<table class="th-t"><tr><th>Notación</th><th>Cómo se ve</th></tr>
-<tr><td><b>Chen</b></td><td>Entidades en rectángulos, relaciones en rombos, atributos en óvalos y la cardinalidad (mín,máx) en las líneas. La más usada en clase.</td></tr>
-<tr><td><b>Pata de gallo</b></td><td>Cajas con los atributos dentro (PK marcada). En cada línea, junto a la entidad: <b>|</b> es uno, la <b>pata</b> es muchos, el <b>círculo</b> es mínimo 0. Es la de MySQL Workbench.</td></tr>
-<tr><td><b>UML</b></td><td>Clases con los atributos dentro y multiplicidades en los extremos: <b>1</b>, <b>0..1</b>, <b>0..*</b>, <b>1..*</b>. Las relaciones de 3 o más llevan un rombo.</td></tr></table>
-<p>Equivalencias: (0,1) = 0..1 · (1,1) = 1 · (0,N) = 0..* · (1,N) = 1..*.</p>`},
 
 {id:'paso',t:'Pasar del E-R a tablas',k:'paso relacional reglas transformacion fk tabla intermedia n:m 1:n 1:1 debil multivaluado',h:`
 <p>Estas son las reglas para convertir el E-R en el modelo relacional. Son las mismas que usa el botón «Pasar desde mi E-R» con el modo fácil.</p>
@@ -182,8 +174,8 @@ const TEORIA_EN=[
 <li><b>Verbs</b> joining two things (a student <i>enrols in</i> courses) → <b>relationships</b>.</li><li>Words like <i>each, can, at least, several, only one</i> → <b>cardinalities</b>.</li>
 <li>Whatever «identifies» or «cannot repeat» (ID number, code, plate) → <b>primary key</b>.</li></ul>`},
 {id:'boceto',t:'Sketch: think before the E-R',k:'sketch draft entities lines relate start',h:`
-<p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R. It only has <b>entities</b> and <b>lines</b> between them: no attributes, diamonds or relationship names.</p>
-<ol><li>Read the brief and add an entity for each important noun (Student, Course, Teacher…).</li><li>Join with a line the ones that are related (Shift + click, or «Connect»).</li><li>If you already know it, click the line and mark 1:1, 1:N or N:M (optional).</li><li>Click <b>To the E-R</b>: the missing entities and one diamond per line are created there, so you can add the verb, attributes and cardinalities.</li></ol>`},
+<p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R. It only has <b>entities</b> (with their attribute names, without types) and <b>lines</b> between them with zero, one or many marks. No diamonds or relationship names.</p>
+<ol><li>Read the brief and add an entity for each important noun (Student, Course, Teacher…).</li><li>Join with a line the ones that are related (Shift + click, or «Connect»).</li><li>In the box above write each entity with its attributes: <code>Student; DNI, Name</code>. Just the names: keys and types are decided in the E-R.</li><li>Click a line and choose, next to each entity, how many there can be: <b>○</b> zero, <b>|</b> one, <b>foot</b> many (optional).</li><li>Click <b>To the E-R</b>: the missing entities with their attributes and one diamond per line with its cardinalities are created there.</li></ol>`},
 {id:'entidades',t:'Entities',k:'entity strong weak rectangle double',h:`
 <p>An <b>entity</b> is something we want to store information about and that can be told apart from the rest: a student, a book, an order.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.ent,'Entity (strong)')}<p>Rectangle. It has its own primary key: it identifies itself. Example: <i>Student</i> is identified by their ID number.</p></div>
@@ -228,12 +220,6 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <p>A <b>ternary</b> relationship joins three entities at once. Use it only when the fact needs all three: <i>a teacher teaches a subject to a group</i>.</p>
 <p>Cardinality: for each entity ask, <b>fixing a pair of the other two</b>, how many of this one there can be.</p>
 <p>To tables: always a <b>new table</b> with the three PKs as FKs. Its PK is made of the FKs on the sides with maximum N.</p>`},
-
-{id:'notaciones',t:"Notations: Chen, crow's foot and UML",k:'notation chen crow foot uml multiplicity',h:`
-<table class="th-t"><tr><td><b>Chen</b></td><td>Rectangles, diamonds, ovals and (min,max) on the lines.</td></tr>
-<tr><td><b>Crow's foot</b></td><td>Boxes with the attributes inside. <b>|</b> is one, the <b>foot</b> is many, the <b>circle</b> is minimum 0. Used by MySQL Workbench.</td></tr>
-<tr><td><b>UML</b></td><td>Classes with multiplicities: <b>1</b>, <b>0..1</b>, <b>0..*</b>, <b>1..*</b>.</td></tr></table>
-<p>(0,1) = 0..1 · (1,1) = 1 · (0,N) = 0..* · (1,N) = 1..*.</p>`},
 
 {id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`
 <p>These are the rules to turn the E-R into the relational model. They are the same ones the «Convert from my E-R» button uses with easy mode.</p>

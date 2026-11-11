@@ -51,9 +51,10 @@ function ddl(sc,d,opt={}){
     body+=`CREATE TABLE ${Q(t.n)} (\n${lines.join(',\n')}\n)${d==='mysql'?' ENGINE=InnoDB':''};\n\n`;done.add(lc(t.n));});
   if(d==='sqlite')return body;
   const db=slug(opt.name);let head='';
-  if(d==='mysql')head=`DROP DATABASE IF EXISTS ${db};\nCREATE DATABASE ${db};\nUSE ${db};\n\n`;
-  else if(d==='postgres')head=(LANG()==='en'?`-- In PostgreSQL: create the database and connect to it (in psql: \\c ${db}) before creating the tables.\n`:`-- En PostgreSQL: crea la base de datos y conéctate a ella (en psql: \\c ${db}) antes de crear las tablas.\n`)+`DROP DATABASE IF EXISTS ${db};\nCREATE DATABASE ${db};\n\\c ${db}\n\n`;
-  else if(d==='sqlserver')head=`IF DB_ID('${db}') IS NOT NULL DROP DATABASE ${db};\nGO\nCREATE DATABASE ${db};\nGO\nUSE ${db};\nGO\n\n`;
+  const drop=typeof Settings==='undefined'||Settings.get().sqlDrop!==false;
+  if(d==='mysql')head=`${drop?`DROP DATABASE IF EXISTS ${db};\n`:''}CREATE DATABASE ${db};\nUSE ${db};\n\n`;
+  else if(d==='postgres')head=(LANG()==='en'?`-- In PostgreSQL: create the database and connect to it (in psql: \\c ${db}) before creating the tables.\n`:`-- En PostgreSQL: crea la base de datos y conéctate a ella (en psql: \\c ${db}) antes de crear las tablas.\n`)+`${drop?`DROP DATABASE IF EXISTS ${db};\n`:''}CREATE DATABASE ${db};\n\\c ${db}\n\n`;
+  else if(d==='sqlserver')head=`${drop?`IF DB_ID('${db}') IS NOT NULL DROP DATABASE ${db};\nGO\n`:''}CREATE DATABASE ${db};\nGO\nUSE ${db};\nGO\n\n`;
   else if(d==='oracle')head=LANG()==='en'?`-- In Oracle the tables are created in your user (schema): no CREATE DATABASE needed.\n\n`:`-- En Oracle las tablas se crean en tu usuario (esquema): no hace falta CREATE DATABASE.\n\n`;
   let out=head+body;
   if(late.length)out+=(LANG()==='en'?`-- Foreign keys added at the end (the tables point to each other)\n`:`-- Claves ajenas que se añaden al final (las tablas se apuntan entre sí)\n`)+`${late.join('\n')}\n`;

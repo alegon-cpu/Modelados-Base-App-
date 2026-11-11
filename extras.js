@@ -1,10 +1,14 @@
 /* ===================== Ajustes ===================== */
 const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
-  notation:'chen',lines:'straight',showIsa:true,projector:false,keys:{}};
+  lines:'straight',showIsa:true,projector:false,keys:{},
+  startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true};
 const Settings={
   _c:null,
-  get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}return this._c={...SET_DEF,...v};},
+  get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}
+    // lo que antes se guardaba suelto (panel fijo, enunciado al lado, modo fácil)
+    const old=(k,key,on)=>{if(v[k]==null){try{const x=localStorage.getItem(key);if(x!=null)v[k]=x===on;}catch(e){}}};old('pinInsp','mb:pin','1');old('easy','mb:easy','1');if(v.showEnun==null){try{const x=localStorage.getItem('mb:showEnun');if(x!=null)v.showEnun=x!=='0';}catch(e){}}
+    return this._c={...SET_DEF,...v};},
   set(k,val){const c={...this.get(),[k]:val};this._c=c;try{localStorage.setItem('mb:set',JSON.stringify(c));}catch(e){}this.apply();
     if(k==='winStart'||k==='onTop'){try{window.api.winPref({start:c.winStart,onTop:c.onTop}).catch(()=>{});}catch(e){}}},
   reset(){this._c={...SET_DEF};try{localStorage.setItem('mb:set',JSON.stringify(this._c));}catch(e){}this.apply();try{window.api.winPref({start:SET_DEF.winStart,onTop:SET_DEF.onTop}).catch(()=>{});}catch(e){}},
@@ -16,7 +20,9 @@ const Settings={
     r.classList.toggle('cb',!!c.cb);r.classList.toggle('focusall',!!c.focusAll);
     if(typeof Theme!=='undefined'){if(pj)r.setAttribute('data-theme','light');else Theme.apply(Theme.get());}
     try{window.api.winZoom((pj?Math.max(c.uiScale,125):c.uiScale)/100).catch(()=>{});}catch(e){}
-    if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg){App.ed.renderTools();App.ed.render();}},
+    if(typeof App!=='undefined'&&App.ed){const ed=App.ed;ed.pinned=!!c.pinInsp;ed.easy=!!c.easy;
+      if(ed.showEnun!==!!c.showEnun){ed.showEnun=!!c.showEnun;if(ed.enP){ed.enP.hidden=!ed.showEnun;ed.main.classList.toggle('withenun',ed.showEnun);}}
+      if(ed.p&&ed.svg){ed.renderTools();ed.render();ed.renderInsp();}}},
   init(){this.apply();try{window.api.winPref({start:this.get().winStart,onTop:this.get().onTop}).catch(()=>{});}catch(e){}
     const lang0=LANG();
     window.addEventListener('storage',async e=>{if(e.key==='mb:set'){this._c=null;if(LANG()!==lang0){try{await App.flushAll();App.keepPlace();}catch(x){}window.api.reload();return;}this.apply();if(typeof App!=='undefined'&&App.settingsOpen)App.renderSettings();}});}

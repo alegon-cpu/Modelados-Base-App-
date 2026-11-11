@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '1.9';
+const VERSION = '2.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';

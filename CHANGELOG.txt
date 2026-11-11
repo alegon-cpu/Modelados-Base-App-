@@ -41,6 +41,25 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.0  (11/11/2026)
+------------------
+- Pantalla de Inicio al abrir: ultimos proyectos abiertos, en orden y con
+  una miniatura. Boton "Inicio" en la barra de la izquierda.
+- Teoria en Inicio (ya no en Ajustes), con dibujos: Modelo E-R, Modelo
+  relacional, DED, SQL para crear tablas y SQL de consultas.
+- Actividad conjunta: "Crear actividad" genera un codigo con el enunciado,
+  las partes que hay que hacer y los minutos. Cada uno lo importa, pulsa
+  Empezar y lo hace a mano (sin pasar nada automaticamente ni teoria).
+  Al acabar el tiempo se bloquea hasta "Salir del modo estudiante".
+- Boceto: zona para escribir "Entidad; atributo1, atributo2..." encima del
+  lienzo, y marcas de cero, uno o muchos en cada extremo de las lineas.
+  "Pasar al E-R" lleva tambien los atributos y las cardinalidades.
+- Mas ajustes: General (al abrir, pestaña, recientes, enunciado al lado,
+  panel fijo), SQL (gestor, DROP DATABASE, filas de ejemplo, modo facil) y
+  Guardar y exportar (imagenes .svg, calidad de la captura).
+- Al actualizar solo se ven las notas de la version nueva.
+- Quitada la opcion de notaciones: siempre Chen.
+
 v1.9  (11/11/2026)
 ------------------
 - Pestaña Boceto, justo despues del Enunciado: solo entidades y lineas entre

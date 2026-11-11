@@ -1,10 +1,10 @@
 /* ===================== Atajos de teclado (se pueden cambiar en Ajustes) ===================== */
 const KEYS_DEF={undo:'Ctrl+Z',redo:'Ctrl+Y',copy:'Ctrl+C',cut:'Ctrl+X',paste:'Ctrl+V',selectAll:'Ctrl+A',duplicate:'Ctrl+D',rename:'F2',del:'Delete',
   find:'Ctrl+F',fit:'Ctrl+0',distribute:'Ctrl+Shift+D',lock:'Ctrl+L',newEnt:'',newRel:'',newAttr:'',newIsa:'',newTable:'',newNote:'',
-  save:'Ctrl+S',settings:'Ctrl+,',controls:'F1',projector:'Ctrl+Shift+P',notation:'Ctrl+Shift+N'};
+  save:'Ctrl+S',settings:'Ctrl+,',controls:'F1',projector:'Ctrl+Shift+P'};
 const KEY_NAMES=[['Editar',[['undo','Deshacer'],['redo','Rehacer'],['copy','Copiar'],['cut','Cortar'],['paste','Pegar'],['duplicate','Duplicar'],['rename','Renombrar'],['del','Borrar lo seleccionado'],['selectAll','Seleccionar todo'],['lock','Bloquear / desbloquear posición']]],
   ['Crear',[['newEnt','Nueva entidad'],['newRel','Nueva relación'],['newAttr','Nuevo atributo'],['newIsa','Nueva jerarquía (ISA)'],['newTable','Nueva tabla'],['newNote','Nueva nota']]],
-  ['Lienzo',[['find','Buscar en el diagrama'],['fit','Ajustar la vista'],['distribute','Distribuir'],['notation','Cambiar de notación (Chen, pata de gallo, UML)']]],
+  ['Lienzo',[['find','Buscar en el diagrama'],['fit','Ajustar la vista'],['distribute','Distribuir']]],
   ['General',[['save','Guardar'],['settings','Ajustes'],['controls','Ver los controles'],['projector','Modo proyector']]]];
 const KEYS=()=>({...KEYS_DEF,...((Settings.get().keys)||{})});
 // "Ctrl+Shift+D" a partir de una pulsación

@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Modelado Bases 1.9</title>
+<title>Modelado Bases 2.0</title>
 <style>@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
@@ -155,7 +155,16 @@ body.solo .side,body.solo .sb-base{display:none}
 .ed-main.noinsp .ed-in,.ed-main.noinsp .split[data-split="in"]{display:none}
 .ed-en{grid-area:en;display:flex;flex-direction:column;min-height:0}
 .ed-en textarea{flex:1}
-.ed-cv{grid-area:cv;position:relative;overflow:hidden;border:1px solid var(--line-2);border-radius:5px;background:var(--surface);min-height:0}
+.ed-cvc{grid-area:cv;display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.ed-cvc .ed-cv{flex:1}
+.bo-zone{display:flex;flex-direction:column;gap:4px}
+.bo-zone .lbl{margin:0}.bo-zone code{font:11.5px var(--f-mono);background:var(--panel);padding:0 4px;border-radius:3px}
+.bo-txt{height:96px;min-height:52px;max-height:40vh;resize:vertical;font:12.5px/1.5 var(--f-mono);padding:6px 10px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);color:var(--ink)}
+.bo-txt:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.boe .segb{font-size:12px;padding:4px 2px}
+.bo-leg{font-size:12px}
+.cx-t{font:600 11px var(--f-mono)}
+.ed-cv{position:relative;overflow:hidden;border:1px solid var(--line-2);border-radius:5px;background:var(--surface);min-height:0}
 .ed-cv svg{position:absolute;inset:0;display:block;width:100%;height:100%;user-select:none}
 .ed-cv.panning,.ed-cv.panning *{cursor:grabbing!important}
 svg .pdot{fill:var(--line-2)}
@@ -344,6 +353,53 @@ svg .cx.dup,svg .rnm.dup,svg .rcol.dup{fill:var(--bad);text-decoration:underline
 svg .hitl{stroke:transparent;stroke-width:14;cursor:pointer}
 svg .lsel{stroke:var(--accent);stroke-width:2.4}
 svg .selbox{fill:none;stroke:var(--accent);stroke-width:1.4;stroke-dasharray:4 3}
+/* 2.0: Inicio y teoría */
+.actbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto;padding:5px 8px 5px 10px;border:1px solid var(--accent);border-radius:8px;background:color-mix(in srgb,var(--accent) 10%,var(--surface));font-size:12.5px}
+.actbar.over{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--surface))}
+.act-tag{font:700 10.5px var(--f-ui);text-transform:uppercase;letter-spacing:.06em;color:#fff;background:var(--accent);padding:2px 7px;border-radius:4px}
+.actbar.over .act-tag{background:var(--bad)}
+.act-t{color:var(--ink)}
+.act-clock{font:700 16px var(--f-mono);color:var(--accent);min-width:70px;text-align:center}
+.act-clock.low{color:var(--bad);animation:actblink 1s steps(2) infinite}.act-clock.over{color:var(--bad);font-size:13px}
+@keyframes actblink{50%{opacity:.35}}
+:root.rm .act-clock.low{animation:none}
+.rotag{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
+
+.homeb{display:flex;align-items:center;gap:8px;justify-content:flex-start}
+.home{overflow:auto;padding:18px 22px 40px;display:flex;flex-direction:column;gap:22px}
+.home h3{margin:0 0 10px;font:600 12px var(--f-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.home-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;padding:18px 20px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.home-top h2{margin:0 0 4px;font-size:22px}.home-top p{margin:0;color:var(--muted)}.home-top .row{display:flex;gap:8px;flex-wrap:wrap}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.rc{display:flex;flex-direction:column;gap:4px;text-align:left;padding:8px 8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);cursor:pointer;color:var(--ink);font:inherit}
+.rc:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.rc-th{display:block;width:100%;height:120px;border-radius:6px;background:var(--panel);overflow:hidden}.rc-th svg{width:100%;height:100%;display:block}
+.rc-empty{display:flex;height:100%;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+.rc-n{font:600 13.5px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rc small{color:var(--muted);font-size:11.5px}
+.thc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.thc{display:grid;grid-template-columns:22px 1fr;gap:4px 8px;align-items:center;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface);cursor:pointer;color:var(--ink);font:inherit}
+.thc:hover{border-color:var(--accent)}.thc b{font-size:14px}.thc small{grid-column:1/-1;color:var(--muted);font-size:11.5px;line-height:1.4}
+.home-th{overflow:hidden;padding:0}
+.thv{display:grid;grid-template-columns:250px 1fr;height:100%;min-height:0}
+.thv-nav{overflow:auto;border-right:1px solid var(--line);padding:12px 10px;display:flex;flex-direction:column;gap:4px;background:var(--panel)}
+.thv-nav .th-q{margin-bottom:8px}
+.thn-c{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;border:0;border-radius:6px;background:none;color:var(--ink);font:600 13px var(--f-ui);cursor:pointer}
+.thn-ch.on>.thn-c{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.thn-s{display:flex;flex-direction:column;padding:2px 0 6px 26px}
+.thn-b{text-align:left;border:0;background:none;padding:4px 6px;border-radius:5px;color:var(--muted);font:12.5px var(--f-ui);cursor:pointer}
+.thn-b:hover{color:var(--ink)}.thn-b[aria-current="true"]{color:var(--accent);font-weight:600}
+.thv-art{overflow:auto;padding:20px 30px 60px;max-width:none}
+.thv-art h2{margin:0 0 6px;font-size:24px}
+.th-sec{max-width:880px;padding-top:14px;border-top:1px solid var(--line);margin-top:18px}.th-sec:first-of-type{border-top:0;margin-top:0}
+.th-sec h3{font-size:18px;margin:0 0 10px}
+.th-fig{margin:10px 0 16px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);text-align:center;overflow-x:auto}
+.th-svg{width:100%;height:auto;display:block;margin:0 auto}
+.th-fig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px}
+.th-code{font:12.5px/1.55 var(--f-mono);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:8px 12px;margin:8px 0;white-space:pre;overflow-x:auto}
+.th-row{display:flex;flex-wrap:wrap;gap:12px}
+.th-tbl{overflow-x:auto;margin:6px 0 10px}.th-tbl table{border-collapse:collapse;font:12px var(--f-mono)}
+.th-tbl th,.th-tbl td{border:1px solid var(--line);padding:3px 9px;text-align:left}.th-tbl th{background:var(--panel)}.th-tbl td.nul{color:var(--muted);font-style:italic}
+.th-cap{font-size:12px;color:var(--muted);margin:0 0 8px}
 /* 1.9: notaciones, jerarquías, boceto, bloquear, comparar */
 svg .ent.hd,svg .dia.hd{fill:none}
 svg .ktag{font:700 9px var(--f-mono);fill:var(--muted)}
@@ -557,11 +613,11 @@ svg .notecard{cursor:move;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.12))}
 </style></head><body>
 <div class="app" id="app">
   <header class="titlebar" id="titlebar">
-    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v1.9</button><span class="tb-proj" id="tbproj"></span></div>
+    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v2.0</button><span class="tb-proj" id="tbproj"></span></div>
     <div class="tb-acts"><button class="tbb" data-act="theory" title="Teoría"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Teoría</span></button><button class="tbb" data-act="controls" title="Controles (F1)"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 7.5h1M8.5 7.5h1M12.5 7.5h1M5.5 10.5h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Controles</span></button><button class="tbb" data-act="settings" title="Ajustes (Ctrl+,)" aria-label="Ajustes"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 6.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 1.5h2.6l.4 2 1.6.9 1.9-.7 1.3 2.2-1.5 1.4v1.8l1.5 1.4-1.3 2.2-1.9-.7-1.6.9-.4 2H7.7l-.4-2-1.6-.9-1.9.7-1.3-2.2 1.5-1.4V8.3L2.5 6.9l1.3-2.2 1.9.7 1.6-.9z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Ajustes</span></button></div>
   </header>
   <aside class="side" aria-label="Proyectos">
-    <div class="side-acts"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import">Importar código</button></div>
+    <div class="side-acts"><button class="ebtn homeb" data-act="home"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 7.5 8 2.5l6 5M3.5 6.5v7h3.5v-4h2v4h3.5v-7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Inicio</span></button><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import">Importar código</button></div>
     <div class="tree" id="tree"></div>
     <div class="split" data-split="side" role="separator" aria-orientation="vertical" aria-label="Ancho de la lista de proyectos" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>
     <div class="side-all"><div class="tree-h">Todos los proyectos</div><button class="sidebtn" data-act="captureall" title="Guarda la imagen (E-R, relacional y DED) de cada proyecto en su carpeta Captura"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="3.5" width="15" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="6" cy="7.5" r="1.4" fill="currentColor"/><path d="M2 13l4.5-4 3 2.5 2.5-2 4 3.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg><span>Capturas de todos</span></button><button class="sidebtn" data-act="exportall" title="Exportar en un solo código todos tus proyectos"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M6 5 2 9l4 4M12 5l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Código de todos</span></button></div>

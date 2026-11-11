@@ -63,7 +63,7 @@ function captureSVG(p){
 async function captureProject(p){
   const c=captureSVG(p);if(!c)return null;
   const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(c.svg);await img.decode();
-  const sc=Math.min(2,12000/Math.max(c.w,c.h));const cv=document.createElement('canvas');cv.width=Math.round(c.w*sc);cv.height=Math.round(c.h*sc);
+  const sc=Math.min(+Settings.get().captureScale||2,12000/Math.max(c.w,c.h));const cv=document.createElement('canvas');cv.width=Math.round(c.w*sc);cv.height=Math.round(c.h*sc);
   const x=cv.getContext('2d');x.scale(sc,sc);x.drawImage(img,0,0,c.w,c.h);
   return window.api.saveCapture(p.folder,p.name,cv.toDataURL('image/png').split(',')[1]);
 }
@@ -103,6 +103,7 @@ async function fromCode(txt){
   let d;try{d=JSON.parse(json);}catch(e){throw new Error('El código está incompleto o dañado. Cópialo entero otra vez.');}
   const list=(Array.isArray(d.proyectos)?d.proyectos:(d&&d.er?[d]:[])).filter(p=>p&&typeof p==='object');
   if(!list.length)throw new Error('El código no contiene ningún proyecto.');
+  list.act=d.act&&typeof d.act==='object'?d.act:null;
   return list;
 }
 
@@ -142,46 +143,48 @@ const Splits={
 
 /* ===================== Textos: controles y novedades ===================== */
 const ico=b=>`<svg class="gl" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">${b}</svg>`;
-const SET_SECS=[['apariencia','Apariencia',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 2.5a6.5 6.5 0 0 0 0 13z" fill="currentColor"/>')],
+const SET_SECS=[['general','General',ico('<path d="M2.5 8 9 2.5 15.5 8M4 7v8h3.5v-4.5h3V15H14V7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>')],['apariencia','Apariencia',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 2.5a6.5 6.5 0 0 0 0 13z" fill="currentColor"/>')],
   ['ventana','Ventana',ico('<rect x="2" y="3" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2 6.5h14" stroke="currentColor" stroke-width="1.3"/>')],
   ['accesibilidad','Accesibilidad',ico('<circle cx="9" cy="3.5" r="1.6" fill="currentColor"/><path d="M3 6.5h12M9 6.5v4.5l-3 4.5M9 11l3 4.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>')],
   ['lienzo','Lienzo',ico('<path d="M3 3h12v12H3z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="6" cy="6" r=".9" fill="currentColor"/><circle cx="9" cy="6" r=".9" fill="currentColor"/><circle cx="12" cy="6" r=".9" fill="currentColor"/><circle cx="6" cy="9" r=".9" fill="currentColor"/><circle cx="9" cy="9" r=".9" fill="currentColor"/><circle cx="12" cy="9" r=".9" fill="currentColor"/><circle cx="6" cy="12" r=".9" fill="currentColor"/><circle cx="9" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>')],
+  ['sql','SQL',ico('<ellipse cx="9" cy="4" rx="6" ry="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3 4v10c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V4M3 9c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2" fill="none" stroke="currentColor" stroke-width="1.3"/>')],
+  ['exportar','Guardar y exportar',ico('<path d="M9 2.5v9M5.5 8 9 11.5 12.5 8M3 13.5v2h12v-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>')],
   ['atajos','Atajos',ico('<rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4 7.5h1.5M7 7.5h1.5M10 7.5h1.5M13 7.5h1M5 10.5h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>')],
   ['actualizaciones','Actualizaciones',ico('<path d="M14.5 6.5A6 6 0 1 0 15 11" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M15 2.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.4"/>')],
-  ['teoria','Teoría',ico('<path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>')],
   ['acerca','Acerca de',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 8v4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="5.5" r="1" fill="currentColor"/>')]];
 const kb=s=>s.split('+').map(k=>`<kbd>${k}</kbd>`).join('+');
 const CONTROLS=[
-  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['@selectAll','Seleccionar todo'],['@find','Buscar en el diagrama'],['@fit','Ajustar la vista'],['@distribute','Distribuir'],['@lock','Bloquear / desbloquear la posición'],['@notation','Cambiar de notación'],['Clic derecho','Menú con opciones del elemento (sin mover el ratón)'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
+  ['Lienzo',[['Rueda del ratón','Zoom (acercar y alejar)'],['Clic derecho y arrastrar','Moverte por el lienzo (también con la rueda pulsada)'],['Clic en un hueco y arrastrar','Seleccionar varias cosas a la vez'],['Ctrl+clic','Añadir o quitar de la selección'],['@selectAll','Seleccionar todo'],['@find','Buscar en el diagrama'],['@fit','Ajustar la vista'],['@distribute','Distribuir'],['@lock','Bloquear / desbloquear la posición'],['Clic derecho','Menú con opciones del elemento (sin mover el ratón)'],['Arrastrar un elemento','Moverlo (una entidad se lleva sus atributos)'],['Arrastrar un botón','Entidad, Relación, Atributo o Tabla: suéltalo donde lo quieras (un atributo encima de una entidad se une a ella)'],['Flechas','Mover lo seleccionado (con Mayús, más rápido)'],['Varios seleccionados','Alinear y repartir desde el panel derecho']]],
   ['Editar',[['@copy','Copiar'],['@cut','Cortar'],['@paste','Pegar'],['@duplicate','Duplicar'],['@rename','Renombrar'],['@del','Borrar lo seleccionado (también Retroceso)'],['@undo','Deshacer'],['@redo','Rehacer'],['Esc','Cancelar / quitar la selección']]],
   ['Unir y relacionar',[['Mayús+clic','Une lo seleccionado con el elemento que pulses'],['Dos entidades','Al unirlas se crea una relación en medio'],['Mayús+clic en Rel/DED','Relaciona dos tablas: eliges quién recibe la clave'],['Clic en una línea','Poner máximo y mínimo de esa línea']]],
   ['Panel',[['Enter en un atributo','Crea otro atributo en la misma entidad'],['Enter en una columna','Crea otra columna debajo'],['Enter en el nombre de la tabla','Añade una columna']]],
   ['General',[['@save','Guardar'],['Ctrl+1 … Ctrl+7','Enunciado, Boceto, E-R, Relacional, DED, SQL, Probar'],['@controls','Ver estos controles'],['@settings','Ajustes'],['@projector','Modo proyector'],['F11','Pantalla completa']]]
 ];
-const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "Boceto y E-R: entidades (normales y débiles), relaciones (binarias, ternarias e identificadoras), jerarquías (ISA) y atributos de todos los tipos, en notación Chen, pata de gallo o UML. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL para MySQL, SQL Server, Oracle o PostgreSQL, con datos de ejemplo; se puede editar, y también al revés: de un SQL dibuja las tablas.", "Pestaña Probar: una base de datos SQLite de verdad dentro de la app para ejecutar consultas y comprobar las claves ajenas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Teoría completa y ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
+const RESUMEN=["Proyectos guardados como carpetas en «Modelados BDD», en el sitio que elijas. Cada uno con su enunciado, E-R, relacional, DED y SQL.", "Boceto y E-R: entidades (normales y débiles), relaciones (binarias, ternarias e identificadoras), jerarquías (ISA) y atributos de todos los tipos. Máximo y mínimo con preguntas sencillas; el tipo (1:1, 1:N, N:M) sale solo.", "Relacional y DED: tablas con PK, FK, NN y Único. Se pueden crear desde el E-R (con o sin las relaciones) y relacionar entre sí con Mayús+clic.", "SQL para MySQL, SQL Server, Oracle o PostgreSQL, con datos de ejemplo; se puede editar, y también al revés: de un SQL dibuja las tablas.", "Pestaña Probar: una base de datos SQLite de verdad dentro de la app para ejecutar consultas y comprobar las claves ajenas.", "Avisa de nombres repetidos, de entidades sin PK y de relaciones a medias antes de pasar a tablas.", "Lienzo grande con zoom, selección múltiple, copiar y pegar, deshacer, Distribuir, alinear, notas y arrastrar los botones hasta donde quieras.", "Inicio con tus últimos proyectos y la teoría explicada con dibujos. Actividades en grupo con tiempo (modo estudiante). Ajustes de accesibilidad. Se guarda solo (y con Ctrl+S). Pasar proyectos con un código, imagen del ejercicio (Captura), exportar a ERDPlus, abrir un proyecto en su propia ventana, tema claro u oscuro. Se actualiza sola."];
 const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you choose. Each one with its brief, E-R, relational, DSD, SQL and tests.",
-  "Sketch and E-R: entities (normal and weak), relationships (binary, ternary, identifying), hierarchies (ISA) and every kind of attribute, in Chen, crow's foot or UML notation. Maximum and minimum with simple questions; the type (1:1, 1:N, N:M) appears by itself.",
+  "Sketch and E-R: entities (normal and weak), relationships (binary, ternary, identifying), hierarchies (ISA) and every kind of attribute. Maximum and minimum with simple questions; the type (1:1, 1:N, N:M) appears by itself.",
   "Relational and DSD: tables with PK, FK, NN and Unique. They can be created from the E-R (with or without the relationships) and related with Shift+click.",
   "SQL for MySQL, SQL Server, Oracle or PostgreSQL, with sample data. And the other way round: from an SQL script it draws the tables.",
   "Test tab: a real SQLite database inside the app to run queries and check the foreign keys.",
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=['New Sketch tab (right after the Brief): only entities and lines between them, to think about what relates to what. «To the E-R» creates the entities and a diamond for each line.',
-  'Hierarchies (ISA, generalization / specialization): «Hierarchy» button, total or partial, disjoint or overlapping, and three ways to convert them to tables.',
-  'Easier ternary relationships: select 3 entities and «Ternary relationship between the 3»; or join a third entity to a relationship.',
-  "Choose the notation: Chen, crow's foot or UML, in the E-R and the DSD (diagram bar or Settings › Canvas).",
-  'Arrange in the relational and DSD redone: it looks for the layout with fewest line crossings and no lines over tables.',
-  'Right-angled lines in the relational and the DSD (Settings › Canvas).',
-  'Lock the position of any element (right button or Ctrl+L): it does not move when dragged or arranged.',
-  'Compare two versions («Compare» button): with another project or a code, it tells you what is missing, extra or different, and marks it on the diagram.',
-  'SQL errors in the Test tab are explained, with a tip to fix them and the failing statement.',
-  'Keyboard shortcuts your way (Settings › Shortcuts) and projector mode for class (Ctrl+Shift+P).'];
+const NOVEDADES_EN=['Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
+  'The theory is now in Home, explained with pictures: E-R model, relational model, DSD, SQL to create tables and SQL queries (SELECT, WHERE, JOIN, GROUP BY…).',
+  'Group activity: «Create activity» makes a code with the brief, what to do and the minutes. Each classmate imports it, clicks Start and does it by hand against the clock; when time is up it locks until «Leave student mode».',
+  "Sketch with a box to write «Entity; attribute1, attribute2…» above the canvas, and zero (○), one (|) or many (crow's foot) marks next to each entity on the lines. «To the E-R» also brings the attributes and cardinalities.",
+  'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
+  'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.0: pantalla de Inicio al abrir la app, con tus últimos proyectos abiertos (en orden y con una miniatura del diagrama). Botón «Inicio» arriba a la izquierda.',
+  '2.0: la teoría está ahora en Inicio, explicada con dibujos: Modelo E-R, Modelo relacional, DED, SQL para crear tablas y SQL de consultas (SELECT, WHERE, JOIN, GROUP BY…).',
+  '2.0: actividad conjunta: «Crear actividad» genera un código con el enunciado, lo que hay que hacer y los minutos. Cada compañero lo importa, pulsa Empezar y lo hace a mano con el tiempo contado; al acabar queda bloqueado hasta «Salir del modo estudiante».',
+  '2.0: Boceto con una zona para escribir «Entidad; atributo1, atributo2…» encima del lienzo, y en las líneas las marcas de cero (○), uno (|) o muchos (pata de gallo) junto a cada entidad. «Pasar al E-R» lleva también los atributos y las cardinalidades.',
+  '2.0: más ajustes: qué sale al abrir, pestaña al abrir un proyecto, recientes, SQL (gestor, DROP DATABASE, filas de ejemplo), guardar imágenes y calidad de «Exportar ejercicio».',
+  '2.0: fuera la opción de notaciones (vuelve a ser siempre Chen).',
   '1.9: pestaña Boceto (justo después del Enunciado): solo entidades y líneas entre ellas, para pensar qué se relaciona con qué. «Pasar al E-R» crea las entidades y un rombo por cada línea.',
   '1.9: jerarquías (ISA, generalización / especialización): botón «Jerarquía», total o parcial, exclusiva o solapada, y tres formas de pasarlas a tablas.',
   '1.9: relaciones ternarias más fáciles: selecciona 3 entidades y «Relación ternaria entre las 3»; o une una tercera entidad a una relación.',
-  '1.9: notación a elegir: Chen, pata de gallo o UML, en el E-R y en el DED (barra del diagrama o Ajustes › Lienzo).',
   '1.9: «Distribuir» del relacional y del DED rehecho: busca la colocación con menos cruces de líneas y sin líneas por encima de las tablas.',
   '1.9: líneas en ángulo recto en el relacional y el DED (Ajustes › Lienzo).',
   '1.9: bloquear la posición de cualquier elemento (botón derecho o Ctrl+L): no se mueve al arrastrar ni al distribuir.',
@@ -241,7 +244,7 @@ const App={
   get autosave(){return true;},
   async start(){
     if(this.solo)document.body.classList.add('solo');
-    Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();
+    Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();setInterval(()=>this.actTick(),1000);
     window.api.onCloseRequest(()=>this.onCloseRequest());
     window.api.onWindows(l=>{this.locked=new Set(l);this.renderTree();if(this.cur&&this.view)this.renderMain();});
     window.api.onWindowClosed(f=>this.afterWindow(f));
@@ -252,10 +255,13 @@ const App={
     if(!this.base){this.showSetup();this.maybeNews();setTimeout(()=>this.checkUpdates(false),1500);return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
     let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
-    await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}this.maybeNews();
+    await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}
+    else if(back&&back.home){this.home=back.home;this.renderMain();}
+    else if(!this.cur&&Settings.get().startScreen==='last'){const r=Recent.get().map(x=>this.projects.find(p=>p.folder===x.f)).find(Boolean);if(r)this.go(r,Settings.get().openTab||'er');}
+    this.maybeNews();
     setTimeout(()=>this.checkUpdates(false),1500);
   },
-  keepPlace(){try{sessionStorage.setItem('mb:reopen',JSON.stringify({f:this.cur&&this.cur.folder,v:this.view,set:this.settingsOpen?this._sec:null}));}catch(e){}},
+  keepPlace(){try{sessionStorage.setItem('mb:reopen',JSON.stringify({f:this.home?null:this.cur&&this.cur.folder,v:this.view,home:this.home||null,set:this.settingsOpen?this._sec:null}));}catch(e){}},
   async startSolo(){
     try{const p=await window.api.load(this.solo);p._id=uid('p');this.projects=[p];this.cur=p;this.view='er';this.status('ok','Todo guardado');
       document.title=p.name+' · Modelado Bases';}
@@ -331,10 +337,12 @@ const App={
         <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
     }catch(e){btn.disabled=false;btn.textContent='Reintentar';document.querySelectorAll('[data-m=upd-later],[data-m=upd-skip]').forEach(b=>b.disabled=false);txt.textContent='No se pudo descargar: '+e.message;}
   },
-  maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews();try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,NOV=en?NOVEDADES_EN:NOVEDADES.filter(n=>{const mm=VERSION.split('.').slice(0,2).join('.');return n.startsWith(mm+':')||n.startsWith(mm+'.');}).map(n=>n.slice(n.indexOf(':')+2));
-    this.modal(`<h3>Modelado Bases ${VERSION}</h3><p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p><ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><p class="news-h">Novedades de la ${VERSION}</p><ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${en?'':`<details class="older"><summary>Cambios anteriores (1.5 – 1.6.4)</summary><ul class="news">${NOVEDADES.filter(n=>!n.startsWith(VERSION+':')).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
-  showSettings(sec){this._sec=sec||this._sec||'apariencia';this.settingsOpen=true;
+  // Al actualizar solo salen las notas de la versión; el resumen del programa, solo la primera vez (o desplegándolo)
+  maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews(seen==null);try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
+  showNews(full){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,mm=VERSION.split('.').slice(0,2).join('.'),mine=n=>n.startsWith(mm+':')||n.startsWith(mm+'.'),NOV=en?NOVEDADES_EN:NOVEDADES.filter(mine).map(n=>n.slice(n.indexOf(':')+2));
+    const res=`<ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`;
+    this.modal(`<h3>${full?'Modelado Bases '+VERSION:'Novedades de la '+VERSION}</h3>${full?`<p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p>${res}<p class="news-h">Novedades de la ${VERSION}</p>`:''}<ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${full?'':`<details class="older"><summary>Qué puede hacer el programa</summary>${res}</details>`}${en?'':`<details class="older"><summary>Cambios anteriores</summary><ul class="news">${NOVEDADES.filter(n=>!mine(n)).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
+  showSettings(sec){this._sec=sec||this._sec||'general';this.settingsOpen=true;
     this.modal(`<div class="set-wrap"><nav class="set-nav" aria-label="Ajustes"><p class="set-title">Ajustes</p>${SET_SECS.map(([k,t,ic])=>`<button class="set-nb" data-sec="${k}">${ic}<span>${t}</span></button>`).join('')}</nav><div class="set-body" id="setbody"></div><button class="set-x" data-m="close" aria-label="Cerrar ajustes" title="Cerrar (Esc)">✕</button></div>`,'settings');
     this.renderSettings();},
   renderSettings(){
@@ -344,7 +352,19 @@ const App={
     const seg=(k,t,sub,opts)=>`<div class="set-row"><div class="set-lab"><b>${t}</b>${sub?`<small>${sub}</small>`:''}</div><div class="seg" role="group" aria-label="${escA(t)}">${opts.map(([v,l])=>`<button class="segb" data-setv="${k}" data-v="${v}" aria-pressed="${String(c[k])===String(v)}">${l}</button>`).join('')}</div></div>`;
     const H=(t,sub)=>`<h3>${t}</h3>${sub?`<p class="set-sub">${sub}</p>`:''}`;
     let h='';
-    if(sec==='apariencia'){const th=Theme.get();
+    if(sec==='general'){h=H('General')+seg('startScreen','Al abrir la app','Inicio: últimos proyectos y teoría. Último proyecto: entra directo donde lo dejaste.',[['home','Inicio'],['last','Último proyecto']])+
+        seg('openTab','Pestaña al abrir un proyecto','Desde Inicio o desde la lista de la izquierda.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']])+
+        seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
+        tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
+        tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.');}
+    else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+
+        tog('sqlDrop','Empezar borrando la base de datos','El script empieza con DROP DATABASE IF EXISTS: así se puede ejecutar varias veces. Quítalo si no quieres perder una base que ya tengas.')+
+        seg('sampleRows','Filas de datos de ejemplo','Cuántas filas por tabla en «Añadir datos de ejemplo» y en la pestaña Probar.',[[3,'3'],[5,'5'],[10,'10'],[20,'20']])+
+        tog('easy','Modo fácil activado al empezar','Al «Pasar desde mi E-R» también se pasan las relaciones (claves ajenas y tablas N:M).');}
+    else if(sec==='exportar'){h=H('Guardar y exportar','Todo se guarda solo al momento, y también con Ctrl+S.')+
+        tog('svgFiles','Guardar también una imagen de cada diagrama','Un archivo diagrama.svg junto a cada diagrama.json, para abrirlo sin la app.')+
+        seg('captureScale','Calidad de «Exportar ejercicio»','Tamaño de la imagen PNG. Más grande se ve mejor al imprimir, pero ocupa más.',[[1,'Normal'],[2,'Alta'],[3,'Muy alta']]);}
+    else if(sec==='apariencia'){const th=Theme.get();
       h=H('Apariencia')+`<div class="set-row"><div class="set-lab"><b>Tema</b><small>Auto sigue el modo de Windows.</small></div><div class="seg">${[['light','Claro'],['dark','Oscuro'],['system','Auto']].map(([v,l])=>`<button class="segb" data-theme-set="${v}" aria-pressed="${th===v}">${l}</button>`).join('')}</div></div>`+
         seg('accent','Color principal','Botones, pestañas y selección.',[['green','Verde'],['blue','Azul'],['purple','Morado'],['orange','Naranja']])+
         `<div class="set-row"><div class="set-lab"><b>Idioma</b><small>Idioma de la aplicación.</small></div><div class="seg" role="group" aria-label="Idioma"><button class="segb notr" data-setv="lang" data-v="es" aria-pressed="${LANG()==='es'}">Español</button><button class="segb notr" data-setv="lang" data-v="en" aria-pressed="${LANG()==='en'}">English</button></div></div>`+
@@ -361,9 +381,9 @@ const App={
     else if(sec==='atajos'){const K=KEYS();
       h=H('Atajos de teclado','Pulsa «Cambiar» y después la combinación que quieras (por ejemplo Ctrl+Mayús+E). Esc cancela.')+KEY_NAMES.map(([g,rows])=>`<p class="set-g">${g}</p>`+rows.map(([a,l])=>`<div class="set-row"><div class="set-lab"><b>${l}</b></div><div class="keyrow">${this._capKey===a?'<span class="keycap wait">Pulsa la combinación…</span>':K[a]?`<span class="keycap">${kb(K[a]==='Delete'?'Supr':K[a])}</span>`:'<span class="keycap none">Sin atajo</span>'}<button class="ebtn" data-m="key-set" data-k="${a}">Cambiar</button>${K[a]?`<button class="ebtn" data-m="key-clear" data-k="${a}" title="Quitar el atajo" aria-label="Quitar el atajo">✕</button>`:''}</div></div>`).join('')).join('')+
         `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
-    else if(sec==='lienzo'){h=H('Lienzo')+seg('notation','Notación del E-R y del DED','Chen: rombos y óvalos. Pata de gallo: cajas con los atributos dentro y patas en las líneas. UML: clases con multiplicidades (0..*, 1…).',[['chen','Chen'],['crow','Pata de gallo'],['uml','UML']])+
-        seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
+    else if(sec==='lienzo'){h=H('Lienzo')+seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
         tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
+        tog('showType','Tipo de relación debajo del rombo','Muestra 1:1, 1:N o N:M en cada relación.')+tog('showCardQ','Marcar las cardinalidades que faltan','Pone (?,?) en las líneas que aún no tienen máximo y mínimo.')+
         tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados.')+
         seg('zoomSpeed','Velocidad del zoom con la rueda','',[['slow','Lenta'],['normal','Normal'],['fast','Rápida']])+
         `<p class="set-sub">Para alinear varios elementos, selecciónalos (arrastrando en un hueco) y usa los botones de «Alinear» y «Repartir» del panel derecho.</p>`;}
@@ -453,14 +473,14 @@ const App={
     this.updateStatus();this.renderCounts(p);if(!was)this.markDirty(p);},
   markDirty(p){const el=document.querySelector(`.pf[data-pid="${p._id}"]`);if(el)el.classList.toggle('dirty',!!p._dirty);},
   flush(p){clearTimeout(p._t);p._t=null;if(!p._dirty)return p._q||Promise.resolve();p._dirty=false;
-    return this.queue(p,async()=>{try{await window.api.save(plainProject(p),exportSVGs(p));}catch(e){p._dirty=true;throw e;}finally{this.markDirty(p);this.updateStatus();}});},
+    return this.queue(p,async()=>{try{await window.api.save(plainProject(p),Settings.get().svgFiles!==false?exportSVGs(p):null);}catch(e){p._dirty=true;throw e;}finally{this.markDirty(p);this.updateStatus();}});},
   async flushAll(){
     this.projects.forEach(p=>{if(p._rn){clearTimeout(p._rn);p._rn=null;this.doRename(p);}});
     await Promise.all(this.projects.filter(p=>p._dirty).map(p=>this.flush(p)));
     await Promise.all(this.projects.map(p=>p._q).filter(Boolean));
   },
   async saveNow(){const n=this.dirtyList().length;await this.flushAll();if(n&&!this.dirtyList().length)toast('Guardado.');},
-  doRename(p){return this.queue(p,async()=>{const nf=await window.api.rename(p.folder,p.name);p.folder=nf;this.updateStatus();});},
+  doRename(p){return this.queue(p,async()=>{const old=p.folder,nf=await window.api.rename(p.folder,p.name);p.folder=nf;if(old!==nf)Recent.rename(old,nf);this.updateStatus();});},
   renameSoon(p){clearTimeout(p._rn);p._rn=setTimeout(()=>{p._rn=null;this.doRename(p);},900);},
   async onCloseRequest(){
     window.api.ack().catch(()=>{});
@@ -490,7 +510,6 @@ const App={
       if(K('find')&&edv){e.preventDefault();this.ed.openSearch();return;}
       if(K('save')){e.preventDefault();this.saveNow();return;}
       if(K('projector')){e.preventDefault();const v=!Settings.get().projector;Settings.set('projector',v);toast(v?'Modo proyector activado (vuelve a pulsar el atajo para quitarlo).':'Modo proyector desactivado.');return;}
-      if(K('notation')){e.preventDefault();const o=['chen','crow','uml'],c=Settings.get().notation||'chen',n=o[(o.indexOf(c)+1)%3];Settings.set('notation',n);if(edv)this.ed.renderTools();toast('Notación: '+{chen:'Chen',crow:'Pata de gallo',uml:'UML'}[n]);return;}
       if(ctrl&&!e.shiftKey&&!e.altKey&&/^[1-7]$/.test(e.key)&&this.cur&&!this.locked.has(this.cur.folder)){e.preventDefault();this.go(this.cur,Object.keys(VIEWS)[+e.key-1]);return;}
       if(typing||!edv)return;
       this.ed.key(e);
@@ -503,11 +522,76 @@ const App={
     if(!this.projects.length){t.innerHTML=`<div class="tree-h">Mis proyectos</div><p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
     t.innerHTML=`<div class="tree-h">Mis proyectos</div>`+this.projects.map(p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
       return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
-      ${op?`<div class="sub">${Object.entries(VIEWS).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;}).join('');
+      ${op?`<div class="sub">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;}).join('');
   },
+  /* ---------- Actividad conjunta (modo estudiante) ---------- */
+  isRO(p,view){const a=p&&p.act;if(!a)return false;if(a.state!=='run')return true;if(view==='enun')return true;return !(a.parts||[]).includes(view);},
+  actLeft(p){return Math.max(0,(p.act.end||0)-Date.now());},
+  actBar(p){const a=p.act,T={bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'},parts=(a.parts||[]).map(x=>T[x]).join(', ');
+    const left=a.state==='run'?this.actLeft(p):0,mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);
+    return `<div class="actbar ${a.state}"><span class="act-tag">Modo estudiante</span><span class="act-t"><b>${esc(a.title||'Actividad')}</b> · hay que hacer: ${esc(parts)} · ${a.mins} min</span>
+      ${a.state==='ready'?`<button class="ebtn pri" data-act="act-start">Empezar</button>`:a.state==='run'?`<span class="act-clock${left<60000?' low':''}" id="actclock">⏱ ${mm}:${String(ss).padStart(2,'0')}</span>`:`<span class="act-clock over">Se acabó el tiempo</span>`}
+      <button class="ebtn" data-act="act-exit">Salir del modo estudiante</button></div>`;},
+  actTick(){const p=this.cur;if(!p||!p.act||p.act.state!=='run')return;
+    if(this.actLeft(p)<=0){p.act.state='over';this.touch(p);this.saveNow();this.renderMain();
+      this.modal(`<h3>Se acabó el tiempo</h3><p>La actividad «${esc(p.act.title||'')}» ha terminado. El proyecto queda bloqueado: ya no se puede cambiar.</p><p>Enséñaselo a quien hizo la actividad. Cuando terminéis, pulsa «Salir del modo estudiante» para poder editarlo otra vez.</p><div class="mrow"><button class="ebtn pri" data-m="close">Entendido</button></div>`);return;}
+    const c=document.getElementById('actclock');if(c){const l=this.actLeft(p),mm=Math.floor(l/60000),ss=Math.floor(l%60000/1000);c.textContent=`⏱ ${mm}:${String(ss).padStart(2,'0')}`;c.classList.toggle('low',l<60000);}},
+  startActivity(p){if(!p||!p.act||p.act.state!=='ready')return;p.act.state='run';p.act.start=Date.now();p.act.end=Date.now()+p.act.mins*60000;this.touch(p);this.saveNow();
+    this.go(p,(p.act.parts||[])[0]||'enun');toast(`¡Empieza! Tenéis ${p.act.mins} minutos.`);},
+  exitActivity(p){if(!p||!p.act)return;const run=p.act.state==='run';
+    this.confirm('Salir del modo estudiante',run?'La actividad todavía no ha terminado. Si sales, el tiempo se para y podrás usar todo otra vez (Pasar desde mi E-R, teoría…).':'El proyecto vuelve a ser normal: puedes editarlo y usar todas las pestañas.','Salir',()=>{delete p.act;this.touch(p);this.saveNow();this.renderMain();toast('Has salido del modo estudiante.');});},
+  showMakeActivity(){const p=this.cur;if(!p)return;const T=[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']];
+    this.modal(`<h3>Crear una actividad</h3><p>Se genera un código con el enunciado de este proyecto. Cada compañero lo pega en «Importar código» y hace su versión a la vez, con el tiempo contado. Sin pasar nada automáticamente ni mirar la teoría.</p>
+      ${(p.enun||'').trim()?'':'<p class="in-p warn">Este proyecto no tiene enunciado: escríbelo antes en la pestaña Enunciado.</p>'}
+      <label class="fld">Título<input type="text" id="acttitle" value="${escA(p.name)}" spellcheck="false"></label>
+      <div class="in-sub">Qué hay que hacer</div><div class="cmp-parts">${T.map(([v,l])=>`<label class="tg"><input type="checkbox" data-actp="${v}" ${['er','rel','ded'].includes(v)?'checked':''}><span>${l}</span></label>`).join('')}</div>
+      <label class="fld">Tiempo (minutos)<input type="number" id="actmins" value="45" min="1" max="600" step="1"></label>
+      <label class="chk"><input type="checkbox" id="actref"><span class="chk-t">Dar hecho lo de las otras pestañas<small>Por ejemplo, el E-R ya hecho para que hagan las tablas. Se ve pero no se puede cambiar.</small></span><span class="sw"></span></label>
+      <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="act-code">Crear código</button></div>`);},
+  async makeActivityCode(){const p=this.cur,parts=[...document.querySelectorAll('[data-actp]:checked')].map(x=>x.dataset.actp),mins=Math.round(+document.getElementById('actmins').value||0);
+    if(!parts.length){toast('Elige al menos una cosa que hacer.','warn');return;}if(!(mins>0)){toast('Pon los minutos.','warn');return;}
+    const ref=document.getElementById('actref').checked,title=document.getElementById('acttitle').value.trim()||p.name,q=plainProject(p);
+    const pr={name:title,enun:q.enun};if(ref)['bo','er','rel','ded'].forEach(k=>{if(!parts.includes(k))pr[k]=q[k];});if(ref&&!parts.includes('sql'))pr.sql=q.sql;
+    const json=JSON.stringify({app:'modelado-bases',v:1,act:{title,mins,parts,ref},proyectos:[pr]});
+    const code='MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
+    this.modal(`<h3>Código de la actividad</h3><p>Pásalo a tus compañeros. Cada uno lo pega en <b>Importar código</b>, y cuando estéis todos pulsáis <b>Empezar</b>: desde ahí cuentan ${mins} minutos.</p><textarea id="exptxt" readonly>${esc(code)}</textarea>
+      <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="copy">Copiar código</button></div>`);
+    const t=document.getElementById('exptxt');t.focus();t.select();},
+  async importActivity(act,src,names){const T={bo:'bo',er:'er',rel:'rel',ded:'ded',sql:'sql'};
+    let name='Actividad · '+String(act.title||src.name||'').trim();if(names.has(name.toLowerCase())){let i=2;while(names.has((name+' ('+i+')').toLowerCase()))i++;name+=' ('+i+')';}
+    const np=await this.run(()=>window.api.create(name));if(!np)return;
+    const parts=(act.parts||[]).filter(x=>T[x]);np.enun=String(src.enun||'');
+    ['bo','er','rel','ded'].forEach(k=>{np[k]=cleanModel(parts.includes(k)?{}:(src[k]||{}),k);});np.sql=parts.includes('sql')?'':String(src.sql||'');
+    const has=k=>k==='sql'?!!np.sql.trim():k==='er'||k==='bo'?np[k].nodes.length>0:np[k].t.length>0;
+    np.act={title:String(act.title||''),mins:Math.max(1,Math.round(+act.mins||45)),parts,state:'ready',show:['enun',...['bo','er','rel','ded','sql'].filter(k=>parts.includes(k)||(act.ref&&has(k)))]};
+    np.updated=Date.now();await this.run(()=>window.api.save(plainProject(np),exportSVGs(np)));
+    await this.reload(np.folder);this.go(this.cur,'enun');
+    this.modal(`<h3>Actividad «${esc(np.act.title)}»</h3><p>Hay que hacer: <b>${parts.map(x=>({bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'})[x]).join(', ')}</b> en <b>${np.act.mins} minutos</b>.</p>
+      <ul class="plist"><li>Todo se hace a mano: no se puede pasar del E-R a tablas, ni generar el SQL, ni mirar la teoría.</li><li>Cuando se acabe el tiempo, el proyecto se bloquea hasta que pulses «Salir del modo estudiante».</li></ul>
+      <p>Lee el enunciado. Cuando estéis todos, pulsa <b>Empezar</b>.</p><div class="mrow"><button class="ebtn" data-m="close">Todavía no</button><button class="ebtn pri" data-m="act-start">Empezar</button></div>`);},
+  showHome(k){this.home=k||'inicio';if(k==='teoria'&&!this._thc)this._thc='er';this.renderTree();this.renderMain();document.getElementById('mainv').scrollTop=0;},
+  // Miniatura de un proyecto: su E-R, o si no su DED o su relacional
+  thumb(p){const key=p.folder+':'+(p.updated||0);this._th=this._th||{};if(this._th[key]!=null)return this._th[key];let h='';
+    try{const parts=svgParts(p),k=['er','ded','rel'].find(x=>parts[x]);if(k){const {inner,b}=parts[k],pd=30;h=`<svg viewBox="${f1(b[0]-pd)} ${f1(b[1]-pd)} ${f1(b[2]-b[0]+2*pd)} ${f1(b[3]-b[1]+2*pd)}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;}}catch(e){}
+    return this._th[key]=h;},
+  renderHome(mv){const en=LANG()==='en';
+    if(this.home==='teoria'){
+      mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Theory':'Teoría'}</span><div class="ph-acts"><button class="ebtn" data-act="home">← ${en?'Home':'Inicio'}</button></div></header><div class="view home-th" id="thview">${theoryHTML(this._thc,this._ths,this._thq)}</div>`;
+      const q=document.getElementById('thq2');q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderMain();const q2=document.getElementById('thq2');q2.focus();q2.setSelectionRange(pos,pos);});
+      if(this._ths){const s=document.getElementById('ths-'+this._ths);if(s)s.scrollIntoView({block:'start'});}
+      return;}
+    const N=Settings.get().recentN||8,rec=Recent.get().map(r=>({p:this.projects.find(p=>p.folder===r.f),t:r.t})).filter(x=>x.p).slice(0,N);
+    const extra=this.projects.filter(p=>!rec.some(r=>r.p===p)).slice(0,Math.max(0,N-rec.length)).map(p=>({p,t:0}));
+    const list=[...rec,...extra];
+    mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Home':'Inicio'}</span></header><div class="view home">
+      <section class="home-top"><div><h2>Modelado Bases</h2><p>E-R, relacional, DED y SQL de tus ejercicios de bases de datos.</p></div>
+        <div class="row"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import" title="También para unirte a una actividad: pega el código que te han pasado">Importar código o actividad</button><button class="ebtn" data-act="controls">Controles</button><button class="ebtn" data-act="settings">Ajustes</button></div></section>
+      <section><h3>Últimos proyectos abiertos</h3>${list.length?`<div class="rc-grid">${list.map(({p,t})=>{const c=this.counts(p);return `<button class="rc" data-pid="${p._id}"><span class="rc-th">${this.thumb(p)||'<span class="rc-empty">Vacío</span>'}</span><b class="rc-n">${esc(p.name)}</b><small>${t?ago(t):'Sin abrir todavía'}${[c.er,c.ded||c.rel].filter(Boolean).map(x=>' · '+x).join('')}${p.act?' · Actividad':''}</small></button>`;}).join('')}</div>`:'<p class="tnote">Todavía no tienes proyectos. Pulsa «Nuevo proyecto».</p>'}</section>
+      <section><h3>Teoría</h3><div class="thc-grid">${TH_CH.map(c=>`<button class="thc" data-thc="${c.id}">${ICO[c.ico]||''}<b>${esc(en?c.te:c.t)}</b><small>${thSections(c).slice(0,5).map(s=>esc(s.t)).join(' · ')}${thSections(c).length>5?' …':''}</small></button>`).join('')}</div></section></div>`;},
   renderMain(){
-    const tp=document.getElementById('tbproj');if(tp)tp.textContent=this.cur?this.cur.name:'';
+    const tp=document.getElementById('tbproj');if(tp)tp.textContent=this.cur&&!this.home?this.cur.name:'';
     const mv=document.getElementById('mainv');
+    if(this.home||(!this.cur&&this.base&&!this.solo)){this.home=this.home||'inicio';this.renderHome(mv);return;}
     if(!this.cur){
       if(this.solo){mv.innerHTML=`<div class="view"><div class="welcome"><h2>No se pudo abrir el proyecto</h2><p>Cierra esta ventana y ábrelo desde la ventana principal.</p></div></div>`;return;}
       mv.innerHTML=`<header class="ph"><span class="pname static">Modelado Bases</span></header>
@@ -526,14 +610,19 @@ const App={
     const B=(a,t,cls='',tip='')=>`<button class="ebtn ${cls}" data-act="${a}"${tip?` title="${tip}"`:''}>${t}</button>`;
     mv.innerHTML=`<header class="ph">
       <input class="pname" id="pname" value="${escA(p.name)}" aria-label="Nombre del proyecto" spellcheck="false">
-      <div class="ph-acts">${this.solo?'':B('window','Abrir en ventana','','Abre solo este proyecto en una ventana nueva, a pantalla completa')+'<span class="ph-sep"></span>'}${B('capture','Exportar ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Exportar código','','Genera un código para pasar el proyecto a otra persona')}${B('erdplus','Exportar a ERDPlus','','Guarda el E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar de ERDPlus','','Abre un archivo .erdplus y lo pasa a tu E-R')}${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}<span class="ph-sep"></span>${B('reveal','Abrir carpeta')}${this.solo?'':B('dup','Duplicar')}${B('clearproj','Vaciar proyecto','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></header>
-      <div class="vtabs" role="tablist">${Object.entries(VIEWS).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
+      ${p.act?this.actBar(p):`<div class="ph-acts">${this.solo?'':B('window','Abrir en ventana','','Abre solo este proyecto en una ventana nueva, a pantalla completa')+'<span class="ph-sep"></span>'}${B('capture','Exportar ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Exportar código','','Genera un código para pasar el proyecto a otra persona')}${B('erdplus','Exportar a ERDPlus','','Guarda el E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar de ERDPlus','','Abre un archivo .erdplus y lo pasa a tu E-R')}${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}${B('mkact','Crear actividad','','Genera un código para que varios compañeros hagáis este ejercicio a la vez, con tiempo')}<span class="ph-sep"></span>${B('reveal','Abrir carpeta')}${this.solo?'':B('dup','Duplicar')}${B('clearproj','Vaciar proyecto','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div>`}</header>
+      <div class="vtabs" role="tablist">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
       <div class="view" id="view"></div>`;
     document.getElementById('pname').addEventListener('input',e=>{p.name=e.target.value.trim()||'Sin nombre';const nm=document.querySelector(`.pf[data-pid="${p._id}"] .nm`);if(nm)nm.textContent=p.name;const tp=document.getElementById('tbproj');if(tp)tp.textContent=p.name;if(this.solo)document.title=p.name+' · Modelado Bases';this.renameSoon(p);});
     const v=document.getElementById('view');
+    if(p.act&&!(p.act.show||[]).includes(this.view)){this.view='enun';return this.renderMain();}
+    if(p.act&&this.view==='sql'){const ro=this.isRO(p,'sql');
+      v.innerHTML=`<div class="ed-tools"><span class="tnote">${ro?'Solo lectura':'Escribe el SQL a mano: en la actividad no se puede generar solo.'}</span></div><textarea class="sqlbox" id="sqltxt" spellcheck="false" ${ro?'readonly':''} placeholder="CREATE TABLE …">${esc(p.sql||'')}</textarea>`;
+      if(!ro){const t=document.getElementById('sqltxt');t.addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});t.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});}
+      return;}
     if(this.view==='enun'){
       v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div>`;
-      document.getElementById('enun').addEventListener('input',e=>{p.enun=e.target.value;this.touch(p);});
+      if(p.act)document.getElementById('enun').readOnly=true;else document.getElementById('enun').addEventListener('input',e=>{p.enun=e.target.value;this.touch(p);});
     } else if(this.view==='sql'){
       const dl=Settings.get().sqlDialect||'mysql';
       v.innerHTML=`<div class="ed-tools"><div class="tgroup"><span class="tlab">Para</span><div class="seg dial" role="group" aria-label="Gestor de base de datos">${Object.entries(DIALECTS).map(([k,l])=>`<button class="segb" data-act="sql-dialect" data-v="${k}" aria-pressed="${dl===k}">${l}</button>`).join('')}</div></div><div class="tgroup"><button class="ebtn" data-act="sql-ded">${GL.table}<span>Generar desde el DED</span></button><button class="ebtn" data-act="sql-rel">${GL.relate}<span>Generar desde el relacional</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-draw">${GL.fromer}<span>Dibujar desde este SQL</span></button><button class="ebtn" data-act="sql-open">${GL.open}<span>Abrir archivo .sql</span></button></div><div class="tgroup"><button class="ebtn" data-act="sql-sample" title="Añade al final INSERT con datos inventados pero coherentes (respetan PK, FK y UNIQUE)">${GL.table}<span>Añadir datos de ejemplo</span></button><button class="ebtn" data-act="sql-copy">${GL.copy}<span>Copiar</span></button></div><div class="tgroup"><span class="tlab">Workbench / phpMyAdmin</span><button class="ebtn" data-act="sql-wb" title="Guarda un archivo .sql para MySQL que se abre en MySQL Workbench (te dibuja el diagrama) y en phpMyAdmin">${GL.copy}<span>Exportar</span></button><button class="ebtn" data-act="wb-import" title="Abre un modelo de MySQL Workbench (.mwb) o un .sql exportado de Workbench o phpMyAdmin y dibuja el DED y el relacional">${GL.open}<span>Importar</span></button></div><span class="tspace"></span><span class="tnote">Se guarda en SQL/script.sql · lo puedes editar a mano</span></div>
@@ -543,7 +632,7 @@ const App={
     } else if(this.view==='test'){Pruebas.render(v,p);
     } else {if(this.view==='bo'&&!p.bo)p.bo={nodes:[],links:[],notes:[]};this.ed.mount(v);this.ed.open(p,this.view);}
   },
-  go(p,view){this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
+  go(p,view){this.home=null;Recent.touch(p.folder);this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
   byId(id){return this.projects.find(x=>x._id===id);},
   onSide(e){
     const pf=e.target.closest('.pf');if(pf){const p=this.byId(pf.dataset.pid);const op=pf.getAttribute('aria-expanded')==='true';this.open[p._id]=!op;if(!op&&this.cur!==p){this.go(p,'er');return;}this.renderTree();return;}
@@ -552,6 +641,9 @@ const App={
   },
   onMain(e){
     const vt=e.target.closest('.vtabs [data-view]');if(vt){this.go(this.cur,vt.dataset.view);return;}
+    const rc=e.target.closest('.home .rc[data-pid]');if(rc){this.go(this.byId(rc.dataset.pid),Settings.get().openTab||'er');return;}
+    const tc=e.target.closest('[data-thc]');if(tc&&this.home){this._thc=tc.dataset.thc;this._ths=tc.dataset.ths||null;this.home='teoria';if(!tc.dataset.ths)this._thq=this._thq||'';this.renderMain();if(!tc.dataset.ths){const a=document.getElementById('thart2');if(a)a.scrollTop=0;}return;}
+    const hb=e.target.closest('.home [data-act], .home-th [data-act], .ph [data-act=home]');if(hb){this.action(hb);return;}
     const b=e.target.closest('.ph [data-act], .welcome [data-act]')||((this.view==='sql'||this.view==='test')&&e.target.closest('#view [data-act]'));if(b)this.action(b);
   },
   async run(fn,okMsg){try{const r=await fn();if(okMsg&&r!==null&&r!==undefined)toast(typeof okMsg==='function'?okMsg(r):okMsg);return r;}catch(e){toast(e.message,'warn');this.status('bad',e.message);return null;}},
@@ -560,7 +652,11 @@ const App={
     const a=b.dataset.act,p=this.cur;
     if(a==='controls'){this.showControls();return;}
     if(a==='settings'){this.showSettings();return;}
-    if(a==='theory'){this.showSettings('teoria');return;}
+    if(a==='theory'){if(this.cur&&this.cur.act&&!this.home){toast('Durante la actividad no se puede mirar la teoría.','warn');return;}this.showHome('teoria');return;}
+    if(a==='mkact'){this.showMakeActivity();return;}
+    if(a==='act-start'){this.startActivity(this.cur);return;}
+    if(a==='act-exit'){this.exitActivity(this.cur);return;}
+    if(a==='home'){this.showHome('inicio');return;}
     if(a==='news'){this.showNews();return;}
     if(a==='save'){this.saveNow();return;}
     if(a==='upd-retry'){if(this._upd)this.prepareSilently(this._upd);return;}
@@ -689,6 +785,7 @@ const App={
     let list;try{list=await fromCode(txt);}catch(e){toast(e.message,'warn');return;}
     this.closeModal();
     const names=new Set(this.projects.map(p=>p.name.toLowerCase()));const got=[];
+    if(list.act){await this.importActivity(list.act,list[0],names);return;}
     for(const src of list){
       let name=String(src.name||'proyecto importado').trim()||'proyecto importado';if(names.has(name.toLowerCase()))name+=' (importado)';names.add(name.toLowerCase());
       const np=await this.run(()=>window.api.create(name));if(!np)continue;
@@ -711,6 +808,8 @@ const App={
     if(k==='key-clear'){const ks={...(Settings.get().keys||{})};ks[b.dataset.k]='';Settings.set('keys',ks);this.renderSettings();return;}
     if(k==='keys-reset'){Settings.set('keys',{});this._capKey=null;this.renderSettings();toast('Atajos restablecidos.');return;}
     if(k==='cmp-go'){this.runCompare();return;}
+    if(k==='act-code'){this.makeActivityCode();return;}
+    if(k==='act-start'){this.closeModal();this.startActivity(this.cur);return;}
     if(k==='cmp-mark'){const d=this._cmp;if(!d)return;this.diff={p:this.cur,marks:d.marks,with:d.with};this.closeModal();const first=['er','rel','ded'].find(v=>d.parts.includes(v)&&Object.keys(d.marks[v]||{}).length)||d.parts[0];this.go(this.cur,first);toast('Verde: solo en el tuyo. Ámbar: cambiado. Lo que falta está en la lista.');return;}
     if(k==='controls'){this.showControls();return;}
     if(k==='news'){this.showNews();return;}
