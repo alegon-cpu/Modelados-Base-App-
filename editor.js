@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.4.1';
+const VERSION='2.4.2';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -868,7 +868,7 @@ class Editor{
       this.render();this.renderInsp();}
   }
   /* ---------- Dibujo ---------- */
-  render(){if(!this.p)return;if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boSync();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);this.applyView();}
+  render(){if(!this.p)return;{const em=this.isER?!this.m.nodes.length:!this.m.t.length;this.cv.dataset.empty=em&&!this.ro?({bo:'Escribe arriba «Entidad; atributos» o pulsa «Entidad» para empezar el boceto',er:'Pulsa «Entidad» en la barra de arriba para empezar tu E-R',rel:'Pulsa «Tabla» o «Pasar desde mi E-R» para empezar el relacional',ded:'Pulsa «Tabla», «Copiar mi relacional» o «Pasar desde mi E-R» para empezar el DED'}[this.mode]||''):'';}if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boSync();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);this.applyView();}
   gridSVG(){if(!Settings.get().grid)return '';return `<defs><pattern id="pdots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" class="pdot"/></pattern></defs><rect x="-400" y="-400" width="${W+800}" height="${H+800}" fill="url(#pdots)"/>`;}
   bandSVG(){const b=this.band;if(!b)return'';return `<rect x="${f1(Math.min(b.x0,b.x1))}" y="${f1(Math.min(b.y0,b.y1))}" width="${f1(Math.abs(b.x1-b.x0))}" height="${f1(Math.abs(b.y1-b.y0))}" class="band"/>`;}
   erString(live){
