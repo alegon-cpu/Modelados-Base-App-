@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.0.2  (12/11/2026)
+--------------------
+- Boceto: las cardinalidades de cada linea se eligen como en el E-R
+  (maximo 1/N, minimo 0/1) y salen como (min,max) junto a cada entidad.
+- Boceto: rombo pequeno en el centro de cada linea (se puede quitar en
+  Ajustes > Lienzo).
+
 v2.0.1  (12/11/2026)
 --------------------
 - Boceto: en el lienzo las entidades salen solo con su nombre. Los

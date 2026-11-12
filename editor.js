@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.0.1';
+const VERSION='2.0.2';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -509,6 +509,8 @@ class Editor{
     const io=e.target.closest('[data-isa]');if(io){const i=this.single();if(!isIsa(i))return;this.snap();const k=io.dataset.isa,v=io.dataset.v;
       if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});}
       else i.f[k]=v==='1'?true:v==='0'?false:v;this.save();this.render();this.renderInsp();return;}
+    const bc=e.target.closest('[data-bocard]');if(bc){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+bc.dataset.bocard,v=(l[k]||'??').split('');
+      const i=bc.dataset.k==='mn'?0:1;v[i]=v[i]===bc.dataset.v?'?':bc.dataset.v;const s=v.join('');if(s==='??')delete l[k];else l[k]=s;this.save();this.render();this.renderInsp();return;}
     const be=e.target.closest('[data-boe]');if(be){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+be.dataset.boe;if(be.dataset.v)l[k]=be.dataset.v;else delete l[k];this.save();this.render();this.renderInsp();return;}
     const sk=e.target.closest('[data-skt]');if(sk){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();if(sk.dataset.skt)l.t=sk.dataset.skt;else delete l.t;this.save();this.render();this.renderInsp();return;}
     const nc=e.target.closest('[data-ncol],[data-nw]');if(nc){const n=this.single();if(!isNote(n))return;this.snap();if(nc.dataset.ncol)n.c=nc.dataset.ncol;else n.w=+nc.dataset.nw;this.save();this.render();this.renderInsp();return;}
@@ -802,8 +804,12 @@ class Editor{
       L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
       if(r){const en=r===a?b:a;const P=hitRect(en.x,en.y,en.w,en.h,r.x-en.x,r.y-en.y);const len=Math.hypot(r.x-P[0],r.y-P[1])||1;const u=[(r.x-P[0])/len,(r.y-P[1])/len];
         const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full&&nt!=='uml')MK+=marker(P,u,c.mx!=='1',c.mn==='0');if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);}
-      if(bo&&isEnt(a)&&isEnt(b)&&a!==b)[[a,b,l.ea],[b,a,l.eb]].forEach(([e,o,v])=>{if(!v)return;const P=hitRect(e.x,e.y,e.w,e.h,o.x-e.x,o.y-e.y),len=Math.hypot(o.x-P[0],o.y-P[1])||1,u=[(o.x-P[0])/len,(o.y-P[1])/len];
-        MK+=v[0]==='?'?markerMax(P,u,v[1]==='N'):marker(P,u,v[1]==='N',v[0]==='0');});
+      if(bo&&isEnt(a)&&isEnt(b)&&a!==b){
+        if(Settings.get().boDiamond!==false){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;MK+=`<polygon points="${f1(mx)},${f1(my-13)} ${f1(mx+21)},${f1(my)} ${f1(mx)},${f1(my+13)} ${f1(mx-21)},${f1(my)}" class="dia skd"/>`;}
+        [[a,b,l.ea],[b,a,l.eb]].forEach(([e,o,v])=>{const P=hitRect(e.x,e.y,e.w,e.h,o.x-e.x,o.y-e.y),len=Math.hypot(o.x-P[0],o.y-P[1])||1,u=[(o.x-P[0])/len,(o.y-P[1])/len];
+          const c={mn:v&&v[0]!=='?'?v[0]:null,mx:v&&v[1]!=='?'?v[1]:null},full=c.mn!=null&&c.mx!=null;
+          if(full)MK+=marker(P,u,c.mx==='N',c.mn==='0');else if(c.mx)MK+=markerMax(P,u,c.mx==='N');
+          if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);});}
     });
     m.nodes.forEach(n=>{if(hide&&isAtt(n))return;let g='';const dup=dups.has(n.id)?' dup':'';const x0=n.x-n.w/2,y0=n.y-n.h/2;
       const rows=(list,top,crowTag)=>list.map((r,i)=>{const y=top+14+i*17,tx=x0+(crowTag?36:10)+(r.dep?6:0);
@@ -906,10 +912,14 @@ class Editor{
       h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?(one.f.at.map(a=>esc(a)).join(', ')):'Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code>'}</p>`+`<div class="in-sub">Unida con <span class="cnt">${nb.length}</span></div><div class="alist">${nb.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Con nadie todavía. Mayús + clic en otra entidad para unirlas.</span>'}</div>`+lockChk(one)+
         `<p class="in-p">En el boceto solo hay entidades y líneas: sirve para pensar qué se relaciona con qué. Cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(this.isBo&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}const A=X.N[l.a],B=X.N[l.b];
-      const end=(side,e,o)=>{const v=l['e'+side]||'';return `<div class="in-sub">Junto a «${esc(e.n)}»</div><div class="in-q">Por cada <b class="qe">${esc(o.n)}</b>, ¿cuántas/os <b class="qe">${esc(e.n)}</b>?</div>
-        <div class="seg wide boe">${BO_ENDS.slice(0,5).map(([k,t,tip])=>`<button class="segb" data-boe="${side}" data-v="${k}" title="${tip}" aria-pressed="${v===k||(!k&&!v)}">${t}</button>`).join('')}</div>`;};
-      h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p>`+end('a',A,B)+end('b',B,A)+
-        `<p class="in-p bo-leg">Las marcas salen junto a cada entidad: <b>○</b> cero, <b>|</b> uno, <b>pata de gallo</b> muchos. Al pasarlo al E-R se ponen como cardinalidades (mín, máx).</p>`;}
+      const q=(side,from,to)=>{const v=l['e'+side]||'??',c={mn:v[0]==='?'?null:v[0],mx:v[1]==='?'?null:v[1]};
+        const sb=(k,x)=>`<button class="segb" data-bocard="${side}" data-k="${k}" data-v="${x}" aria-pressed="${c[k]===x}">${x}</button>`;
+        return `<div class="cq"><div class="in-q"><b class="qe">${esc(from)}</b> ¿cuántas/os <b class="qe">${esc(to)}</b> puede tener como…</div>
+          <div class="cardrow"><span>máximo</span><div class="seg">${sb('mx','1')}${sb('mx','N')}</div></div>
+          <div class="cardrow"><span>mínimo</span><div class="seg">${sb('mn','0')}${sb('mn','1')}</div></div>
+          <div class="cres">junto a «${esc(to)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;};
+      h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">Cardinalidades (opcional)</div>`+q('b',A.n,B.n)+q('a',B.n,A.n)+
+        `<p class="in-p bo-leg">Igual que en el E-R. Al pulsar «Pasar al E-R» se ponen en la relación.</p>`;}
     else if(false){const l=null,A=null,B=null;
       h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">¿Qué crees que será? (opcional)</div>
         <div class="seg wide">${[['','?'],['11','1:1'],['1N','1:N'],['N1','N:1'],['NM','N:M']].map(([v,t])=>`<button class="segb" data-skt="${v}" aria-pressed="${(l.t||'')===v}">${t}</button>`).join('')}</div>

@@ -169,13 +169,15 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=["In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
+const NOVEDADES_EN=["In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
   'The theory is now in Home, explained with pictures: E-R model, relational model, DSD, SQL to create tables and SQL queries (SELECT, WHERE, JOIN, GROUP BY…).',
   'Group activity: «Create activity» makes a code with the brief, what to do and the minutes. Each classmate imports it, clicks Start and does it by hand against the clock; when time is up it locks until «Leave student mode».',
   "Sketch with a box to write «Entity; attribute1, attribute2…» above the canvas, and zero (○), one (|) or many (crow's foot) marks next to each entity on the lines. «To the E-R» also brings the attributes and cardinalities.",
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.0.2: en el Boceto las cardinalidades de cada línea se eligen igual que en el E-R (máximo 1/N y mínimo 0/1) y se ven como (mín,máx) junto a cada entidad.',
+  '2.0.2: rombo pequeño en el centro de las líneas del Boceto. Se puede quitar en Ajustes › Lienzo › «Rombo en las líneas del Boceto».',
   '2.0.1: en el Boceto las entidades salen solo con su nombre; los atributos se escriben en la zona de arriba y aparecen al «Pasar al E-R».',
   '2.0.1: las viñetas pegadas desde Word ya no salen como cuadraditos en el enunciado.',
   '2.0: pantalla de Inicio al abrir la app, con tus últimos proyectos abiertos (en orden y con una miniatura del diagrama). Botón «Inicio» arriba a la izquierda.',
@@ -385,6 +387,7 @@ const App={
         `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
     else if(sec==='lienzo'){h=H('Lienzo')+seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
         tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
+        tog('boDiamond','Rombo en las líneas del Boceto','Un rombo pequeño, sin texto, en el centro de cada línea del Boceto (como en el E-R).')+
         tog('showType','Tipo de relación debajo del rombo','Muestra 1:1, 1:N o N:M en cada relación.')+tog('showCardQ','Marcar las cardinalidades que faltan','Pone (?,?) en las líneas que aún no tienen máximo y mínimo.')+
         tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados.')+
         seg('zoomSpeed','Velocidad del zoom con la rueda','',[['slow','Lenta'],['normal','Normal'],['fast','Rápida']])+

@@ -2,7 +2,7 @@
 const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
-  startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true};
+  boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true};
 const Settings={
   _c:null,
   get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}
