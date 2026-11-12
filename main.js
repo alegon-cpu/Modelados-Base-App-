@@ -2,8 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeTheme, net } = r
 const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
+const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.4';
+const VERSION = '2.4.1';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -192,7 +193,7 @@ h('win:focus', folder => { for (const s of solos.values()) if (s.folder === fold
 h('win:title', (t, e) => { const w = winOf(e); if (w) w.setTitle(String(t)); });
 h('base:get', () => cfg.dataDir || null);
 // Sincronizar con GitHub (git.js)
-const GitSync = require('./git')(() => base(), () => cfg, saveCfg);
+const GitSync = makeGit(() => base(), () => cfg, saveCfg);
 h('git:info', () => GitSync.info());
 h('win:close', (e) => { const w = winOf(e); if (w && !w.isDestroyed()) w.close(); });
 h('git:check', () => GitSync.check());

@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.4.1  (12/11/2026)
+--------------------
+- Arreglado: la actualizacion a la 2.4 fallaba con «Cannot find module ./git».
+
 v2.4  (12/11/2026)
 ------------------
 - Sincronizar con GitHub (Ajustes > GitHub): pull al abrir, subida
