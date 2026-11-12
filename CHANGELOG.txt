@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.5.3  (12/11/2026)
+--------------------
+- Serpiente mas fluida: va a velocidad constante y se dibuja mas rapido.
+
 v2.5.2  (12/11/2026)
 --------------------
 - Botones para pasar de una pestana a otra en los dos sentidos:

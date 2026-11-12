@@ -222,6 +222,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.5.3: la serpiente se mueve mucho más fluida: avanza a velocidad constante (antes frenaba en cada casilla) y se dibuja más rápido.',
   '2.5.2: en cada pestaña hay botones para ir hacia delante y hacia atrás: Boceto → E-R; el E-R actualiza el boceto o pasa al relacional; el relacional actualiza el E-R (ingeniería inversa) o pasa al DED; el DED actualiza el relacional o pasa al SQL; y el SQL actualiza el DED.',
   '2.5.2: MySQL Workbench y phpMyAdmin tienen su propio bloque, bien visible, en la pestaña SQL. ERDPlus está ahora en la barra del E-R y del relacional.',
   '2.5.2: cabecera del proyecto más ordenada: «Abrir en ventana» es el icono junto al nombre, Exportar (ejercicio y código) va junto, y Comparar está con Duplicar. «Crear actividad» se hace desde Inicio.',
