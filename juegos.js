@@ -7,8 +7,8 @@ const Sync={_t:null,
     Storage.prototype.setItem=function(k,v){orig.call(this,k,v);if(this===window.localStorage&&String(k).startsWith('mb:')&&k!=='mb:sync-t'&&!String(k).startsWith('mb:w:'))self.save();};
     Storage.prototype.removeItem=function(k){rm.call(this,k);if(this===window.localStorage&&String(k).startsWith('mb:')&&k!=='mb:sync-t')self.save();};},
   // Devuelve true si ha traído datos más nuevos del archivo (hay que recargar)
-  async load(){let f=null;try{f=await window.api.progRead();}catch(e){return false;}let lt=0;try{lt=+(localStorage.getItem('mb:sync-t')||0);}catch(e){}
-    if(f&&f.data&&typeof f.data==='object'&&(+f.updated||0)>lt){try{Object.entries(f.data).forEach(([k,v])=>{if(String(k).startsWith('mb:')&&typeof v==='string')Storage.prototype.setItem.call(localStorage,k,v);});localStorage.setItem('mb:sync-t',String(+f.updated));}catch(e){}return true;}
+  async load(force){let f=null;try{f=await window.api.progRead();}catch(e){return false;}let lt=0;try{lt=+(localStorage.getItem('mb:sync-t')||0);}catch(e){}
+    if(f&&f.data&&typeof f.data==='object'&&(force||(+f.updated||0)>lt)){try{Object.entries(f.data).forEach(([k,v])=>{if(String(k).startsWith('mb:')&&typeof v==='string')Storage.prototype.setItem.call(localStorage,k,v);});localStorage.setItem('mb:sync-t',String(+f.updated));}catch(e){}return true;}
     if(!f||lt>(+f.updated||0))this.save(true);return false;},
   save(now){if(!this._ready)return;clearTimeout(this._t);const go=()=>{const t=Date.now();try{localStorage.setItem('mb:sync-t',String(t));}catch(e){}
     window.api.progWrite({app:'modelado-bases',que:'Progreso y ajustes de Modelado Bases',updated:t,data:this.dump()}).catch(()=>{});};if(now)go();else this._t=setTimeout(go,700);}

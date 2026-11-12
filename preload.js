@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const call = async (ch, ...a) => { const r = await ipcRenderer.invoke(ch, ...a); if (!r.ok) throw new Error(r.error); return r.v; };
 contextBridge.exposeInMainWorld('api', {
+  closeWin: () => call('win:close'), gitInfo: () => call('git:info'), gitCheck: () => call('git:check'), gitSetup: f => call('git:setup', f), gitOpts: o => call('git:opts', o), gitOff: () => call('git:off'),
+  gitOpen: () => call('git:open'), gitClaim: () => call('git:claim'), gitSync: o => call('git:sync', o), gitPending: () => call('git:pending'),
   progInfo: () => call('prog:info'), progRead: () => call('prog:read'), progWrite: d => call('prog:write', d), progChoose: () => call('prog:choose'), progReset: () => call('prog:reset'), progReveal: () => call('prog:reveal'),
   baseGet: () => call('base:get'), baseSetup: d => call('base:setup', d), baseChoose: () => call('base:choose'), baseReveal: () => call('base:reveal'),
   list: () => call('proj:list'), load: f => call('proj:load', f), create: (n, parent) => call('proj:create', n, parent), groups: () => call('grp:list'), mkGroup: (parent, n) => call('grp:create', parent, n), renameGroup: (g, n) => call('grp:rename', g, n), removeGroup: g => call('grp:delete', g), move: (f, to) => call('proj:move', f, to), save: (p, svgs) => call('proj:save', p, svgs),

@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '2.3.2';
+const VERSION = '2.4';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -191,14 +191,31 @@ h('win:list', () => [...solos.values()].map(s => s.folder));
 h('win:focus', folder => { for (const s of solos.values()) if (s.folder === folder && !s.w.isDestroyed()) { s.w.focus(); return true; } return false; });
 h('win:title', (t, e) => { const w = winOf(e); if (w) w.setTitle(String(t)); });
 h('base:get', () => cfg.dataDir || null);
+// Sincronizar con GitHub (git.js)
+const GitSync = require('./git')(() => base(), () => cfg, saveCfg);
+h('git:info', () => GitSync.info());
+h('win:close', (e) => { const w = winOf(e); if (w && !w.isDestroyed()) w.close(); });
+h('git:check', () => GitSync.check());
+h('git:setup', f => GitSync.setup(f || {}));
+h('git:opts', o => GitSync.setOpts(o || {}));
+h('git:off', () => GitSync.disconnect());
+h('git:open', () => GitSync.open());
+h('git:claim', () => GitSync.claim());
+h('git:sync', o => GitSync.sync(o || {}));
+h('git:pending', () => GitSync.pending());
 // Progreso (tokens, premios, ajustes): un archivo en la carpeta que elija el usuario (por defecto, la de proyectos)
 const PROG_NAME = 'progreso-modelado.json';
 const progDir = () => (cfg.progDir && fs.existsSync(cfg.progDir)) ? cfg.progDir : base();
 const progInfo = () => { let dir = null; try { dir = progDir(); } catch (e) {} return { dir, custom: !!cfg.progDir, file: dir ? path.join(dir, PROG_NAME) : null }; };
 h('prog:info', () => progInfo());
-h('prog:read', () => { const f = path.join(progDir(), PROG_NAME); if (!fs.existsSync(f)) return null; return JSON.parse(fs.readFileSync(f, 'utf8')); });
+// Con GitHub activado se guarda también una copia en la carpeta de proyectos, que es la que se sincroniza; al leer manda la más nueva
+const gitOn = () => !!(cfg.git && cfg.git.enabled && cfg.git.url);
+const readProg = f => { try { return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; } catch (e) { return null; } };
+h('prog:read', () => { const a = readProg(path.join(progDir(), PROG_NAME)); if (!gitOn()) return a; const b = readProg(path.join(base(), PROG_NAME)); return (b && (!a || (+b.updated || 0) > (+a.updated || 0))) ? b : a; });
 h('prog:write', d => { const dir = progDir(); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, PROG_NAME), tmp = f + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(d, null, 1)); fs.renameSync(tmp, f); return true; });
+  fs.writeFileSync(tmp, JSON.stringify(d, null, 1)); fs.renameSync(tmp, f);
+  if (gitOn() && path.resolve(dir) !== path.resolve(base())) { const g = path.join(base(), PROG_NAME); fs.writeFileSync(g + '.tmp', JSON.stringify(d, null, 1)); fs.renameSync(g + '.tmp', g); }
+  return true; });
 h('prog:choose', async (e) => { const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Elige la carpeta donde guardar tu progreso'), defaultPath: progInfo().dir || undefined, properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null; cfg.progDir = r.filePaths[0]; saveCfg(); return progInfo(); });
 h('prog:reset', () => { delete cfg.progDir; saveCfg(); return progInfo(); });

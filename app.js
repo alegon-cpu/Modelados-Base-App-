@@ -107,6 +107,38 @@ async function fromCode(txt){
   return list;
 }
 
+
+/* ===================== Sincronizar con GitHub ===================== */
+// Al abrir: trae lo último (y avisa si la app está abierta en otro ordenador). Mientras trabajas: sube según Ajustes › GitHub. Al cerrar: sube lo último.
+const GH={info:null,busy:false,_t:null,_iv:null,dirty:false,
+  on(){return !!(this.info&&this.info.enabled&&this.info.url);},
+  ago(t){if(!t)return '';const d=new Date(t);return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});},
+  paint(kind,txt){const b=document.getElementById('ghst');if(!b)return;b.hidden=!this.on();if(!this.on())return;b.className='ghst '+(kind||'');b.querySelector('span').textContent=txt;b.title=txt+' · Pulsa para sincronizar ahora';},
+  cover(txt){let o=document.getElementById('ghcover');if(!txt){if(o)o.remove();return;}if(!o){o=document.createElement('div');o.id='ghcover';o.innerHTML='<div><span class="spin" aria-hidden="true"></span><b></b><small>No cierres la app.</small></div>';document.body.appendChild(o);}o.querySelector('b').textContent=txt;},
+  async load(){try{this.info=await window.api.gitInfo();}catch(e){this.info=null;}this.schedule();this.paint('ok',this.info&&this.info.last?'GitHub · al día '+this.ago(this.info.last):'GitHub');return this.info;},
+  schedule(){clearInterval(this._iv);this._iv=null;if(!this.on())return;const m=this.info.push;if(m==='5'||m==='15')this._iv=setInterval(()=>{if(this.dirty)this.sync(false);},(+m)*60000);},
+  // Al abrir la app (antes de cargar los proyectos)
+  async start(app){await this.load();if(!this.on())return false;this.cover('Trayendo lo último de GitHub…');let r=null;
+    try{r=await window.api.gitOpen();}catch(e){r={error:e.message};}finally{this.cover(null);}
+    if(r&&r.error){this.paint(r.offline?'warn':'bad',r.offline?'GitHub · sin conexión':'GitHub · error');toast((r.offline?'':'GitHub: ')+r.error,'warn');}
+    else this.paint('ok','GitHub · al día '+this.ago(Date.now()));
+    if(r&&r.conflicts&&r.conflicts.length)this.showConflicts(app,r.conflicts);
+    if(r&&r.other){app.modal(`<h3>La app está abierta en otro ordenador</h3><p>Según GitHub, Modelado Bases está abierta en <b>${esc(r.other.pc)}</b> (desde ${esc(new Date(r.other.t).toLocaleString('es-ES'))}).</p><p>Si trabajas aquí a la vez, al juntar los cambios puede haber dos versiones del mismo proyecto. Lo mejor es cerrarla allí primero.</p><p class="tnote">Si allí ya está cerrada (por ejemplo, se apagó sin internet), puedes seguir aquí sin problema.</p><div class="mrow"><button class="ebtn" data-m="gh-quit">Cerrar la app</button><button class="ebtn pri" data-m="gh-claim">Seguir aquí</button></div>`);}
+    else window.api.gitClaim().catch(()=>{});
+    return !!(r&&r.changed);},
+  showConflicts(app,list){app.modal(`<h3>Se han guardado dos versiones</h3><p>Estos proyectos se cambiaron aquí y en otro ordenador a la vez. No se ha perdido nada: tienes la versión de aquí y, al lado, la del otro ordenador.</p><ul class="plist">${list.map(c=>`<li><b>${esc(c.proyecto)}</b> → la otra está en <b>${esc(c.copia)}</b></li>`).join('')}</ul><p>Quédate con la buena y borra la otra cuando quieras.</p><div class="mrow"><button class="ebtn pri" data-m="close">Entendido</button></div>`);},
+  saved(){if(!this.on())return;this.dirty=true;this.paint('','GitHub · cambios sin subir');if(this.info.push==='save'||!this.info.push){clearTimeout(this._t);this._t=setTimeout(()=>this.sync(false),15000);}},
+  async sync(manual){if(!this.on()||this.busy)return;this.busy=true;clearTimeout(this._t);this.paint('busy','GitHub · sincronizando…');
+    try{await App.flushAll();const r=await window.api.gitSync({});this.dirty=false;this.info.last=r.last;this.paint('ok','GitHub · al día '+this.ago(r.last));
+      if(r.changed){await App.refreshFromDisk();if(await Sync.load())App.afterSync();}
+      if(r.conflicts&&r.conflicts.length)this.showConflicts(App,r.conflicts);else if(manual)toast('Sincronizado con GitHub.');}
+    catch(e){const off=/Sin conexión/.test(e.message);this.paint(off?'warn':'bad',off?'GitHub · sin conexión (pendiente)':'GitHub · error');if(manual||!off)toast(e.message,'warn');}
+    finally{this.busy=false;}},
+  // Al cerrar: subir lo último (como mucho 25 s; si no hay internet, se sube la próxima vez)
+  async close(){if(!this.on()||this.info.onClose===false)return;this.cover('Subiendo tus cambios a GitHub…');
+    try{await Promise.race([window.api.gitSync({release:true}),new Promise((_,ko)=>setTimeout(()=>ko(new Error('tarda')),25000))]);}catch(e){}finally{this.cover(null);}}
+};
+
 /* ===================== Tema claro / oscuro ===================== */
 const Theme={
   get(){try{return localStorage.getItem('mb:theme')||'system';}catch(e){return 'system';}},
@@ -150,6 +182,7 @@ const SET_SECS=[['general','General',ico('<path d="M2.5 8 9 2.5 15.5 8M4 7v8h3.5
   ['sql','SQL',ico('<ellipse cx="9" cy="4" rx="6" ry="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3 4v10c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V4M3 9c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2" fill="none" stroke="currentColor" stroke-width="1.3"/>')],
   ['exportar','Guardar y exportar',ico('<path d="M9 2.5v9M5.5 8 9 11.5 12.5 8M3 13.5v2h12v-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>')],
   ['atajos','Atajos',ico('<rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4 7.5h1.5M7 7.5h1.5M10 7.5h1.5M13 7.5h1M5 10.5h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>')],
+  ['github','GitHub',ico('<path d="M9 1.8a7.2 7.2 0 0 0-2.3 14c.4.1.5-.2.5-.4v-1.3c-2 .4-2.4-.9-2.4-.9-.3-.8-.8-1.1-.8-1.1-.7-.5 0-.5 0-.5.7.1 1.1.8 1.1.8.7 1.1 1.7.8 2.1.6.1-.5.3-.8.5-1-1.6-.2-3.3-.8-3.3-3.6 0-.8.3-1.4.7-1.9 0-.2-.3-.9.1-1.9 0 0 .6-.2 2 .7a6.9 6.9 0 0 1 3.6 0c1.4-.9 2-.7 2-.7.4 1 .1 1.7.1 1.9.5.5.7 1.1.7 1.9 0 2.8-1.7 3.4-3.3 3.6.3.2.5.7.5 1.3v2c0 .2.1.5.5.4A7.2 7.2 0 0 0 9 1.8z" fill="currentColor"/>')],
   ['actualizaciones','Actualizaciones',ico('<path d="M14.5 6.5A6 6 0 1 0 15 11" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M15 2.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.4"/>')],
   ['acerca','Acerca de',ico('<circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 8v4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="5.5" r="1" fill="currentColor"/>')]];
 const kb=s=>s.split('+').map(k=>`<kbd>${k}</kbd>`).join('+');
@@ -170,13 +203,18 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
-const NOVEDADES_EN=["Every «Don't click this» screen (menu, pulls, album, profile and games) is centred and bigger on wide screens.","The «Don't click this» menu is centred and redesigned, with Pulls highlighted at the top. The profile is centred too.","In the Album (and the other game screens) you can now scroll to see every rarity.","You can put your own picture in your profile (Profile › «Upload picture…»). It also shows on Home.","Fixed the «Change…», «Open» and «Use the projects folder» buttons of the progress folder in Settings › General.","«Don't click this» (top): mini-games to earn tokens. Snake (choose speed and size; every 10 wins, 1 token), a culture quiz with more than 1000 questions (10 out of 10 = 1 token) and «Is the diagram right?» with 100 E-R, Relational and DSD diagrams to find their mistakes (5 out of 5 = 1 token).","Pulls with tokens: accent colours and project icons (common 60 %), titles (rare 28 %), full themes (epic 10 %) and special themes, note styles, cursor, frame and effects (legendary 2 %). Legendary guaranteed at 40 pulls, epic guaranteed in 10-pulls. Duplicates give fragments.","Album with your collection and profile with your name, title and theme; shown on Home and in the projects you share. An icon for each project with right-click.","Your progress and settings are also saved in «progreso-modelado.json», in the folder you choose in Settings › General (by default, your projects folder).","The brief highlighter is now manual: choose a marker (Entity, Relationship or Attribute) and drag the mouse over what you want to highlight. The eraser removes it.","Brief highlighter: select a word and mark it as Entity (blue), Relationship (orange) or Attribute (green). It is marked in the whole text, also in the brief next to the canvas. «To the Sketch» creates the entities, their attributes and the lines.","Folders and subfolders to organise projects (e.g. Exercises › Unit 1). Folder button next to «My projects», right-click to create, rename or move, and you can drag projects and folders.","In the Sketch text, relationships with attributes: «Entity1-Entity2; attribute1, attribute2». They are not drawn in the sketch; «To the E-R» puts them on the relationship.","Notes carry over between diagrams: Sketch to E-R, E-R to Relational or DSD, Relational to DSD. They are not repeated if you do it again.","«Find» button in each diagram's toolbar (also Ctrl+F). In the Sketch it also finds attributes.","Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
+const NOVEDADES_EN=["Sync with GitHub (Settings › GitHub). Paste your private repository address, your name and email, and your projects and progress live on GitHub for any computer, each in its chosen folder.","On opening, the app pulls the latest from GitHub; while you work it pushes your changes (on save, every 5 or 15 minutes, or only with the button); on closing it pushes the latest. Without internet it pushes as soon as it is back.","It warns if the app is open on another computer, and if a project is changed in two places it keeps both versions. Nothing is ever lost.","At the bottom, next to the folder, you see the GitHub status. Clicking it syncs right away.","When there is a new version it shows full screen, with «Download and restart» or «Later».","Every «Don't click this» screen (menu, pulls, album, profile and games) is centred and bigger on wide screens.","The «Don't click this» menu is centred and redesigned, with Pulls highlighted at the top. The profile is centred too.","In the Album (and the other game screens) you can now scroll to see every rarity.","You can put your own picture in your profile (Profile › «Upload picture…»). It also shows on Home.","Fixed the «Change…», «Open» and «Use the projects folder» buttons of the progress folder in Settings › General.","«Don't click this» (top): mini-games to earn tokens. Snake (choose speed and size; every 10 wins, 1 token), a culture quiz with more than 1000 questions (10 out of 10 = 1 token) and «Is the diagram right?» with 100 E-R, Relational and DSD diagrams to find their mistakes (5 out of 5 = 1 token).","Pulls with tokens: accent colours and project icons (common 60 %), titles (rare 28 %), full themes (epic 10 %) and special themes, note styles, cursor, frame and effects (legendary 2 %). Legendary guaranteed at 40 pulls, epic guaranteed in 10-pulls. Duplicates give fragments.","Album with your collection and profile with your name, title and theme; shown on Home and in the projects you share. An icon for each project with right-click.","Your progress and settings are also saved in «progreso-modelado.json», in the folder you choose in Settings › General (by default, your projects folder).","The brief highlighter is now manual: choose a marker (Entity, Relationship or Attribute) and drag the mouse over what you want to highlight. The eraser removes it.","Brief highlighter: select a word and mark it as Entity (blue), Relationship (orange) or Attribute (green). It is marked in the whole text, also in the brief next to the canvas. «To the Sketch» creates the entities, their attributes and the lines.","Folders and subfolders to organise projects (e.g. Exercises › Unit 1). Folder button next to «My projects», right-click to create, rename or move, and you can drag projects and folders.","In the Sketch text, relationships with attributes: «Entity1-Entity2; attribute1, attribute2». They are not drawn in the sketch; «To the E-R» puts them on the relationship.","Notes carry over between diagrams: Sketch to E-R, E-R to Relational or DSD, Relational to DSD. They are not repeated if you do it again.","«Find» button in each diagram's toolbar (also Ctrl+F). In the Sketch it also finds attributes.","Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
   'The theory is now in Home, explained with pictures: E-R model, relational model, DSD, SQL to create tables and SQL queries (SELECT, WHERE, JOIN, GROUP BY…).',
   'Group activity: «Create activity» makes a code with the brief, what to do and the minutes. Each classmate imports it, clicks Start and does it by hand against the clock; when time is up it locks until «Leave student mode».',
   "Sketch with a box to write «Entity; attribute1, attribute2…» above the canvas, and zero (○), one (|) or many (crow's foot) marks next to each entity on the lines. «To the E-R» also brings the attributes and cardinalities.",
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.4: sincronizar con GitHub (Ajustes › GitHub). Pegas la dirección de tu repositorio privado, tu nombre y tu email, y tus proyectos y tu progreso quedan en GitHub para usarlos en cualquier ordenador, cada uno en la carpeta que tenga elegida.',
+  '2.4: al abrir la app trae lo último de GitHub; mientras trabajas sube los cambios (al guardar, cada 5 o 15 minutos, o solo con el botón, como elijas); al cerrar sube lo último. Si no hay internet, se sube en cuanto vuelva.',
+  '2.4: avisa si la app está abierta en otro ordenador, y si un proyecto se cambia en dos sitios a la vez guarda las dos versiones («Pizzas» y «Pizzas (otro ordenador)»). Nunca se pierde nada.',
+  '2.4: abajo, junto a la carpeta, se ve el estado de GitHub (al día, subiendo, sin conexión). Pulsándolo se sincroniza al momento.',
+  '2.4: cuando hay una versión nueva sale a pantalla completa, con «Descargar y reiniciar» o «Más tarde».',
   '2.3.2: todas las pantallas de «No cliques esto» (menú, tiradas, álbum, perfil y juegos) salen centradas y más grandes en pantallas anchas.',
   '2.3.1: el menú de «No cliques esto» está centrado y rediseñado, con las Tiradas destacadas arriba. El perfil también está centrado.',
   '2.3.1: en el Álbum (y en las demás pantallas de juegos) ya se puede bajar para ver todas las rarezas.',
@@ -284,6 +322,7 @@ const App={
     setTimeout(()=>this.archiveWarn(),900);
     if(!this.base){this.showSetup();this.maybeNews();setTimeout(()=>this.checkUpdates(false),1500);return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
+    try{if(await GH.start(this)){if(await Sync.load())this.afterSync(true);}}catch(e){}
     let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
     await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}
     else if(back&&back.home){this.home=back.home;this.renderMain();}
@@ -291,6 +330,8 @@ const App={
     this.maybeNews();
     setTimeout(()=>this.checkUpdates(false),1500);
   },
+  // Tras traer cambios de GitHub: volver a leer los proyectos del disco (no hay nada sin guardar: se guarda antes de sincronizar)
+  async refreshFromDisk(){const f=this.cur&&this.cur.folder,v=this.view,home=this.home;this.projects=[];this.cur=null;await this.reload(f);if(!home&&this.cur&&v&&VIEWS[v])this.go(this.cur,v);else{this.renderTree();this.renderMain();}},
   // Tras traer el progreso del archivo: volver a leer ajustes, tema y juegos sin recargar la ventana
   afterSync(quiet){try{Settings._c=null;Settings.apply(Settings.get());}catch(e){}try{Theme.apply(Theme.get());}catch(e){}Juegos._s=null;Juegos.apply();
     if(!quiet){this.renderTree();this.renderMain();}},
@@ -312,7 +353,8 @@ const App={
     if(this.solo)return;
     let r;try{r=await window.api.updateCheck();}catch(e){if(manual)toast('No se ha podido comprobar: no hay conexión o GitHub no responde.','warn');return;}
     if(!r.tag||!r.newer){if(manual)toast(`Ya tienes la última versión (${VERSION}).`);return;}
-    // Lo normal: se descarga sola en segundo plano y se instala al cerrar la app
+    // Versión nueva: pantalla completa con «Descargar y reiniciar» o «Más tarde»
+    if(r.canInstall&&!(this._updLater===r.tag&&!manual)){this._upd=r;this.updateScreen(r);return;}
     if(!manual&&r.canInstall&&Settings.get().autoUpdate){this._upd=r;this.prepareSilently(r);return;}
     let skip=null,later=0;try{skip=localStorage.getItem('mb:upd:skip');later=+localStorage.getItem('mb:upd:later')||0;}catch(e){}
     if(!manual&&(skip===r.tag||Date.now()-later<20*3600e3))return;
@@ -326,6 +368,19 @@ const App={
         ${r.canInstall?'<p class="mmeta" style="margin:6px 0 0">«Actualizar ahora» descarga la versión nueva, cierra la app y la vuelve a abrir ya actualizada.</p>':''}`);};
     show();
   },
+  updateScreen(r){if(document.getElementById('updfull'))return;const ver=String(r.tag).replace(/^v/i,''),mb=r.asset&&r.asset.size?` · ${(r.asset.size/1048576).toFixed(0)} MB`:'';
+    const o=document.createElement('div');o.id='updfull';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-labelledby','updfull-t');
+    o.innerHTML=`<div class="uf-box"><div class="uf-ic" aria-hidden="true">⬆</div><p class="uf-k">Actualización disponible</p><h2 id="updfull-t">Modelado Bases ${esc(ver)}</h2><p class="uf-sub">Tienes la ${esc(VERSION)}${mb}. Tus proyectos y tu progreso no se tocan.</p>
+      ${r.body?`<div class="uf-notes">${esc(r.body)}</div>`:''}
+      <div class="uf-bar" hidden><i></i></div><p class="uf-txt" hidden></p>
+      <div class="uf-btns"><button class="ebtn big" data-uf="later">Más tarde</button><button class="ebtn pri big" data-uf="go">Descargar y reiniciar</button></div></div>`;
+    document.body.appendChild(o);o.querySelector('[data-uf=go]').focus();
+    o.addEventListener('click',async e=>{const b=e.target.closest('[data-uf]');if(!b)return;
+      if(b.dataset.uf==='later'){this._updLater=r.tag;o.remove();if(Settings.get().autoUpdate)this.prepareSilently(r);else{const el=document.getElementById('updready');if(el){el.hidden=false;el.innerHTML=`<span class="sb-sep"></span><span class="upd-dot"></span><span>Versión ${esc(ver)} disponible</span><button class="sbtn" data-act="upd-show">Actualizar</button>`;}}return;}
+      o.querySelectorAll('[data-uf]').forEach(x=>x.disabled=true);b.textContent='Descargando…';const bar=o.querySelector('.uf-bar'),fill=bar.querySelector('i'),txt=o.querySelector('.uf-txt');bar.hidden=false;txt.hidden=false;
+      this._ufFill=(pc,t)=>{fill.style.width=pc+'%';txt.textContent=t;};this.bindProgress();
+      try{await this.flushAll();await GH.close();await window.api.updateInstall(r.asset.url);txt.textContent='Listo. La app se cierra y se vuelve a abrir sola con la versión nueva.';b.textContent='Reiniciando…';}
+      catch(err){o.querySelectorAll('[data-uf]').forEach(x=>x.disabled=false);b.textContent='Reintentar';txt.textContent='No se pudo actualizar: '+err.message;}});},
   bindProgress(){
     if(this._dlBound)return;this._dlBound=true;
     window.api.onUpdateProgress(({got,total,phase})=>{
@@ -333,6 +388,7 @@ const App={
       // Ventana de actualización
       const f=document.getElementById('dlfill'),t=document.getElementById('dltxt');
       if(f&&t){if(phase==='extract'){f.style.width='100%';t.textContent='Preparando la instalación…';}else{f.style.width=pc.toFixed(1)+'%';t.textContent=`Descargando… ${Math.floor(pc)} % (${mb})`;}}
+      if(this._ufFill)this._ufFill(phase==='extract'?100:pc.toFixed(1),phase==='extract'?'Preparando la instalación…':`Descargando… ${Math.floor(pc)} % (${mb})`);
       // Barra de abajo (descarga en segundo plano)
       const st=document.getElementById('updtxt'),bar=document.getElementById('updfill');
       if(st&&this._bgVer){if(phase==='extract'){st.textContent=`Preparando la versión ${this._bgVer}…`;if(bar)bar.style.width='100%';}
@@ -412,6 +468,19 @@ const App={
         tog('cb','Colores para daltonismo','Cambia los colores de los diagramas por otros que se distinguen con cualquier tipo de daltonismo.')+
         tog('projector','Modo proyector','Para enseñarlo en clase: tema claro, alto contraste, líneas gruesas y todo más grande. Atajo: '+(keyLabel('projector')||'—')+'.')+
         tog('focusAll','Marcar siempre el elemento activo','Un borde de color en el botón o campo donde estás, también con el ratón.')+tog('reduceMotion','Reducir animaciones','Quita transiciones y movimientos.');}
+    else if(sec==='github'){const g=GH.info||{},on=GH.on(),opt=(k,v,l)=>`<button class="segb" data-gho="${k}" data-v="${v}" aria-pressed="${String((g[k]===undefined?{push:'save',onClose:true,lock:true}[k]:g[k]))===String(v)}">${l}</button>`;
+      h=H('GitHub','Guarda tus proyectos y tu progreso en un repositorio tuyo de GitHub para tenerlos en todos tus ordenadores.')+
+        (on?`<div class="gh-ok">${ico('<path d="M3.5 9.5 7 13l7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')}<div><b>Conectado</b><small>${esc(g.url)} · ${esc(g.name||'')} · en este ordenador: ${esc(g.pc||'')}${g.last?' · última vez: '+esc(new Date(g.last).toLocaleString('es-ES')):''}</small></div><button class="ebtn pri" data-ghact="sync">Sincronizar ahora</button></div>`:
+          `<ol class="gh-steps"><li>Crea una cuenta en <b>github.com</b> (gratis) y un repositorio <b>privado</b> vacío, por ejemplo <code>modelados-bdd</code>.</li><li>Instala <b>Git para Windows</b> (git-scm.com) con las opciones normales.</li><li>Pega aquí la dirección del repositorio, tu nombre y tu email, y pulsa <b>Comprobar y conectar</b>. La primera vez se abre una ventana de GitHub para iniciar sesión: acéptala y queda recordado.</li></ol>`)+
+        `<div class="gh-form"><label><b>Dirección del repositorio</b><input id="ghurl" placeholder="https://github.com/tu-usuario/modelados-bdd.git" value="${escA(g.url||'')}" spellcheck="false"></label>
+          <label><b>Tu nombre</b><input id="ghname" placeholder="Por ejemplo: Ale" value="${escA(g.name||'')}"></label>
+          <label><b>Tu email</b><input id="ghemail" placeholder="tu email o el privado de GitHub (…@users.noreply.github.com)" value="${escA(g.email||'')}" spellcheck="false"></label>
+          <div class="row"><button class="ebtn pri" data-ghact="setup">${on?'Guardar y comprobar':'Comprobar y conectar'}</button>${on?'<button class="ebtn danger" data-ghact="off">Desconectar</button>':''}<span class="tnote" id="ghmsg"></span></div></div>`+
+        (on?`<p class="set-g">Cuándo se sincroniza</p><div class="set-row"><div class="set-lab"><b>Al abrir la app</b><small>Siempre trae lo último de GitHub antes de empezar.</small></div><span class="tnote">Siempre</span></div>
+          <div class="set-row"><div class="set-lab"><b>Subir mientras trabajas</b><small>Si no hay internet, se sube en cuanto vuelva. Nunca se pierde nada: todo está también en este ordenador.</small></div><div class="seg">${opt('push','save','Al guardar')}${opt('push','5','Cada 5 min')}${opt('push','15','Cada 15 min')}${opt('push','manual','Solo con el botón')}</div></div>
+          <div class="set-row"><div class="set-lab"><b>Subir al cerrar la app</b><small>Antes de cerrarse sube lo último (como mucho espera 25 segundos).</small></div><div class="seg">${opt('onClose',true,'Sí')}${opt('onClose',false,'No')}</div></div>
+          <div class="set-row"><div class="set-lab"><b>Avisar si está abierta en otro ordenador</b><small>Así no cambias lo mismo en dos sitios a la vez. Si pasa, se guardan las dos versiones.</small></div><div class="seg">${opt('lock',true,'Sí')}${opt('lock',false,'No')}</div></div>`:'')+
+        `<p class="tnote">Se sincroniza la carpeta de proyectos (con sus subcarpetas) y tu progreso. En cada ordenador, en la carpeta que tengas elegida. No uses a la vez OneDrive o Drive en esa misma carpeta.</p>`;}
     else if(sec==='atajos'){const K=KEYS();
       h=H('Atajos de teclado','Pulsa «Cambiar» y después la combinación que quieras (por ejemplo Ctrl+Mayús+E). Esc cancela.')+KEY_NAMES.map(([g,rows])=>`<p class="set-g">${g}</p>`+rows.map(([a,l])=>`<div class="set-row"><div class="set-lab"><b>${l}</b></div><div class="keyrow">${this._capKey===a?'<span class="keycap wait">Pulsa la combinación…</span>':K[a]?`<span class="keycap">${kb(K[a]==='Delete'?'Supr':K[a])}</span>`:'<span class="keycap none">Sin atajo</span>'}<button class="ebtn" data-m="key-set" data-k="${a}">Cambiar</button>${K[a]?`<button class="ebtn" data-m="key-clear" data-k="${a}" title="Quitar el atajo" aria-label="Quitar el atajo">✕</button>`:''}</div></div>`).join('')).join('')+
         `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
@@ -509,7 +578,7 @@ const App={
     this.updateStatus();this.renderCounts(p);if(!was)this.markDirty(p);},
   markDirty(p){const el=document.querySelector(`.pf[data-pid="${p._id}"]`);if(el)el.classList.toggle('dirty',!!p._dirty);},
   flush(p){clearTimeout(p._t);p._t=null;if(!p._dirty)return p._q||Promise.resolve();p._dirty=false;
-    return this.queue(p,async()=>{try{await window.api.save(plainProject(p),Settings.get().svgFiles!==false?exportSVGs(p):null);}catch(e){p._dirty=true;throw e;}finally{this.markDirty(p);this.updateStatus();}});},
+    return this.queue(p,async()=>{try{await window.api.save(plainProject(p),Settings.get().svgFiles!==false?exportSVGs(p):null);GH.saved();}catch(e){p._dirty=true;throw e;}finally{this.markDirty(p);this.updateStatus();}});},
   async flushAll(){
     this.projects.forEach(p=>{if(p._rn){clearTimeout(p._rn);p._rn=null;this.doRename(p);}});
     await Promise.all(this.projects.filter(p=>p._dirty).map(p=>this.flush(p)));
@@ -524,7 +593,7 @@ const App={
     await Promise.all(this.projects.map(p=>p._q).filter(Boolean));
     await this.flushAll();
     const d=this.dirtyList();
-    if(!d.length){window.api.ready();return;}
+    if(!d.length){GH.close().finally(()=>window.api.ready());return;}
     this.modal(`<h3>No se han podido guardar algunos cambios</h3><p>${d.length===1?`El proyecto <b>${esc(d[0].name)}</b> tiene cambios que no has guardado.`:`Estos proyectos tienen cambios sin guardar: ${d.map(p=>'<b>'+esc(p.name)+'</b>').join(', ')}.`}</p>
       <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn danger" data-m="quit-nosave">Salir sin guardar</button><button class="ebtn pri" data-m="quit-save">Guardar y salir</button></div>`);
     document.querySelector('[data-m="quit-save"]').focus();
@@ -764,6 +833,8 @@ const App={
     if(a==='mkact'){this.showMakeActivity();return;}
     if(a==='act-start'){this.startActivity(this.cur);return;}
     if(a==='act-exit'){this.exitActivity(this.cur);return;}
+    if(a==='gh-sync'){GH.sync(true);return;}
+    if(a==='upd-show'){if(this._upd){this._updLater=null;this.updateScreen(this._upd);}return;}
     if(a==='home'){Juegos.stopAll();this.showHome('inicio');return;}
     if(a==='games'||a==='games-profile'){if(this.cur&&this.cur.act&&this.cur.act.state==='run'&&!this.home){toast('Durante la actividad no se puede jugar.','warn');return;}Juegos.stopAll();Juegos.sub=a==='games'?'menu':'perfil';Juegos._qz=null;Juegos._bdq=null;this.showHome('juegos');return;}
     if(a==='prog-choose'){const r=await this.run(()=>window.api.progChoose());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();toast('He cargado el progreso que había en esa carpeta.');this.renderSettings();return;}Sync.save(true);toast('Tu progreso se guarda ahora en '+r.dir);this.renderSettings();return;}
@@ -908,6 +979,14 @@ const App={
     if(e.target.id==='modal'){this.closeModal();return;}
     if(e.target.closest('[data-theme-set]')&&this.settingsOpen){setTimeout(()=>this.renderSettings(),0);return;}
     const pa=e.target.closest('[data-act^="prog-"]');if(pa){await this.action(pa);return;}
+    const go=e.target.closest('[data-gho]');if(go){const v=go.dataset.v==='true'?true:go.dataset.v==='false'?false:go.dataset.v;try{GH.info=await window.api.gitOpts({[go.dataset.gho]:v});GH.schedule();}catch(er){}this.renderSettings();return;}
+    const ga=e.target.closest('[data-ghact]');if(ga){const k=ga.dataset.ghact,msg=t=>{const m=document.getElementById('ghmsg');if(m)m.textContent=t;};
+      if(k==='sync'){await GH.sync(true);this.renderSettings();return;}
+      if(k==='off'){GH.info=await window.api.gitOff();GH.schedule();GH.paint();this.renderSettings();toast('Desconectado de GitHub. Tus archivos siguen en este ordenador.');return;}
+      if(k==='setup'){const f={url:document.getElementById('ghurl').value,name:document.getElementById('ghname').value,email:document.getElementById('ghemail').value};ga.disabled=true;msg('Conectando… (si se abre una ventana de GitHub, inicia sesión)');
+        try{await this.flushAll();const r=await window.api.gitSetup(f);GH.info=r.info;GH.schedule();GH.paint('ok','GitHub · al día '+GH.ago(Date.now()));await this.refreshFromDisk();if(await Sync.load(true))this.afterSync();
+          window.api.gitClaim().catch(()=>{});toast('Conectado con GitHub. Ya están subidos tus proyectos.');if(r.conflicts&&r.conflicts.length)GH.showConflicts(this,r.conflicts);else this.renderSettings();}
+        catch(er){msg('');toast(er.message,'warn');ga.disabled=false;try{GH.info=await window.api.gitInfo();}catch(x){}}return;}}
     const sb=e.target.closest('[data-sec]');if(sb){this._sec=sb.dataset.sec;this.renderSettings();document.getElementById('setbody').scrollTop=0;return;}
     const sv=e.target.closest('[data-setv]');if(sv&&sv.dataset.setv==='lang'){if(sv.dataset.v!==LANG()){Settings.set('lang',sv.dataset.v);await this.flushAll();this.keepPlace();window.api.reload();}return;}
     if(sv){const v=sv.dataset.v;Settings.set(sv.dataset.setv,/^\d+$/.test(v)?+v:v);this.renderSettings();return;}
@@ -916,6 +995,8 @@ const App={
     if(k==='close'){this._capKey=null;this.closeModal();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
     if(k==='ic'){const p=this._icP;this.closeModal();if(!p)return;if(b.dataset.ic)p.icon=b.dataset.ic;else delete p.icon;this.touch(p);this.renderTree();return;}
+    if(k==='gh-claim'){this.closeModal();window.api.gitClaim().catch(()=>{});return;}
+    if(k==='gh-quit'){this.closeModal();GH.info.onClose=false;window.api.closeWin();return;}
     if(k==='mv'){const p=this._mvP;this.closeModal();if(p)await this.moveTo({p},b.dataset.to);return;}
     if(k==='mvg'){const g=this._mvG;this.closeModal();if(g)await this.moveTo({g},b.dataset.to);return;}
     if(k==='mv-new'){const p=this._mvP;this.closeModal();const g=await this.run(()=>window.api.mkGroup('',LANG()==='en'?'New folder':'Nueva carpeta'));if(!g)return;this.groups=await window.api.groups();if(p)await this.moveTo({p},g);this._gEdit=g;this.renderTree();return;}
@@ -958,8 +1039,8 @@ const App={
     if(k==='fe-add'||k==='fe-rep'){const cb=this._feCb;this._feCb=null;this.closeModal();if(cb)cb(k==='fe-rep');return;}
     if(k==='clear-go'){const p=this.cur,en=document.getElementById('cl-enun').checked;this.closeModal();if(!p)return;
       p.er={nodes:[],links:[]};p.rel={t:[]};p.ded={t:[]};p.sql='';if(en)p.enun='';this.ed.hist=[];this.ed.redo=[];this.touch(p);this.renderMain();toast('Proyecto vaciado.');return;}
-    if(k==='quit-save'){b.disabled=true;await this.flushAll();if(this.dirtyList().length){toast('No se pudo guardar todo. Revisa la barra de abajo.','warn');b.disabled=false;return;}window.api.ready();return;}
-    if(k==='quit-nosave'){window.api.ready();return;}
+    if(k==='quit-save'){b.disabled=true;await this.flushAll();if(this.dirtyList().length){toast('No se pudo guardar todo. Revisa la barra de abajo.','warn');b.disabled=false;return;}GH.close().finally(()=>window.api.ready());return;}
+    if(k==='quit-nosave'){GH.close().finally(()=>window.api.ready());return;}
     if(k==='code'){await this.importCode(document.getElementById('imptxt').value);return;}
     if(k==='copy'){const t=document.getElementById('exptxt');
       try{await navigator.clipboard.writeText(t.value);b.textContent='Copiado';}catch(err){t.focus();t.select();b.textContent='Pulsa Ctrl+C';}return;}

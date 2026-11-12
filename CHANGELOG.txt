@@ -41,6 +41,14 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.4  (12/11/2026)
+------------------
+- Sincronizar con GitHub (Ajustes > GitHub): pull al abrir, subida
+  automatica configurable, push al cerrar, aviso si esta abierta en otro
+  ordenador y dos versiones guardadas si hay conflicto.
+- Estado de GitHub en la barra de abajo.
+- Las actualizaciones salen a pantalla completa.
+
 v2.3.2  (12/11/2026)
 --------------------
 - Pantallas de juegos centradas y mas grandes en pantallas anchas.

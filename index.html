@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Modelado Bases 2.3.2</title>
+<title>Modelado Bases 2.4</title>
 <style>@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
@@ -846,10 +846,37 @@ html.cur-pen body,html.cur-pen .ed-cv,html.cur-pen .ed-cv svg{cursor:url("data:i
 .jg-prof .jg-stats{justify-content:center}
 .jg-prof .tnote{text-align:center}
 .jg-prof .set-lab,.jg-prof-f>*{flex:none}
+
+/* Actualización a pantalla completa */
+#updfull{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 30% 20%,color-mix(in srgb,var(--accent) 22%,var(--bg)),var(--bg) 70%)}
+.uf-box{width:min(640px,100%);display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:36px 34px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.uf-ic{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-size:36px;font-weight:800;background:var(--accent);color:var(--accent-ink);animation:ufbob 2s ease-in-out infinite}
+@keyframes ufbob{50%{transform:translateY(-5px)}}
+.uf-k{margin:6px 0 0;font:700 12px var(--f-ui);text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}
+#updfull h2{margin:0;font-size:30px}.uf-sub{margin:0;color:var(--muted)}
+.uf-notes{width:100%;max-height:34vh;overflow:auto;text-align:left;white-space:pre-wrap;font-size:13.5px;line-height:1.5;padding:12px 14px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.uf-bar{width:100%;height:10px;border-radius:999px;background:var(--hover);overflow:hidden}.uf-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.uf-txt{margin:0;font-size:13px;color:var(--muted)}
+.uf-btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+@media (prefers-reduced-motion:reduce){.uf-ic{animation:none}}
+/* GitHub */
+.ghst{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);border-radius:999px;padding:1px 9px;font:12px var(--f-ui);cursor:pointer;margin-left:8px}
+.ghst:hover{color:var(--ink);border-color:var(--accent)}.ghst.ok{color:var(--ok)}.ghst.warn{color:var(--warn)}.ghst.bad{color:var(--bad)}
+.ghst.busy svg{animation:jgspin 1s linear infinite}
+#ghcover{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(2px)}
+#ghcover>div{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 34px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+#ghcover b{font-size:16px}#ghcover small{color:var(--muted)}
+#ghcover .spin{width:30px;height:30px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--accent);animation:jgspin .8s linear infinite}
+.gh-steps{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.5}
+.gh-form{display:flex;flex-direction:column;gap:10px;margin:6px 0 14px}.gh-form label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.gh-form input{font:inherit;padding:7px 9px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink)}
+.gh-form .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gh-ok{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--ok) 45%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--ok) 9%,var(--surface));margin-bottom:12px;color:var(--ok)}
+.gh-ok>div{flex:1;min-width:0;color:var(--ink)}.gh-ok small{display:block;color:var(--muted);overflow-wrap:anywhere}
 </style></head><body>
 <div class="app" id="app">
   <header class="titlebar" id="titlebar">
-    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v2.3.2</button><span class="tb-proj" id="tbproj"></span></div>
+    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v2.4</button><span class="tb-proj" id="tbproj"></span></div>
     <div class="tb-acts"><button class="tbb tb-nope" data-act="games" title="Mejor no…"><span aria-hidden="true">🙈</span><span>No cliques esto</span></button><button class="tbb" data-act="theory" title="Teoría"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Teoría</span></button><button class="tbb" data-act="controls" title="Controles (F1)"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 7.5h1M8.5 7.5h1M12.5 7.5h1M5.5 10.5h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Controles</span></button><button class="tbb" data-act="settings" title="Ajustes (Ctrl+,)" aria-label="Ajustes"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 6.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 1.5h2.6l.4 2 1.6.9 1.9-.7 1.3 2.2-1.5 1.4v1.8l1.5 1.4-1.3 2.2-1.9-.7-1.6.9-.4 2H7.7l-.4-2-1.6-.9-1.9.7-1.3-2.2 1.5-1.4V8.3L2.5 6.9l1.3-2.2 1.9.7 1.6-.9z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Ajustes</span></button></div>
   </header>
   <aside class="side" aria-label="Proyectos">
@@ -861,7 +888,7 @@ html.cur-pen body,html.cur-pen .ed-cv,html.cur-pen .ed-cv svg{cursor:url("data:i
   <main class="mainv" id="mainv"></main>
   <footer class="statusbar" id="statusbar"><span class="dot" id="sdot"></span><span id="stxt">Cargando…</span><button class="sbtn" id="savebtn" data-act="save" title="Guardar (Ctrl+S)" disabled>Guardar</button>
     <span class="sb-upd" id="updready" hidden></span>
-    <span class="sb-base"><span class="sb-sep"></span><span class="sb-path">Carpeta: <code id="bpath">…</code></span><button class="lnk" data-act="basereveal">Abrir</button><button class="lnk" data-act="basechoose" title="Mover la carpeta Modelados BDD a otro sitio">Cambiar…</button></span>
+    <button class="ghst" id="ghst" data-act="gh-sync" hidden><svg width="12" height="12" viewBox="0 0 18 18" aria-hidden="true"><path d="M14.5 6.5A6 6 0 1 0 15 11" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15 2.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>GitHub</span></button><span class="sb-base"><span class="sb-sep"></span><span class="sb-path">Carpeta: <code id="bpath">…</code></span><button class="lnk" data-act="basereveal">Abrir</button><button class="lnk" data-act="basechoose" title="Mover la carpeta Modelados BDD a otro sitio">Cambiar…</button></span>
     <span class="sb-right"><span class="theme" role="group" aria-label="Tema"><button data-theme-set="light" title="Tema claro"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.6" fill="currentColor"/><path d="M6 .5v1.6M6 9.9v1.6M.5 6h1.6M9.9 6h1.6M2.1 2.1l1.1 1.1M8.8 8.8l1.1 1.1M2.1 9.9l1.1-1.1M8.8 3.2l1.1-1.1" stroke="currentColor" stroke-width="1.1"/></svg>Claro</button><button data-theme-set="dark" title="Tema oscuro"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8.5 7.8A4.6 4.6 0 0 1 4.2 1.5a4.6 4.6 0 1 0 6.3 6.3 4.6 4.6 0 0 1-2 0z" fill="currentColor"/></svg>Oscuro</button><button data-theme-set="system" title="Igual que Windows">Auto</button></span></span></footer>
 </div>
 <div class="modal" id="modal" hidden></div>
