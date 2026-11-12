@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.5.1';
+const VERSION = '2.5.2';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -83,12 +83,16 @@ async function runInstaller() {
     const exe = path.join(dst, process.platform === 'win32' ? 'Modelado Bases.exe' : 'Modelado Bases');
     // En Windows la abre el Explorador: así no depende de que este instalador siga vivo
     const win32 = process.platform === 'win32';
+    if (!fs.existsSync(exe)) L('no existe ' + exe);
     try {
       const c = require('child_process').spawn(win32 ? 'explorer.exe' : exe, win32 ? [exe] : [], { cwd: dst, detached: true, stdio: 'ignore' });
       c.on('error', e => L('no se pudo abrir: ' + e.message));
       c.on('spawn', () => L('abriendo la app'));
       c.unref();
     } catch (e) { L('no se pudo abrir: ' + e.message); }
+    // Plan B: Electron la vuelve a abrir al salir este instalador. Si ya se abrió con el Explorador,
+    // la segunda copia ve que hay una abierta y se cierra sola (solo puede haber una).
+    try { app.relaunch({ execPath: exe, args: [] }); L('plan B preparado'); } catch (e) { L('plan B: ' + e.message); }
     await sleep(4000);
   }
   L('instalador terminado');

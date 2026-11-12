@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.5.2  (12/11/2026)
+--------------------
+- Al actualizar se vuelve a abrir sola con mas seguridad (plan B).
+
 v2.5.1  (12/11/2026)
 --------------------
 - Busca actualizaciones nada mas abrir la app.
