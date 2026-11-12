@@ -13,7 +13,7 @@ const ago=t=>{const s=Math.max(1,Math.round((Date.now()-t)/1000)),en=LANG()==='e
 function mkER(ents,rels=[],isas=[]){
   const ed=new Editor(null),m={nodes:[],links:[],notes:[]};ed.p={er:m};ed.mode='er';const by={},own=[];
   ents.forEach(([n,x,y,at,wk])=>{const e={id:uid(),k:wk?'weak':'ent',n,x,y,f:{}};m.nodes.push(e);by[n]=e;own.push([e,at||[]]);});
-  rels.forEach(([n,x,y,ends,at,idr])=>{const r={id:uid(),k:idr?'idrel':'rel',n,x,y,f:{}};m.nodes.push(r);own.push([r,at||[]]);
+  rels.forEach(([n,x,y,ends,at,idr,as])=>{const r={id:uid(),k:idr?'idrel':'rel',n,x,y,f:as?{as:1}:{}};m.nodes.push(r);own.push([r,at||[]]);if(as)by[n]=r;
     ends.forEach(([en,mn,mx])=>m.links.push({id:uid(),a:r.id,b:by[en].id,mn,mx,c:`(${mn},${mx})`}));});
   isas.forEach(([sup,x,y,subs,tot,dis])=>{const i={id:uid(),k:'isa',n:'',x,y,f:{tot,dis,map:'each'}};m.nodes.push(i);
     m.links.push({id:uid(),a:i.id,b:by[sup].id,c:null,mn:null,mx:null,sup:1});subs.forEach(s=>m.links.push({id:uid(),a:i.id,b:by[s].id,c:null,mn:null,mx:null}));});
@@ -57,6 +57,8 @@ const TH_FIGS={
   'rel-1n':()=>figSVG('rel',mkTables([['Cliente',0,0,[['DNI','CHAR(9)','pk'],['Nombre','VARCHAR(45)']]],['Pedido',330,0,[['Num','INT','pk'],['Fecha','DATE'],['DNI','CHAR(9)','fk:Cliente']]]])),
   'ded-ejemplo':()=>figSVG('ded',mkTables([['Alumno',0,0,[['DNI','CHAR(9)','pk'],['Nombre','VARCHAR(45)'],['Telefono','VARCHAR(15)','null']]],['Curso',560,0,[['Codigo','INT','pk'],['Nombre','VARCHAR(45)'],['Horas','INT']]],
     ['Matricula',270,200,[['DNI','CHAR(9)','pk fk:Alumno'],['Codigo','INT','pk fk:Curso'],['Nota','DECIMAL(4,2)','null']]]])),
+  'er-asociativa':()=>figSVG('er',mkER([['Alumno',0,0,['*DNI']],['Asignatura',560,0,['*Codigo']],['Profesor',280,330,['*DNI']]],[['Matricula',280,0,[['Alumno','0','N'],['Asignatura','1','N']],['Nota'],0,1],['corrige',280,175,[['Matricula','0','N'],['Profesor','1','1']]]])),
+  'ded-cont':()=>figSVG('ded',mkTables([['Alumno',0,0,[['DNI','CHAR(9)','pk'],['Nombre','VARCHAR(45)']]],['Asignatura',620,0,[['Codigo','INT','pk'],['Nombre','VARCHAR(45)']]],['Matricula',310,170,[['DNI','CHAR(9)','pk fk:Alumno'],['Codigo','INT','pk fk:Asignatura'],['Nota','DECIMAL(4,2)','null']]]])),
   'ded-1n':()=>figSVG('ded',mkTables([['Cliente',0,0,[['DNI','CHAR(9)','pk'],['Nombre','VARCHAR(45)']]],['Pedido',400,0,[['Num','INT','pk'],['Fecha','DATE'],['DNI','CHAR(9)','fk:Cliente']]]]))
 };
 const figCache={};
@@ -98,12 +100,12 @@ const SQL_Q_EN=[
 ];
 // Capítulos: E-R, Relacional, DED, SQL (crear) y SQL (consultas). Cada apartado puede llevar sus dibujos.
 const TH_CH=[
- {id:'er',t:'Modelo E-R',te:'E-R model',ico:'er',sec:['intro','boceto','entidades','atributos','relaciones','cardinalidad','ternarias','jerarquias','errores','glosario'],
+ {id:'er',t:'Modelo E-R',te:'E-R model',ico:'er',sec:['intro','boceto','entidades','atributos','relaciones','cardinalidad','ternarias','asociativa','jerarquias','errores','glosario'],
   figs:{intro:[['er-ejemplo','Un E-R completo: entidades, relación con su atributo y cardinalidades.']],boceto:[['bo-ejemplo','Boceto: solo las entidades y, en las líneas, marcas de cero, uno o muchos. Los atributos se escriben en la zona de texto de arriba.']],entidades:[['er-entidades','Entidad débil (doble rectángulo) unida con una relación identificadora (doble rombo).']],
     atributos:[['er-atributos','Clave (subrayado), opcional (O), derivado (discontinuo), multivaluado (doble óvalo) y compuesto.']],relaciones:[['er-relaciones','Relación binaria con un atributo propio (Horario).']],cardinalidad:[['er-card','Un cliente realiza de 0 a N pedidos; cada pedido es de 1 solo cliente.']],
-    ternarias:[['er-ternaria','Relación ternaria: un profesor imparte una asignatura a un grupo.']],jerarquias:[['er-isa','Jerarquía total y exclusiva (t,e).']]}},
+    ternarias:[['er-ternaria','Relación ternaria: un profesor imparte una asignatura a un grupo.']],asociativa:[['er-asociativa','Entidad asociativa: la matrícula (relación entre alumno y asignatura) se relaciona con el profesor que la corrige.']],jerarquias:[['er-isa','Jerarquía total y exclusiva (t,e).']]}},
  {id:'rel',t:'Modelo relacional',te:'Relational model',ico:'rel',sec:['relacional','paso','normalizacion'],figs:{relacional:[['rel-ejemplo','Relacional de alumnos y cursos: PK subrayada y flechas de cada FK a su tabla.']],paso:[['er-card','Este E-R…'],['rel-1n','…pasa a estas tablas: la FK va al lado N (Pedido).']]}},
- {id:'ded',t:'DED',te:'DSD',ico:'ded',sec:['ded'],figs:{ded:[['ded-ejemplo','DED de alumnos y cursos: tipos de dato, PK, FK y patas en las líneas.'],['ded-1n','Línea continua o discontinua según si la FK forma parte de la PK.']]}},
+ {id:'ded',t:'DED',te:'DSD',ico:'ded',sec:['ded'],figs:{ded:[['ded-ejemplo','DED de alumnos y cursos: tipos de dato, PK, FK y patas en las líneas.'],['ded-1n','Discontinua: en Pedido, DNI es FK pero no es parte de la PK (no está subrayada).'],['ded-cont','Continua: en Matricula, DNI y Codigo son FK y además forman la PK.']]}},
  {id:'sqlc',t:'SQL: crear tablas',te:'SQL: create tables',ico:'sql',sec:['sql'],figs:{sql:[['ded-ejemplo','Este DED se convierte en el script de abajo.']]}},
  {id:'sqlq',t:'SQL: consultas',te:'SQL: queries',ico:'test',q:true}
 ];

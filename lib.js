@@ -130,21 +130,21 @@ function drawDED(d){
   const pairs={}; links.forEach(l=>{const k=[l.ch.n,l.pa.n].sort().join('|');(pairs[k]=pairs[k]||[]).push(l);});
   Object.values(pairs).forEach(arr=>arr.forEach((l,j)=>l.off=(j-(arr.length-1)/2)*26));
   links.forEach(l=>{
-    const {ch,pa,c}=l, dash=c.pk?'':' dash';
+    const {ch,pa,c}=l, key=(ch.id||ch.n)+'|'+c.fk, dash=(c.pk?'':' dash')+(d.selFk===key?' lsel':''), HIT=s=>d.hit?s.replace(/class="lk[^"]*"/,`class="hitl" fill="none" data-fk="${esc(key).replace(/"/g,'&quot;')}"`):'';
     const childOne=(c.pk&&ch.cols.filter(x=>x.pk).length===1)||c.uq;
     if(ch===pa){
       const x2=ch.x+ch.w,y2=ch.y+ch.h;
-      LK+=`<path d="M${x2-34},${y2} V${y2+26} H${x2+26} V${y2-34} H${x2}" class="lk${dash}"/>`;
+      const sp=`<path d="M${x2-34},${y2} V${y2+26} H${x2+26} V${y2-34} H${x2}" class="lk${dash}"/>`;LK+=sp+HIT(sp);
       MK+=marker([x2-34,y2],[0,1],!childOne,true,'lkm','lko')+marker([x2,y2-34],[1,0],false,c.nul,'lkm','lko');
       return;
     }
     let A,B,uA,uB;
     if(d.ortho){const pts=routeOrtho(ch,pa,l.off);A=pts[0];B=pts[pts.length-1];uA=unitV(pts[0],pts[1]);uB=unitV(pts[pts.length-1],pts[pts.length-2]);
-      LK+=`<polyline points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" class="lk${dash}"/>`;}
+      const sp=`<polyline points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" class="lk${dash}"/>`;LK+=sp+HIT(sp);}
     else{let p=[ch.cx,ch.cy],q=[pa.cx,pa.cy]; const len=Math.hypot(q[0]-p[0],q[1]-p[1]), n=[-(q[1]-p[1])/len,(q[0]-p[0])/len];
       p=[p[0]+n[0]*l.off,p[1]+n[1]*l.off]; q=[q[0]+n[0]*l.off,q[1]+n[1]*l.off];
       A=rectExit(ch,p,q);B=rectExit(pa,q,p);
-      LK+=`<line x1="${f1(A[0])}" y1="${f1(A[1])}" x2="${f1(B[0])}" y2="${f1(B[1])}" class="lk${dash}"/>`;
+      const sp=`<line x1="${f1(A[0])}" y1="${f1(A[1])}" x2="${f1(B[0])}" y2="${f1(B[1])}" class="lk${dash}"/>`;LK+=sp+HIT(sp);
       uA=unitV(A,B);uB=[-uA[0],-uA[1]];}
     if(d.not==='uml')MK+=endLabel(A,uA,childOne?'0..1':'0..*')+endLabel(B,uB,c.nul?'0..1':'1');
     else MK+=marker(A,uA,!childOne,true,'lkm','lko')+marker(B,uB,false,c.nul,'lkm','lko');
@@ -178,7 +178,8 @@ function drawRef(d,fixed){
     else if(pa.x>=t.x+t.rw){const mx=(t.x+t.rw+pa.x)/2;pts=d.ortho?[[t.x+t.rw,sy],[mx,sy],[mx,ey],[pa.x,ey]]:[[t.x+t.rw,sy],[t.x+t.rw+14,sy],[pa.x-16,ey],[pa.x,ey]];ex=pa.x;dir=1;}
     else if(pa.x+pa.rw<=t.x){const mx=(t.x+pa.x+pa.rw)/2;pts=d.ortho?[[t.x,sy],[mx,sy],[mx,ey],[pa.x+pa.rw,ey]]:[[t.x,sy],[t.x-14,sy],[pa.x+pa.rw+16,ey],[pa.x+pa.rw,ey]];ex=pa.x+pa.rw;dir=-1;}
     else {const xl=Math.min(t.x,pa.x)-18;pts=[[t.x,sy],[xl,sy],[xl,ey],[pa.x,ey]];ex=pa.x;dir=1;}
-    LN+=`<polyline points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" class="rarr"/>`;
+    const key=(t.id||t.n)+'|'+c.fk,PP=pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ');
+    LN+=`<polyline points="${PP}" class="rarr${d.selFk===key?' lsel':''}"/>`+(d.hit?`<polyline points="${PP}" class="hitl" fill="none" data-fk="${esc(key).replace(/"/g,'&quot;')}"/>`:'');
     LN+=`<polygon points="${ex},${ey} ${ex-8*dir},${ey-4.5} ${ex-8*dir},${ey+4.5}" class="rhead"/>`;
   }));
   d.t.forEach(t=>{

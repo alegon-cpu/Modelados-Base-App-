@@ -41,6 +41,18 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.1  (12/11/2026)
+------------------
+- Entidad asociativa en el E-R (rombo dentro de un rectangulo), que se
+  puede relacionar con otras entidades. Al pasar a tablas sale su tabla
+  con las claves de sus entidades.
+- Relacional: las flechas se pueden tocar (pasar la FK a la otra tabla o
+  quitar la relacion). "Relacionar" solo pregunta hacia donde va la flecha.
+- DED: las lineas se pueden tocar. La linea y "Relacionar" preguntan como
+  en el E-R (maximo y minimo) y si la linea es continua o discontinua.
+- "Copiar mi relacional" copia las relaciones solo con el modo facil.
+- Teoria: entidad asociativa y lineas continuas/discontinuas del DED.
+
 v2.0.2  (12/11/2026)
 --------------------
 - Boceto: las cardinalidades de cada linea se eligen como en el E-R

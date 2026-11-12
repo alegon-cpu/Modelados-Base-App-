@@ -83,6 +83,13 @@ Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como m�
 <h4>Al pasar a tablas</h4><p>Siempre sale una <b>tabla nueva</b> con las PK de las tres entidades como FK. La PK de esa tabla la forman las FK de los lados con máximo N (si todos son 1, basta con dos).</p>
 <p class="th-tip">En la app: selecciona las tres entidades (arrastrando en un hueco o con Ctrl+clic) y pulsa «Relación ternaria entre las 3». También puedes unir una tercera entidad a una relación con Mayús + clic.</p>`},
 
+{id:'asociativa',t:'Entidad asociativa',k:'asociativa agregacion relacion como entidad rectangulo rombo matricula',h:`
+<p>Una <b>entidad asociativa</b> es una relación que se trata también como entidad: se dibuja el <b>rombo dentro de un rectángulo</b>. Se usa cuando la propia relación tiene que relacionarse con otra entidad.</p>
+<p>Ejemplo: un alumno se <i>matricula</i> en una asignatura (N:M). Si además cada matrícula la <i>corrige</i> un profesor, «Matricula» pasa a ser una entidad asociativa unida a Profesor con otra relación.</p>
+<h4>Cardinalidad</h4><p>Se pone igual que siempre: en la relación «corrige», junto a Profesor (1,1) porque cada matrícula la corrige un profesor, y junto a Matricula (0,N) porque un profesor corrige muchas.</p>
+<h4>Al pasar a tablas</h4><p>Sale una tabla con su nombre (Matricula) cuya <b>PK son las claves de sus entidades</b> (DNI y Codigo) y sus atributos (Nota). Las relaciones con otras entidades se pasan como siempre, tratándola como una entidad más: aquí Matricula recibe el DNI del profesor como FK.</p>
+<p class="th-tip">En la app: selecciona la relación y activa «Entidad asociativa» (también en el menú del botón derecho). Luego únela con Mayús + clic a otra entidad: se crea la relación en medio.</p>`},
+
 {id:'paso',t:'Pasar del E-R a tablas',k:'paso relacional reglas transformacion fk tabla intermedia n:m 1:n 1:1 debil multivaluado',h:`
 <p>Estas son las reglas para convertir el E-R en el modelo relacional. Son las mismas que usa el botón «Pasar desde mi E-R» con el modo fácil.</p>
 <table class="th-tab"><tr><th>En el E-R</th><th>En las tablas</th></tr>
@@ -108,10 +115,17 @@ Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como m�
 {id:'ded',t:'DED (diagrama de estructura de datos)',k:'ded lineas continua discontinua pata de gallo tipos identificadora',h:`
 <p>El DED dibuja las tablas con sus columnas y <b>tipos de dato</b>, y une cada FK con la tabla a la que apunta.</p>
 <ul><li>${GL.pkcol} Clave primaria &nbsp; ${GL.fkcol} Clave ajena &nbsp; ${GL.nncol} No puede ser nula &nbsp; ${GL.uqcol} Única</li></ul>
-<h4>Las líneas</h4>
-<table class="th-tab"><tr><th>Línea</th><th>Cuándo</th></tr>
-<tr><td><b>Continua</b></td><td>Relación <b>identificadora</b>: la FK forma parte de la PK de la tabla hija (débiles y tablas de N:M).</td></tr>
-<tr><td><b>Discontinua</b></td><td>Relación <b>no identificadora</b>: la FK es una columna normal.</td></tr></table>
+<h4>Las líneas: continua o discontinua</h4>
+<p>Solo depende de una pregunta: <b>en la tabla que tiene la FK, ¿esa FK forma parte de la PK?</b> (es decir, ¿está subrayada?)</p>
+<table class="th-tab"><tr><th>Línea</th><th>Cuándo</th><th>Ejemplos</th></tr>
+<tr><td><b>Continua</b> ───</td><td>Sí: la FK es también PK (o parte de ella). Relación <b>identificadora</b>: la fila hija no se puede identificar sin la padre.</td><td>Tabla de una N:M (Matricula: DNI + Codigo) · entidad débil (Linea: NumPedido + NumLinea) · subtipo de una jerarquía (Titular.DNI) · entidad asociativa</td></tr>
+<tr><td><b>Discontinua</b> - - -</td><td>No: la FK es una columna normal fuera de la PK. Relación <b>no identificadora</b>.</td><td>1:N normal (Pedido.DNI del cliente) · 1:1 con FK UNIQUE · relación reflexiva (Empleado.DNI_jefe)</td></tr></table>
+<h4>Cómo saberlo desde el E-R</h4>
+<ul><li><b>N:M</b>, <b>ternaria</b> o <b>asociativa</b> → tabla nueva cuya PK son las FK → <b>continua</b>.</li>
+<li><b>Entidad débil</b> con relación identificadora (doble rombo) → la FK entra en su PK → <b>continua</b>.</li>
+<li><b>Jerarquía</b> (una tabla por entidad) → el subtipo usa la PK del supertipo como PK y FK → <b>continua</b>.</li>
+<li><b>1:N</b> y <b>1:1</b> entre entidades fuertes → la FK va como columna normal → <b>discontinua</b>.</li></ul>
+<p class="th-tip">Truco: si en una tabla todas sus FK están subrayadas, todas sus líneas son continuas. En la app, toca la línea y activa o quita «Identificadora».</p>
 <h4>Los extremos (pata de gallo)</h4>
 <ul><li><b>||</b> uno y solo uno · <b>o|</b> cero o uno · <b>|&lt;</b> uno o muchos · <b>o&lt;</b> cero o muchos.</li>
 <li>En el lado de la tabla padre, el círculo aparece si la FK puede ser NULL (participación opcional).</li>
@@ -221,6 +235,13 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <p>Cardinality: for each entity ask, <b>fixing a pair of the other two</b>, how many of this one there can be.</p>
 <p>To tables: always a <b>new table</b> with the three PKs as FKs. Its PK is made of the FKs on the sides with maximum N.</p>`},
 
+{id:'asociativa',t:'Associative entity',k:'associative aggregation relationship as entity rectangle diamond enrolment',h:`
+<p>An <b>associative entity</b> is a relationship that is also treated as an entity: the <b>diamond is drawn inside a rectangle</b>. Use it when the relationship itself has to be related to another entity.</p>
+<p>Example: a student <i>enrols</i> in a subject (N:M). If each enrolment is also <i>marked</i> by a teacher, «Enrolment» becomes an associative entity joined to Teacher with another relationship.</p>
+<h4>Cardinality</h4><p>As always: in «marks», next to Teacher (1,1) because each enrolment is marked by one teacher, and next to Enrolment (0,N) because a teacher marks many.</p>
+<h4>To tables</h4><p>It becomes a table with its name whose <b>PK is the keys of its entities</b>, plus its attributes. Its relationships with other entities are converted as usual, treating it as one more entity: here it receives the teacher's key as FK.</p>
+<p class="th-tip">In the app: select the relationship and turn on «Associative entity» (also in the right-click menu). Then join it to another entity with Shift + click: the relationship is created in the middle.</p>`},
+
 {id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`
 <p>These are the rules to turn the E-R into the relational model. They are the same ones the «Convert from my E-R» button uses with easy mode.</p>
 <table class="th-tab"><tr><th>In the E-R</th><th>In the tables</th></tr><tr><td>Entity</td><td>A table with its attributes. The primary key is underlined.</td></tr>
@@ -240,8 +261,17 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 {id:'ded',t:'DSD (data structure diagram)',k:'dsd ded lines solid dashed crow foot types identifying',h:`
 <p>The DSD draws the tables with their columns and <b>data types</b>, and joins each FK to the table it points to.</p>
 <ul><li>${GL.pkcol} Primary key &nbsp; ${GL.fkcol} Foreign key &nbsp; ${GL.nncol} Cannot be null &nbsp; ${GL.uqcol} Unique</li></ul>
-<h4>The lines</h4><table class="th-tab"><tr><th>Line</th><th>When</th></tr><tr><td><b>Solid</b></td><td><b>Identifying</b> relationship: the FK is part of the child table's PK (weak entities and N:M tables).</td></tr>
-<tr><td><b>Dashed</b></td><td><b>Non-identifying</b> relationship: the FK is a normal column.</td></tr></table>
+<h4>The lines: solid or dashed</h4>
+<p>It only depends on one question: <b>in the table that has the FK, is that FK part of the PK?</b> (is it underlined?)</p>
+<table class="th-tab"><tr><th>Line</th><th>When</th><th>Examples</th></tr>
+<tr><td><b>Solid</b> ───</td><td>Yes: the FK is also the PK (or part of it). <b>Identifying</b> relationship: the child row cannot be identified without the parent.</td><td>N:M table (Enrolment: DNI + Code) · weak entity (Line: OrderNum + LineNum) · hierarchy subtype · associative entity</td></tr>
+<tr><td><b>Dashed</b> - - -</td><td>No: the FK is a normal column outside the PK. <b>Non-identifying</b> relationship.</td><td>Normal 1:N (Order.DNI of the customer) · 1:1 with UNIQUE FK · recursive relationship (Employee.boss)</td></tr></table>
+<h4>How to tell from the E-R</h4>
+<ul><li><b>N:M</b>, <b>ternary</b> or <b>associative</b> → new table whose PK is the FKs → <b>solid</b>.</li>
+<li><b>Weak entity</b> with identifying relationship (double diamond) → the FK goes into its PK → <b>solid</b>.</li>
+<li><b>Hierarchy</b> (one table per entity) → the subtype uses the supertype's PK as PK and FK → <b>solid</b>.</li>
+<li><b>1:N</b> and <b>1:1</b> between strong entities → the FK is a normal column → <b>dashed</b>.</li></ul>
+<p class="th-tip">Tip: if all the FKs of a table are underlined, all its lines are solid. In the app, tap the line and turn «Identifying» on or off.</p>
 <h4>The ends (crow's foot)</h4><ul><li><b>||</b> one and only one · <b>o|</b> zero or one · <b>|&lt;</b> one or many · <b>o&lt;</b> zero or many.</li>
 <li>On the parent side, the circle appears if the FK can be NULL (optional participation).</li><li>On the child side there is a crow's foot (many), unless the FK is UNIQUE (1:1).</li></ul>`},
 {id:'normalizacion',t:'Normalization (1NF, 2NF, 3NF)',k:'normalization normal form 1nf 2nf 3nf dependency redundancy',h:`
