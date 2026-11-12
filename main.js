@@ -111,14 +111,23 @@ function makeWindow(opts, query) {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
     titleBarStyle: 'hidden', titleBarOverlay: overlay()
   }, opts));
-  w.once('ready-to-show', () => {
+  let shown = false;
+  const showIt = (why) => {
+    if (shown || w.isDestroyed()) return; shown = true;
     const start = cfg.winStart || 'max';
     if (start === 'remember' && !query && boundsVisible(cfg.bounds)) { w.setBounds(cfg.bounds); if (cfg.maximized) w.maximize(); }
     else if (start !== 'normal') w.maximize();
     else w.center();
     if (cfg.onTop) w.setAlwaysOnTop(true);
     w.show();
-  });
+    // Recién actualizada: al frente, por encima de todo un momento, para que se vea que ha vuelto
+    if (fromUpdate && w === win) { try { w.setAlwaysOnTop(true); w.focus(); w.moveTop(); setTimeout(() => { if (!w.isDestroyed()) w.setAlwaysOnTop(!!cfg.onTop); }, 1500); } catch (e) {} }
+    updLog('ventana mostrada (' + why + ')');
+  };
+  w.once('ready-to-show', () => showIt('lista'));
+  // Por si «lista» no llega nunca (o tarda), se enseña igual
+  setTimeout(() => showIt('a la fuerza'), 6000);
+  w.webContents.on('render-process-gone', (e, d) => updLog('la ventana se ha caído: ' + (d && d.reason)));
   w.loadFile(path.join(__dirname, 'index.html'), query ? { query } : undefined);
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});
   w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -143,13 +152,17 @@ function sendSolos() {
   if (win && !win.isDestroyed()) win.webContents.send('win:list', [...solos.values()].map(s => s.folder));
 }
 
+// Registro de la actualización: si la app arranca justo después de actualizarse, apunta lo que pasa
+let fromUpdate = false;
+function updLog(m) { if (!fromUpdate) return; try { fs.appendFileSync(path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log'), new Date().toTimeString().slice(0, 8) + ' ' + m + '\r\n'); } catch (e) {} }
 app.whenReady().then(() => {
   if (INSTALLER) return;
   // Si venimos de una actualización, se apunta en el registro que la app ha arrancado
   try {
     const lg = path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log');
-    if (Date.now() - fs.statSync(lg).mtimeMs < 5 * 60 * 1000) fs.appendFileSync(lg, new Date().toTimeString().slice(0, 8) + ' arranca la app ' + VERSION + '\r\n');
+    if (Date.now() - fs.statSync(lg).mtimeMs < 5 * 60 * 1000) { fromUpdate = true; updLog('arranca la app ' + VERSION); }
   } catch (e) {}
+  app.on('will-quit', () => updLog('la app se cierra'));
   cfgFile = path.join(app.getPath('userData'), 'config.json');
   try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) { cfg = {}; }
   if (cfg.dataDir) { try { fs.mkdirSync(cfg.dataDir, { recursive: true }); } catch (e) {} }
