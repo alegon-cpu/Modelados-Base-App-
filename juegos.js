@@ -124,22 +124,36 @@ const Juegos={
   go(k){this.stopAll();this.sub=k;if(k==='quiz')this._qz=null;if(k==='bdq')this._bdq=null;App.renderMain();document.getElementById('mainv').scrollTop=0;},
   stopAll(){if(this._snk){clearInterval(this._snk.iv);this._snk=null;}},
   head(t,back){const s=this.st();return `<header class="ph"><span class="pname static">${t}</span><div class="ph-acts"><span class="jg-tok" title="Tokens para tiradas">${GL.tok||'🎟️'} <b>${s.tokens}</b> token${s.tokens===1?'':'s'}</span><span class="jg-frag" title="Fragmentos (de premios repetidos): ${FRAG_TOKEN} = 1 token">◆ ${s.frags}</span>${back?`<button class="ebtn" data-jg="menu">← Juegos</button>`:''}<button class="ebtn" data-act="home">← Inicio</button></div></header>`;},
-  avatar(big){const s=this.st(),p=this.profile(),ini=(p.nick||'?').trim().slice(0,2).toUpperCase()||'?';return `<span class="jg-av${big?' big':''}${s.eq.frame==='l-marco'?' fr-gold':''}"><span>${esc(ini)}</span></span>`;},
+  avatar(big){const s=this.st(),p=this.profile(),ini=(p.nick||'?').trim().slice(0,2).toUpperCase()||'?',img=typeof s.avatar==='string'&&s.avatar.startsWith('data:image/')?s.avatar:'';
+    return `<span class="jg-av${big?' big':''}${img?' img':''}${s.eq.frame==='l-marco'?' fr-gold':''}"${img?` style="background-image:url('${img}')"`:''}><span>${img?'':esc(ini)}</span></span>`;},
+  // Foto propia del avatar: se recorta en cuadrado y se reduce a 160×160 para que ocupe poco
+  async setAvatar(file){if(!file||!/^image\//.test(file.type)){toast('Elige una imagen (PNG, JPG, GIF o WebP).','warn');return;}
+    const url=URL.createObjectURL(file);try{const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=ko;i.src=url;});
+      const S=160,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),m=Math.min(img.naturalWidth,img.naturalHeight);
+      g.drawImage(img,(img.naturalWidth-m)/2,(img.naturalHeight-m)/2,m,m,0,0,S,S);this.st().avatar=c.toDataURL('image/jpeg',0.85);this.save();toast('Foto del perfil puesta.');}
+    catch(e){toast('No se pudo leer esa imagen.','warn');}finally{URL.revokeObjectURL(url);}},
   profileCard(){const p=this.profile();return `<button class="jg-pcard" data-act="games-profile" title="Tu perfil">${this.avatar(false)}<span class="jg-pc-t"><b>${esc(p.nick||'Sin nombre')}</b><small>${esc(p.title||'Sin título: consíguelos en las tiradas')}</small></span></button>`;},
   render(mv){const k=this.sub;
     if(k==='snake')return this.snakeView(mv);if(k==='quiz')return this.quizView(mv);if(k==='bdq')return this.bdqView(mv);
     if(k==='gacha')return this.gachaView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
-    const s=this.st(),w=s.snake.wins%10;
-    mv.innerHTML=this.head('No cliques esto')+`<div class="view jg">
+    const s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity;
+    mv.innerHTML=this.head('No cliques esto')+`<div class="view jg"><div class="jg-in">
       <section class="jg-hero"><div><h2>Vale, has clicado.</h2><p>Ya que estás: juega, gana <b>tokens</b> y haz <b>tiradas</b> para conseguir temas, colores, títulos e iconos.</p></div>${this.profileCard()}</section>
+      <button class="jg-feat" data-jg="gacha"><span class="jg-feat-bg" aria-hidden="true"></span><span class="jg-feat-ic">🎰</span>
+        <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>Temas, colores, títulos, iconos y efectos legendarios. Legendaria asegurada en <b>${leg}</b> tirada${leg===1?'':'s'}; en las de ×10, épica asegurada.</span>
+          <span class="jg-feat-rates">${Object.entries(RAR).map(([k,r])=>`<i class="r-${k}">${r.n} ${r.p} %</i>`).join('')}</span></span>
+        <span class="jg-feat-cta"><span class="jg-feat-tok">${s.tokens}<small>token${s.tokens===1?'':'s'}</small></span><span class="jg-feat-go">Tirar →</span></span></button>
+      <h3 class="jg-h">Gana tokens</h3>
       <div class="jg-grid">
-        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Elige velocidad y tamaño del mapa. Cada 10 partidas superadas: 1 token.</small><span class="jg-prog"><i style="width:${w*10}%"></i></span><em>${w}/10 para el próximo token</em></button>
-        <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades del mundo y de 1º de DAW. Rondas de 10: si aciertas las 10, 1 token.</small><em>Rondas perfectas: ${s.quiz.perfect}</em></button>
-        <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED. Di si está bien o señala sus fallos. Rondas de 5: si aciertas las 5, 1 token.</small><em>Rondas perfectas: ${s.bdq.perfect}</em></button>
-        <button class="jg-card gold" data-jg="gacha"><span class="jg-ic">🎰</span><b>Tiradas</b><small>1 token = 1 tirada. Legendaria asegurada como mucho en ${PITY} tiradas; en las de 10, una épica asegurada.</small><em>Te quedan ${PITY-s.pity} para la legendaria asegurada</em></button>
-        <button class="jg-card" data-jg="album"><span class="jg-ic">📒</span><b>Álbum</b><small>Tu colección: ${Object.keys(s.owned).length} de ${REWARDS.length}. Pulsa un premio para usarlo.</small><span class="jg-prog"><i style="width:${Object.keys(s.owned).length/REWARDS.length*100}%"></i></span></button>
-        <button class="jg-card" data-jg="perfil"><span class="jg-ic">🪪</span><b>Perfil</b><small>Tu nombre, tu título y tu tema. Salen en Inicio y en los proyectos que compartes.</small></button>
-      </div></div>`;},
+        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Elige velocidad y tamaño del mapa. Cada 10 partidas superadas, 1 token.</small><span class="jg-prog"><i style="width:${w*10}%"></i></span><em>${w}/10 para el próximo token</em></button>
+        <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Si aciertas las 10 de una ronda, 1 token.</small><em>Rondas perfectas: ${s.quiz.perfect}</em></button>
+        <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Si aciertas los 5 de una ronda, 1 token.</small><em>Rondas perfectas: ${s.bdq.perfect}</em></button>
+      </div>
+      <h3 class="jg-h">Lo tuyo</h3>
+      <div class="jg-grid two">
+        <button class="jg-card row" data-jg="album"><span class="jg-ic">📒</span><span><b>Álbum</b><small>Tu colección: ${own} de ${REWARDS.length}.</small><span class="jg-prog"><i style="width:${own/REWARDS.length*100}%"></i></span></span></button>
+        <button class="jg-card row" data-jg="perfil"><span class="jg-ic">🪪</span><span><b>Perfil</b><small>Foto, nombre, título y tema. Salen en Inicio y en lo que compartes.</small></span></button>
+      </div></div></div>`;},
   rewardThumb(x,owned){if(!owned)return `<span class="rw-th lock">?</span>`;
     if(x.kind==='acc')return `<span class="rw-th" style="background:${x.c}"></span>`;if(x.kind==='icon')return `<span class="rw-th emo">${x.e}</span>`;
     if(x.kind==='title')return `<span class="rw-th tit">«»</span>`;
@@ -147,7 +161,7 @@ const Juegos={
     return `<span class="rw-th emo">${{note:'🗒️',cursor:'✏️',frame:'🖼️',fx:x.id==='l-confeti'?'🎊':'✨'}[x.kind]||'★'}</span>`;},
   kindName:{acc:'Color de acento',icon:'Icono de proyecto',title:'Título',theme:'Tema',note:'Estilo de nota',cursor:'Cursor',frame:'Marco de avatar',fx:'Efecto al acertar'},
   gachaView(mv,res){const s=this.st();
-    mv.innerHTML=this.head('Tiradas',true)+`<div class="view jg">
+    mv.innerHTML=this.head('Tiradas',true)+`<div class="view jg"><div class="jg-in">
       <section class="jg-gacha"><div class="jg-machine"><div class="jg-orb">🎰</div><div class="jg-btns">
         <button class="ebtn pri big" data-jg-pull="1" ${s.tokens<1?'disabled':''}>Tirar ×1 <small>1 token</small></button>
         <button class="ebtn pri big" data-jg-pull="10" ${s.tokens<10?'disabled':''}>Tirar ×10 <small>10 tokens · épica asegurada</small></button>
@@ -157,21 +171,24 @@ const Juegos={
           return `<div class="jg-rate r-${k}"><b>${r.n}</b><span>${r.p} %</span><small>${{c:'Colores de acento e iconos de proyecto',r:'Títulos',e:'Temas completos',l:'Temas especiales, notas, cursor, marco y efectos'}[k]} · tienes ${own}/${tot}</small></div>`;}).join('')}
           <p class="tnote">Si te sale uno repetido se convierte en fragmentos ◆ (común 1, rara 3, épica 8, legendaria 20). Con ${FRAG_TOKEN} fragmentos canjeas 1 token. Total de tiradas: ${s.pulls}.</p></div></section>
       ${res?`<section class="jg-res${res.length>1?' ten':''}">${res.map((o,i)=>`<div class="rw r-${o.it.r}" style="animation-delay:${i*90}ms">${this.rewardThumb(o.it,true)}<b>${esc(o.it.n)}</b><small>${RAR[o.it.r].n} · ${this.kindName[o.it.kind]}</small>${o.dup?`<em class="dup">Repetido · +${RAR[o.it.r].frag} ◆</em>`:'<em class="new">¡Nuevo!</em>'}</div>`).join('')}</section>`:''}
-    </div>`;},
+    </div></div>`;},
   albumView(mv){const s=this.st();
-    mv.innerHTML=this.head('Álbum',true)+`<div class="view jg"><p class="tnote">Pulsa un premio que tengas para usarlo (o dejar de usarlo). Los iconos se ponen a cada proyecto con el botón derecho › «Icono del proyecto…».</p>
+    mv.innerHTML=this.head('Álbum',true)+`<div class="view jg"><div class="jg-in"><p class="tnote">Pulsa un premio que tengas para usarlo (o dejar de usarlo). Los iconos se ponen a cada proyecto con el botón derecho › «Icono del proyecto…».</p>
       ${Object.entries(RAR).map(([k,r])=>{const L=REWARDS.filter(x=>x.r===k);return `<section class="jg-alb"><h3 class="r-${k}">${r.n} <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · ${r.p} %</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
-        return `<button class="rw r-${k}${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Aún no lo tienes'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}${o&&s.owned[x.id]>1?' · ×'+s.owned[x.id]:''}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;}).join('')}</div>`;},
+        return `<button class="rw r-${k}${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Aún no lo tienes'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}${o&&s.owned[x.id]>1?' · ×'+s.owned[x.id]:''}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;}).join('')}</div></div>`;},
   perfilView(mv){const s=this.st(),own=k=>REWARDS.filter(x=>x.kind===k&&s.owned[x.id]),sel=(slot,k,none)=>`<select data-jg-slot="${slot}"><option value="">${none}</option>${(Array.isArray(k)?k.flatMap(own):own(k)).map(x=>`<option value="${x.id}" ${s.eq[slot]===x.id?'selected':''}>${esc(x.n)}</option>`).join('')}</select>`;
-    mv.innerHTML=this.head('Perfil',true)+`<div class="view jg"><section class="jg-prof">${this.avatar(true)}<div class="jg-prof-f">
+    mv.innerHTML=this.head('Perfil',true)+`<div class="view jg"><div class="jg-in narrow"><section class="jg-prof">${this.avatar(true)}<div class="jg-prof-f">
+      <div class="jg-avbtns"><label class="ebtn">Subir imagen…<input type="file" id="jgimg" accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>${s.avatar?'<button class="ebtn" id="jgimgx">Quitar imagen</button>':''}</div>
       <label class="set-lab"><b>Tu nombre o apodo</b><input id="jgnick" maxlength="24" value="${escA(s.nick)}" placeholder="Por ejemplo: Ale"></label>
       <div class="jg-rows">
         <label><b>Título</b>${sel('title','title','Sin título')}</label><label><b>Tema</b>${sel('theme','theme','El normal de la app')}</label>
         <label><b>Color de acento</b>${sel('acc','acc','El del tema')}</label><label><b>Notas</b>${sel('note','note','Normales')}</label>
         <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label></div>
       <p class="tnote">Tu nombre y tu título salen en Inicio y en los proyectos que compartes con «Exportar código». Mientras uses un tema, los botones Claro/Oscuro no cambian nada.</p>
-      <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div>`;
-    const n=document.getElementById('jgnick');n.addEventListener('input',()=>{s.nick=n.value.trim().slice(0,24);this.save();const av=mv.querySelector('.jg-av span');if(av)av.textContent=(s.nick||'?').slice(0,2).toUpperCase();});
+      <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
+    const fi=document.getElementById('jgimg');fi.addEventListener('change',async()=>{await this.setAvatar(fi.files[0]);this.perfilView(mv);});
+    const fx=document.getElementById('jgimgx');if(fx)fx.addEventListener('click',()=>{delete s.avatar;this.save();this.perfilView(mv);});
+    const n=document.getElementById('jgnick');n.addEventListener('input',()=>{s.nick=n.value.trim().slice(0,24);this.save();const av=mv.querySelector('.jg-av:not(.img) span');if(av)av.textContent=(s.nick||'?').slice(0,2).toUpperCase();});
     mv.querySelectorAll('[data-jg-slot]').forEach(el=>el.addEventListener('change',()=>{s.eq[el.dataset.jgSlot]=el.value||null;this.save();this.apply();this.go('perfil');}));},
   onClick(e){const b=e.target.closest('[data-jg],[data-jg-pull],[data-jg-swap],[data-jg-eq]');if(!b)return false;
     if(b.dataset.jg){this.go(b.dataset.jg);return true;}

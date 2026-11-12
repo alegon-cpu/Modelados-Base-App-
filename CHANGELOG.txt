@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.3.1  (12/11/2026)
+--------------------
+- Menu de juegos centrado y rediseñado, con las Tiradas destacadas.
+- Se puede bajar en el Album y en las demas pantallas de juegos.
+- Imagen propia en el perfil.
+- Arreglados los botones de la carpeta del progreso en Ajustes.
+
 v2.3  (12/11/2026)
 ------------------
 - "No cliques esto": Serpiente, Quiz de cultura (1000+ preguntas) y
