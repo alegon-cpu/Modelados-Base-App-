@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.1';
+const VERSION='2.2';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -11,6 +11,8 @@ const VIEWS={enun:'Enunciado',bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sq
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
 const ICO={
   folder:`<svg class="ico" width="16" height="16" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 0 1 1-1h3.6l1.4 1.5h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="var(--folder)"/></svg>`,
+  grp:`<svg class="ico gico" width="16" height="16" viewBox="0 0 16 16"><path d="M1.5 4.5a1 1 0 0 1 1-1h3.6l1.4 1.5h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 7h13" stroke="currentColor" stroke-width="1.1"/></svg>`,
+  find:`<svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
   chev:`<svg class="chev" width="12" height="12" viewBox="0 0 12 12"><path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
   enun:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><path d="M3.5 1.5h6l3 3v10h-9z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 7.5h5M5.5 10h5M5.5 12.5h3" stroke="currentColor" stroke-width="1.2"/></svg>`,
   bo:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><rect x="1" y="2" width="5.5" height="4" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><rect x="9.5" y="10" width="5.5" height="4" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M5 6l6 4" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 1.5"/></svg>`,
@@ -20,9 +22,9 @@ const ICO={
   test:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><path d="M4.5 2.5v4.2L1.8 12a1.3 1.3 0 0 0 1.2 1.9h10a1.3 1.3 0 0 0 1.2-1.9l-2.7-5.3V2.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M3.5 2.5h9M3.6 9.5h8.8" stroke="currentColor" stroke-width="1.2"/></svg>`,
   sql:`<svg class="ico" width="15" height="15" viewBox="0 0 16 16"><ellipse cx="8" cy="3.5" rx="5.5" ry="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`};
 function toast(msg,kind){document.querySelectorAll('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),kind==='warn'?5200:3200);}
-const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||''),...(n.lk?{lk:1}:{})}));
+const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||''),...(n.lk?{lk:1}:{}),...(n.from?{from:String(n.from)}:{})}));
 // er y bo (boceto) comparten formato: nodos y líneas
-const cleanModel=(v,m)=>(m==='er'||m==='bo')?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null,...(l.sup?{sup:1}:{}),...(l.ea?{ea:l.ea}:{}),...(l.eb?{eb:l.eb}:{})})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]]),...(t.lk?{lk:1}:{})})),notes:cleanNotes(v)};
+const cleanModel=(v,m)=>(m==='er'||m==='bo')?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null,...(l.sup?{sup:1}:{}),...(l.ea?{ea:l.ea}:{}),...(l.eb?{eb:l.eb}:{}),...(Array.isArray(l.at)&&l.at.length?{at:l.at.map(String)}:{})})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]]),...(t.lk?{lk:1}:{})})),notes:cleanNotes(v)};
 const isNote=n=>!!n&&n.k==='note';
 const NOTE_COLORS={y:'Amarilla',b:'Azul',g:'Verde',p:'Rosa'};
 // Parte el texto de una nota en líneas que caben en su ancho
@@ -34,7 +36,7 @@ function noteSize(n){n.w=n.w||180;n.lines=noteLines(n);n.h=Math.max(46,18+n.line
 function noteSVG(n,cls=''){noteSize(n);const x=n.x,y=n.y,w=n.w,h=n.h,f=12;
   return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/><path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
     n.lines.map((l,i)=>`<text x="${x+10}" y="${y+21+i*16}" class="note-tx">${esc(l)}</text>`).join('');}
-const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
+const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),...(p.hl&&p.hl.length?{hl:p.hl}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
 function guessType(name,f){
   const s=lc(name);
   if(f&&(f.pk||f.fk))return /^(dni|nif|nie)/.test(s)?'CHAR(9)':/^(mat|isbn|iata|cod[a-z]*str)/.test(s)?'VARCHAR(20)':'INT';
@@ -187,6 +189,15 @@ function isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols){
       T.c=[];pkCols(ST).forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],joinF({pk:1,fk:ST.n})]));own.forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],c[2]]));});
   }
 }
+// Copia las notas de un diagrama a otro (al pasar Boceto → E-R → Relacional → DED), sin repetirlas, a la derecha de lo que haya
+function carryNotes(src,dst,tables){const from=(src&&src.notes)||[];if(!from.length)return 0;dst.notes=dst.notes||[];
+  const have=new Set(dst.notes.map(n=>n.from||'')),txt=new Set(dst.notes.map(n=>lc(String(n.text||'').trim())));
+  const add=from.filter(n=>!have.has(n.id)&&!have.has(n.from||'-')&&!txt.has(lc(String(n.text||'').trim())));if(!add.length)return 0;
+  const boxes=tables?(dst.t||[]).map(t=>{const s=tableSize(t);return[t.x,t.y,t.x+s.w,t.y+s.h];}):(dst.nodes||[]).map(n=>[n.x-60,n.y-30,n.x+60,n.y+30]);
+  dst.notes.forEach(n=>{noteSize(n);boxes.push([n.x,n.y,n.x+n.w,n.y+n.h]);});
+  const x0=boxes.length?Math.max(...boxes.map(b=>b[2]))+60:W/2,y0=boxes.length?Math.min(...boxes.map(b=>b[1])):H/2;let y=y0;
+  add.forEach(n=>{const c={id:uid(),k:'note',x:Math.round(Math.min(W-240,x0)),y:Math.round(y),w:n.w||180,text:n.text||'',c:n.c||'y',from:n.from||n.id};noteSize(c);dst.notes.push(c);y+=c.h+24;});
+  return add.length;}
 function tableSize(t){const tmp={W,H,t:[{n:t.n,x:0,y:0,c:t.c}]};prepTables(tmp);return {w:tmp.t[0].w,h:tmp.t[0].h};}
 function layoutTables(tables,X){
   const main=tables.filter(t=>t._src),extra=tables.filter(t=>!t._src);
@@ -230,6 +241,7 @@ const GL={
   easy:gsv(18,'<path d="M9 1.5l1.9 4 4.4.5-3.3 3 .9 4.3L9 11.1l-3.9 2.2.9-4.3-3.3-3 4.4-.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>'),
   dist:gsv(18,'<rect x="1" y="1" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="12" y="1" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="12" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="12" y="12" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/>'),
   clear:gsv(16,'<path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.8 9.5h6.4l.8-9.5" fill="none" stroke="currentColor" stroke-width="1.3"/>'),
+  find:gsv(16,'<circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
   enun:gsv(16,'<path d="M3 1.5h7l3 3v10H3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 7.5h6M5 10h6M5 12.5h4" stroke="currentColor" stroke-width="1.1"/>'),
   open:gsv(18,'<path d="M1.5 4.5a1 1 0 0 1 1-1h4l1.5 1.5h6.5a1 1 0 0 1 1 1v1.5H5L2.5 14.5h-1z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 7.5h11.5L14 14.5H2.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>'),
   note:gsv(18,'<path d="M2 2h11l3 3v11H2z" fill="#FBE7A1" stroke="#B08A1E" stroke-width="1.2"/><path d="M5 7h8M5 10h8M5 13h5" stroke="#8A6A10" stroke-width="1.1"/>'),
@@ -298,8 +310,8 @@ class Editor{
   mount(el){
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
-      <div class="ed-main"><div class="ed-en"><p class="lbl">Enunciado</p><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Entidades y atributos · una por línea: <code>Entidad; atributo1, atributo2…</code> · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre, Especialidad"></textarea></div>
+      <div class="ed-main"><div class="ed-en"><p class="lbl">Enunciado</p>${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div>${sp('en','Ancho del enunciado')}
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una por línea · entidad: <code>Entidad; atributo1, atributo2…</code> · relación: <code>Entidad1-Entidad2; atributo…</code> (atributos opcionales) · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre&#10;Alumno-Curso; FechaMatricula, Nota&#10;Profesor-Curso"></textarea></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -322,10 +334,13 @@ class Editor{
     this.insp.addEventListener('input',e=>{const t=e.target;if(t.type==='checkbox'||t.tagName==='SELECT')return;if(!this.editing){this.snap();this.editing=true;}this.apply(t);this.save();this.render();this.markDup();});
     this.insp.addEventListener('change',e=>{const t=e.target;if(!(t.type==='checkbox'||t.tagName==='SELECT')||t.dataset.pendchk)return;this.snap();this.apply(t);this.save();this.render();this.renderInsp();});
     this.insp.addEventListener('keydown',e=>this.onInspKey(e));
+    this._hlDraw=hlWire(this.enT,el.querySelector('.ed-en .hlback'),()=>(this.p&&this.p.hl)||[]);
+    { const hb=el.querySelector('.ed-en .hlbar');hb.addEventListener('pointerdown',e=>{if(e.target.closest('[data-hl]'))e.preventDefault();});
+      hb.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b||!this.p)return;if(hlApply(this.p,this.enT,b.dataset.hl)){this.app.touch(this.p);this._hlDraw();}}); }
     this.enT.addEventListener('input',()=>{const v=fixBullets(this.enT.value);if(v!==this.enT.value){const c=this.enT.selectionStart;this.enT.value=v;this.enT.setSelectionRange(c,c);}this.p.enun=v;this.app.touch(this.p);});
     this.boZ=el.querySelector('.bo-zone');this.boT=el.querySelector('#botxt');
     this.boT.addEventListener('input',()=>{if(this.ro)return;clearTimeout(this._boT);this._boT=setTimeout(()=>this.boFromText(this.boT.value),350);});
-    this.boT.addEventListener('blur',()=>{clearTimeout(this._boT);if(this.isBo&&this.p&&!this.ro){this.boFromText(this.boT.value);this._boEd=false;this.boT.value=this.boText();}});
+    this.boT.addEventListener('blur',()=>{clearTimeout(this._boT);if(this.isBo&&this.p&&!this.ro){this.boFromText(this.boT.value);this._boEd=false;this.boSync();}});
   }
   open(p,mode){
     closeCtx();this.closeSearch&&this.cv&&this.closeSearch();
@@ -333,7 +348,7 @@ class Editor{
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
     if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
-    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');
+    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');if(this._hlDraw)this._hlDraw();
     this.renderTools();this.render();this.renderInsp();
     if(first){if(this.hasContent())this.fit(true);else this.centerView();}else this.applyView();
   }
@@ -352,8 +367,8 @@ class Editor{
     else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+'';
     else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy);
     const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
-    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
-    if(this.ro)h=`<div class="tgroup"><span class="tnote rotag">${GL.lock} Solo lectura${this.p.act&&this.p.act.state==='over'?': se acabó el tiempo de la actividad':this.p.act&&this.p.act.state==='ready'?': pulsa «Empezar» para comenzar la actividad':': esta parte no hay que hacerla en la actividad'}</span></div><span class="tspace"></span>${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
+    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
+    if(this.ro)h=`<div class="tgroup"><span class="tnote rotag">${GL.lock} Solo lectura${this.p.act&&this.p.act.state==='over'?': se acabó el tiempo de la actividad':this.p.act&&this.p.act.state==='ready'?': pulsa «Empezar» para comenzar la actividad':': esta parte no hay que hacerla en la actividad'}</span></div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
     this.tools.innerHTML=h;
     if(this.inAct)this.tools.querySelectorAll('[data-act=fromer],[data-act=copyrel],[data-act=easy],[data-act=bo2er]').forEach(b=>b.remove());
     this.tools.querySelectorAll('[data-tsel]').forEach(sel=>sel.addEventListener('change',()=>{Settings.set(sel.dataset.tsel,sel.value);this.renderTools();this.render();this.renderInsp();}));
@@ -568,6 +583,7 @@ class Editor{
     if(a==='table'){this.create('table');return;}
     if(a==='distribute'){this.distribute();return;}
     if(a==='fromer'){this.fromER();return;}
+    if(a==='find'){this.openSearch();return;}
     if(a==='copyrel'){this.copyRel();return;}
     if(a==='clear'){this.app.confirm(`Vaciar ${VIEWS[this.mode]}`,`Se borrará todo lo que hay en el ${VIEWS[this.mode]} de este proyecto. Puedes recuperarlo con Ctrl+Z.`,'Vaciar',()=>{this.snap();this.p[this.mode]=this.isER?{nodes:[],links:[],notes:[]}:{t:[],notes:[]};this.selIds=new Set();this.selLink=null;this.pend=null;this.save();this.render();this.renderInsp();});return;}
     if(a==='addcol'){this.addColumn();return;}
@@ -710,24 +726,42 @@ class Editor{
     this.save();this.selIds=new Set([r.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();
     if(ents.length>2)toast(`Relación ternaria creada. En el panel, contesta las ${ents.length} preguntas de cardinalidad.`);}
   /* ---------- Boceto: zona de texto «Entidad; atributo1, atributo2» ---------- */
-  boText(){return this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')).join('\n');}
+  // Lo que muestra el texto: solo eso se puede borrar escribiendo (lo que se añade en el lienzo mientras escribes no se pierde)
+  boSync(){this.boT.value=this.boText();this._boKnown=new Set([...this.m.nodes.filter(isEnt).map(n=>n.id),...this.m.links.map(l=>l.id)]);}
+  boText(){const N={};this.m.nodes.forEach(n=>N[n.id]=n);
+    return [...this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')),
+      ...this.m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>N[l.a].n+'-'+N[l.b].n+((l.at||[]).length?'; '+l.at.join(', '):''))].join('\n');}
   boParse(txt){return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^([^;:]*)[;:]?(.*)$/);
     return{name:m[1].trim(),at:m[2].split(',').map(x=>x.trim()).filter(Boolean)};}).filter(x=>x.name);}
+  boSplit(lines){const ents=[],rels=[];const isRelLine=ln=>{const i=ln.name.indexOf('-');if(i<1)return null;return{a:ln.name.slice(0,i).trim(),b:ln.name.slice(i+1).trim()};};
+    const names=new Set(lines.filter(ln=>!isRelLine(ln)).map(ln=>lc(ln.name)));
+    lines.forEach(ln=>{const r=isRelLine(ln);if(r&&names.has(lc(r.a)))rels.push({...r,at:ln.at,ok:names.has(lc(r.b))});else ents.push(ln);});return{ents,rels};}
   // El texto manda: crea, renombra o borra entidades para que coincidan con las líneas
-  boFromText(txt){if(!this.isBo||!this.p)return;const lines=this.boParse(txt),ents=this.m.nodes.filter(isEnt),idx=new Map(ents.map((e,i)=>[e,i]));
-    const sig=()=>JSON.stringify(this.m.nodes.filter(isEnt).map(e=>[e.n,e.f.at||[]]));const before=sig();
+  boFromText(txt){if(!this.isBo||!this.p)return;const sp=this.boSplit(this.boParse(txt)),lines=sp.ents,K=this._boKnown,known=x=>!K||K.has(x.id),ents=this.m.nodes.filter(n=>isEnt(n)&&known(n)),idx=new Map(ents.map((e,i)=>[e,i]));
+    const sig=()=>JSON.stringify([this.m.nodes.filter(isEnt).map(e=>[e.n,e.f.at||[]]),this.m.links.map(l=>[l.a,l.b,l.at||[]])]);const before=sig();
     const used=new Set(),as=new Array(lines.length);
     lines.forEach((ln,i)=>{const e=ents.find(e=>!used.has(e)&&lc(e.n)===lc(ln.name));if(e){used.add(e);as[i]=e;}});
     lines.forEach((ln,i)=>{if(as[i])return;let best=null;ents.forEach(e=>{if(used.has(e))return;const d=Math.abs(idx.get(e)-i);if(!best||d<best.d)best={e,d};});if(best){used.add(best.e);as[i]=best.e;}});
     const gone=ents.filter(e=>!used.has(e));
     const changes=gone.length||lines.some((ln,i)=>!as[i]||as[i].n!==ln.name||JSON.stringify(as[i].f.at||[])!==JSON.stringify(ln.at));
-    if(!changes&&lines.length===ents.length)return;
+    const linkPlan=()=>{ // une cada línea «A-B» con una unión del lienzo (las que se están escribiendo a medias no borran nada)
+      const byN={};this.m.nodes.filter(isEnt).forEach(e=>{byN[lc(e.n)]=byN[lc(e.n)]||e;});const L=this.m.links.filter(l=>isEnt(this.node(l.a))&&isEnt(this.node(l.b))&&known(l));
+      const used=new Set(),as2=sp.rels.map(r=>{if(!r.ok)return null;const A=byN[lc(r.a)],B=byN[lc(r.b)];if(!A||!B)return null;
+        const l=L.find(l=>!used.has(l)&&((l.a===A.id&&l.b===B.id)||(l.a===B.id&&l.b===A.id)));if(l)used.add(l);return l||{A,B};});
+      const free=L.filter(l=>!used.has(l));sp.rels.forEach((r,i)=>{if(!as2[i]&&free.length){const l=free.shift();used.add(l);as2[i]={keep:l};}});
+      return{as2,kill:L.filter(l=>!used.has(l)&&known(l))};};
+    const lp=linkPlan(),lchg=lp.kill.length||sp.rels.some((r,i)=>{const x=lp.as2[i];return x&&(x.A||(!x.keep&&JSON.stringify(x.at||[])!==JSON.stringify(r.at)));});
+    if(!changes&&!lchg&&lines.length===ents.length)return;
     if(!this._boEd){this.snap();this._boEd=true;}
     const kill=new Set(gone.map(e=>e.id));this.m.nodes=this.m.nodes.filter(n=>!kill.has(n.id));this.m.links=this.m.links.filter(l=>!kill.has(l.a)&&!kill.has(l.b));
     const order=[];lines.forEach((ln,i)=>{let e=as[i];
       if(!e){const c=this.freeSpot(140,60);e={id:uid(),k:'ent',n:ln.name,x:c.x,y:c.y,f:{}};this.m.nodes.push(e);}
       e.n=ln.name;if(ln.at.length)e.f.at=ln.at;else delete e.f.at;order.push(e);});
-    const rest=this.m.nodes.filter(n=>!isEnt(n));this.m.nodes=[...order,...rest];
+    const extra=this.m.nodes.filter(n=>isEnt(n)&&!known(n)&&!order.includes(n)),rest=this.m.nodes.filter(n=>!isEnt(n));this.m.nodes=[...order,...extra,...rest];
+    { const lp2=linkPlan();const kill=new Set(lp2.kill);this.m.links=this.m.links.filter(l=>!kill.has(l));
+      sp.rels.forEach((r,i)=>{let x=lp2.as2[i];if(!x)return;if(x.keep){if(K)K.add(x.keep.id);return;}if(x.A){const l={id:uid(),a:x.A.id,b:x.B.id,c:null,mn:null,mx:null};this.m.links.push(l);x=l;}
+        if(K)K.add(x.id);if(r.at.length)x.at=r.at;else delete x.at;});
+      if(K)order.forEach(e=>K.add(e.id)); }
     if(sig()!==before||gone.length){this.selIds=new Set([...this.selIds].filter(id=>this.node(id)));this.save();this.render();this.renderInsp();}}
   // Proyectos de la 1.9: el tipo de línea (1:N…) pasa a marcas en cada extremo
   boFix(){const bo=this.p.bo;if(!bo)return;(bo.links||[]).forEach(l=>{if(!l.t)return;const m={'11':['?1','?1'],'1N':['?1','?N'],'N1':['?N','?1'],'NM':['?N','?N']}[l.t];if(m&&!l.ea&&!l.eb){l.ea=m[0];l.eb=m[1];}delete l.t;});}
@@ -741,16 +775,20 @@ class Editor{
     const map={};let ne=0,nr=0,na=0;
     ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)*1.8),y:Math.round(dy+(e.y-cy)*1.8),f:{}};er.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;});
     const X=erIdx(er),relNames=er.nodes.filter(isRel).map(x=>x.n),card=v=>v?{mn:v[0]==='?'?null:v[0],mx:v[1]}:{mn:null,mx:null};
+    const relAt=(r,list)=>{const have=new Set(erIdx(er).attrsOf(r).map(a=>lc(a.n)));(list||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
+      const nn={id:uid(),k:'attr',n,x:r.x,y:r.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:r.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(r);ed2.placeAttr(r,nn);na++;});};
     bo.links.forEach(l=>{const A=map[l.a],B=map[l.b];if(!A||!B)return;
-      if(er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id);})()))return;
+      const old=er.nodes.find(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());
+      if(old){relAt(old,l.at);return;}
       const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',relNames),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};relNames.push(r.n);
       if(A===B){r.x+=170;r.y-=100;}
       const ca=card(l.ea),cb=card(l.eb),lk=(e,c)=>({id:uid(),a:r.id,b:e.id,mn:c.mn,mx:c.mx,c:c.mn!=null&&c.mx!=null?`(${c.mn},${c.mx})`:null});
-      er.nodes.push(r);er.links.push(lk(A,ca),lk(B,cb));nr++;});
+      er.nodes.push(r);er.links.push(lk(A,ca),lk(B,cb));nr++;relAt(r,l.at);});
     ents.forEach(e=>{const t=map[e.id],have=new Set(erIdx(er).attrsOf(t).map(a=>lc(a.n)));
       (e.f.at||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
         const nn={id:uid(),k:'attr',n,x:t.x,y:t.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;});});
-    if(!ne&&!nr&&!na){toast('Tu E-R ya tiene todo lo del boceto.');return;}
+    const nn=carryNotes(bo,er,false);
+    if(!ne&&!nr&&!na&&!nn){toast('Tu E-R ya tiene todo lo del boceto.');return;}
     this.hist.push({mode:'er',data:snapER});this.app.touch(this.p);if(this.p._views)delete this.p._views.er;this.app.go(this.p,'er');
     toast(`Pasado al E-R: ${ne} entidad(es), ${na} atributo(s) y ${nr} relación(es). Ahora marca las claves, ponle un verbo a cada relación y completa lo que falte. Ctrl+Z lo deshace.`);}
   // Marcas de la comparación (verde: solo en el tuyo, ámbar: cambiado)
@@ -771,7 +809,9 @@ class Editor{
   searchHits(){
     const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(),q=norm(this._sq).trim();if(!q)return[];
     const out=[];
-    if(this.isER){const X=this.X(),hide=this.not!=='chen';this.m.nodes.forEach(n=>{if(!isIsa(n)&&norm(n.n).includes(q)){const ow=isAtt(n)?X.ownerOf(n):null;
+    if(this.isBo){this.m.nodes.filter(isEnt).forEach(n=>{if(norm(n.n).includes(q))out.push({id:n.id,what:'Entidad «'+n.n+'»'});(n.f.at||[]).forEach(a=>{if(norm(a).includes(q))out.push({id:n.id,what:'Atributo «'+a+'» de «'+n.n+'»'});});});
+      this.m.links.forEach(l=>(l.at||[]).forEach(a=>{const A=this.node(l.a),B=this.node(l.b);if(A&&B&&norm(a).includes(q))out.push({id:A.id,what:'Atributo «'+a+'» de la relación '+A.n+'-'+B.n});}));}
+    else if(this.isER){const X=this.X(),hide=this.not!=='chen';this.m.nodes.forEach(n=>{if(!isIsa(n)&&norm(n.n).includes(q)){const ow=isAtt(n)?X.ownerOf(n):null;
       out.push({id:hide&&isAtt(n)&&ow?(isAtt(ow)?(X.ownerOf(ow)||ow).id:ow.id):n.id,what:(isEnt(n)?'Entidad':isRel(n)?'Relación':'Atributo')+' «'+n.n+'»'+(ow?' de «'+ow.n+'»':'')});}});}
     else this.m.t.forEach(t=>{if(norm(t.n).includes(q))out.push({id:t.id,what:'Tabla «'+t.n+'»'});
       t.c.forEach(c=>{if(norm(c[0]).includes(q))out.push({id:t.id,what:'Columna «'+c[0]+'» de «'+t.n+'»'});});});
@@ -828,7 +868,7 @@ class Editor{
       this.render();this.renderInsp();}
   }
   /* ---------- Dibujo ---------- */
-  render(){if(!this.p)return;if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boT.value=this.boText();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);this.applyView();}
+  render(){if(!this.p)return;if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boSync();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);this.applyView();}
   gridSVG(){if(!Settings.get().grid)return '';return `<defs><pattern id="pdots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" class="pdot"/></pattern></defs><rect x="-400" y="-400" width="${W+800}" height="${H+800}" fill="url(#pdots)"/>`;}
   bandSVG(){const b=this.band;if(!b)return'';return `<rect x="${f1(Math.min(b.x0,b.x1))}" y="${f1(Math.min(b.y0,b.y1))}" width="${f1(Math.abs(b.x1-b.x0))}" height="${f1(Math.abs(b.y1-b.y0))}" class="band"/>`;}
   erString(live){
@@ -975,7 +1015,8 @@ class Editor{
           <div class="cardrow"><span>mínimo</span><div class="seg">${sb('mn','0')}${sb('mn','1')}</div></div>
           <div class="cres">junto a «${esc(to)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;};
       h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">Cardinalidades (opcional)</div>`+q('b',A.n,B.n)+q('a',B.n,A.n)+
-        `<p class="in-p bo-leg">Igual que en el E-R. Al pulsar «Pasar al E-R» se ponen en la relación.</p>`;}
+        `<p class="in-p bo-leg">Igual que en el E-R. Al pulsar «Pasar al E-R» se ponen en la relación.</p>`+
+        `<div class="in-sub">Atributos de la relación <span class="cnt">${(l.at||[]).length}</span></div><p class="in-p">${(l.at||[]).length?l.at.map(a=>esc(a)).join(', '):'Ninguno. Si la relación tiene atributos, escríbelos arriba: <code>'+esc(A.n)+'-'+esc(B.n)+'; atributo1, atributo2</code>'}</p>`;}
     else if(false){const l=null,A=null,B=null;
       h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">¿Qué crees que será? (opcional)</div>
         <div class="seg wide">${[['','?'],['11','1:1'],['1N','1:N'],['N1','N:1'],['NM','N:M']].map(([v,t])=>`<button class="segb" data-skt="${v}" aria-pressed="${(l.t||'')===v}">${t}</button>`).join('')}</div>
@@ -1161,8 +1202,9 @@ class Editor{
         const exist=this.m.t.map(t=>{const s=tableSize(t);return{x:t.x,y:t.y,w:s.w,h:s.h};});
         add.forEach(t=>{const s=tableSize(t);let k=0;while(exist.some(o=>t.x<o.x+o.w+50&&t.x+s.w+50>o.x&&t.y<o.y+o.h+40&&t.y+s.h+40>o.y)&&k<300){t.y+=30;k++;}exist.push({x:t.x,y:t.y,w:s.w,h:s.h});this.m.t.push(t);});
         if(!add.length){toast('Ya tienes una tabla para cada entidad.');return;}}
+      const nn=carryNotes(this.p.er,this.m,true);
       this.selIds=new Set();this.save();this.render();this.renderInsp();this.fit(true);
-      toast(`${replace?tables.length:'Nuevas'} tabla(s) creadas${this.easy?' con sus relaciones':''}.`+(notes.length?' '+notes.join(' '):''),notes.length?'warn':'');};
+      toast(`${replace?tables.length:'Nuevas'} tabla(s) creadas${this.easy?' con sus relaciones':''}.`+(nn?` También ${nn} nota(s) del E-R.`:'')+(notes.length?' '+notes.join(' '):''),notes.length?'warn':'');};
     if(!this.m.t.length){doIt(true);return;}
     this.app.modal(`<h3>Ya hay tablas en el ${VIEWS[this.mode]}</h3><p>¿Qué hago con lo que ya tienes?</p><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn" data-m="fe-add">Añadir solo lo que falta</button><button class="ebtn pri" data-m="fe-rep">Sustituirlo todo</button></div>`);
     this.app._feCb=doIt;
@@ -1170,7 +1212,7 @@ class Editor{
   copyRel(){
     const src=this.p.rel.t;if(!src.length){toast('Tu relacional está vacío.');return;}
     const easy=this.easy;
-    const doIt=()=>{this.snap();this.p.ded={notes:(this.p.ded.notes||[]),t:src.map(t=>({id:uid(),n:t.n,x:t.x,y:t.y,c:t.c.map(c=>{const f=parseF(c[2]),ty=c[1]&&c[1]!=='INT'?c[1]:guessType(c[0],f);if(!easy){delete f.fk;}return[c[0],ty,easy?c[2]:joinF(f)];})}))};this.selIds=new Set();this.selLink=null;this.save();this.render();this.renderInsp();this.fit(true);
+    const doIt=()=>{this.snap();this.p.ded={notes:(this.p.ded.notes||[]),t:src.map(t=>({id:uid(),n:t.n,x:t.x,y:t.y,c:t.c.map(c=>{const f=parseF(c[2]),ty=c[1]&&c[1]!=='INT'?c[1]:guessType(c[0],f);if(!easy){delete f.fk;}return[c[0],ty,easy?c[2]:joinF(f)];})}))};carryNotes(this.p.rel,this.p.ded,true);this.selIds=new Set();this.selLink=null;this.save();this.render();this.renderInsp();this.fit(true);
       toast(easy?'Tablas copiadas con sus relaciones. Ajusta los tipos de cada columna.':'Tablas copiadas sin relaciones. Únelas con «Relacionar» o marca FK en cada columna (con el modo fácil se copian también las relaciones).');};
     if(!this.m.t.length){doIt();return;}
     this.app.confirm('Copiar el relacional','Se sustituirán las tablas del DED por las del relacional. Puedes volver atrás con Ctrl+Z.','Sustituir',doIt);

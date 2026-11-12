@@ -41,6 +41,17 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.2  (12/11/2026)
+------------------
+- Subrayador del enunciado (Entidad, Relacion, Atributo) y "Pasar al
+  Boceto" con lo marcado.
+- Carpetas y subcarpetas para ordenar los proyectos (crear, renombrar,
+  mover, arrastrar, eliminar).
+- Boceto: "Entidad1-Entidad2; atributo1, atributo2" para las relaciones
+  con atributos; pasan al E-R.
+- Las notas pasan de un diagrama a otro (Boceto > E-R > Relacional > DED).
+- Boton "Buscar" en cada diagrama.
+
 v2.1  (12/11/2026)
 ------------------
 - Entidad asociativa en el E-R (rombo dentro de un rectangulo), que se

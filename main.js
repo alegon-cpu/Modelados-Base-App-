@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 
-const VERSION = '2.1';
+const VERSION = '2.2';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -203,7 +203,7 @@ function bringProjects(fromDir, toDir) {
   if (!fs.existsSync(fromDir) || path.resolve(fromDir) === path.resolve(toDir)) return 0;
   for (const d of fs.readdirSync(fromDir, { withFileTypes: true })) {
     const src = path.join(fromDir, d.name);
-    if (!d.isDirectory() || !fs.existsSync(path.join(src, 'proyecto.json'))) continue;
+    if (!d.isDirectory() || d.name.startsWith('.')) continue; // proyectos y carpetas de proyectos
     let name = d.name, i = 2;
     while (fs.existsSync(path.join(toDir, name))) name = `${d.name} (${i++})`;
     moveDir(src, path.join(toDir, name)); n++;
@@ -245,7 +245,12 @@ h('base:choose', async () => {
 });
 h('proj:list', () => S.list(base()));
 h('proj:load', folder => S.load(base(), folder));
-h('proj:create', name => S.create(base(), name));
+h('proj:create', (name, parent) => S.create(base(), name, parent || ''));
+h('grp:list', () => S.groups(base()));
+h('grp:create', (parent, name) => S.mkGroup(base(), parent || '', name));
+h('grp:rename', (g, name) => S.renameGroup(base(), g, name));
+h('grp:delete', g => shell.trashItem(S.inside(base(), g)));
+h('proj:move', (folder, to) => S.move(base(), folder, to || ''));
 h('proj:save', (p, svgs) => S.save(base(), p, svgs));
 h('proj:rename', (folder, name, e) => {
   const nf = S.rename(base(), folder, name);

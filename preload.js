@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const call = async (ch, ...a) => { const r = await ipcRenderer.invoke(ch, ...a); if (!r.ok) throw new Error(r.error); return r.v; };
 contextBridge.exposeInMainWorld('api', {
   baseGet: () => call('base:get'), baseSetup: d => call('base:setup', d), baseChoose: () => call('base:choose'), baseReveal: () => call('base:reveal'),
-  list: () => call('proj:list'), load: f => call('proj:load', f), create: n => call('proj:create', n), save: (p, svgs) => call('proj:save', p, svgs),
+  list: () => call('proj:list'), load: f => call('proj:load', f), create: (n, parent) => call('proj:create', n, parent), groups: () => call('grp:list'), mkGroup: (parent, n) => call('grp:create', parent, n), renameGroup: (g, n) => call('grp:rename', g, n), removeGroup: g => call('grp:delete', g), move: (f, to) => call('proj:move', f, to), save: (p, svgs) => call('proj:save', p, svgs),
   rename: (f, n) => call('proj:rename', f, n), remove: f => call('proj:delete', f), dup: f => call('proj:dup', f),
   reveal: f => call('proj:reveal', f), importDir: () => call('proj:importDir'),
   saveERDPlus: (f, n, t) => call('file:erdplus', f, n, t), saveCapture: (f, n, b64) => call('proj:saveCapture', f, n, b64), showFile: f => call('file:show', f),

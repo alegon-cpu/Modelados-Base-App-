@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Modelado Bases 2.1</title>
+<title>Modelado Bases 2.2</title>
 <style>@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
 
@@ -72,6 +72,31 @@ body.solo .side,body.solo .sb-base{display:none}
 .pf.dirty .ddot{display:block}
 .win-tag{font:600 10px var(--f-ui);color:var(--muted);border:1px solid var(--line-2);border-radius:3px;padding:0 4px;line-height:15px}
 .sub{padding-left:26px}
+.tree-h{display:flex;align-items:center;gap:6px;border-radius:4px}
+.tree-h>span{flex:1}
+.tree-add{display:inline-flex;align-items:center;gap:1px;border:1px solid transparent;background:none;color:var(--muted);border-radius:4px;padding:1px 4px;cursor:pointer;font:600 12px var(--f-ui)}
+.tree-add:hover{background:var(--hover);color:var(--ink);border-color:var(--line)}
+.tree-add .ico{width:14px;height:14px}
+.gf{width:100%;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer;height:27px;padding:0 6px;font-weight:600;user-select:none}
+.gf:hover{background:var(--hover)}
+.gf:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.gf .chev{flex:none;color:var(--muted);transition:transform .12s}
+.gf[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.gf .gico{color:var(--accent)}
+.gf .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gf .cnt{font:11px var(--f-mono);color:var(--muted);font-weight:400}
+.gname{flex:1;min-width:0;font:inherit;padding:1px 4px;border:1px solid var(--accent);border-radius:3px;background:var(--bg);color:var(--ink)}
+.gsub{padding-left:14px;margin-left:11px;border-left:1px solid var(--line)}
+.gempty{margin:2px 6px 6px;font-size:12px;color:var(--muted)}
+.dropin{background:var(--sel)!important;outline:2px dashed var(--accent);outline-offset:-2px}
+.pf[draggable="true"],.gf[draggable="true"]{-webkit-user-drag:element}
+.mvlist{display:grid;gap:2px;max-height:50vh;overflow:auto;margin:6px 0 4px}
+.mvopt{display:flex;align-items:center;gap:8px;border:0;background:none;border-radius:4px;padding:6px 10px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.mvopt:hover:not(:disabled){background:var(--hover)}
+.mvopt:disabled{opacity:.55;cursor:default}
+.mvopt small{margin-left:auto;color:var(--muted)}
+.mvopt .ico{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){ .gf .chev{transition:none} }
 .pi[aria-current="true"]{background:var(--sel);color:var(--sel-ink);font-weight:600}
 .pi .cnt{margin-left:auto;font:11px var(--f-mono);color:var(--muted)}
 .ico{flex:none;color:var(--muted)}
@@ -248,6 +273,37 @@ textarea.notes{width:100%;font:14px/1.6 var(--f-ui);color:var(--ink);background:
 textarea.notes:focus{outline:none;border-color:var(--accent)}
 .enview{flex:1;display:flex;flex-direction:column;min-height:0;max-width:900px}
 .enview textarea{flex:1}
+/* Subrayador del enunciado */
+.hlwrap{position:relative;flex:1;display:flex;min-height:0}
+.hlwrap textarea.notes{position:relative;z-index:1;background:transparent;overflow-y:scroll;flex:1}
+.hlback{position:absolute;inset:0;overflow-y:scroll;overflow-x:hidden;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;color:transparent;font:14px/1.6 var(--f-ui);padding:12px 14px;border:1px solid transparent;border-radius:5px;background:var(--surface);pointer-events:none}
+.hlback::-webkit-scrollbar-thumb{background:transparent}
+.hlback mark{color:transparent;border-radius:3px;padding:0;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.hlback mark.hl-ent{background:color-mix(in srgb,var(--c-ent) 26%,transparent);box-shadow:inset 0 -2px 0 var(--c-ent)}
+.hlback mark.hl-rel{background:color-mix(in srgb,var(--c-rel) 26%,transparent);box-shadow:inset 0 -2px 0 var(--c-rel)}
+.hlback mark.hl-att{background:color-mix(in srgb,var(--c-att) 24%,transparent);box-shadow:inset 0 -2px 0 var(--c-att)}
+.hlbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}
+.hlbar .hl-lab{font-size:12.5px;color:var(--muted);margin-right:2px}
+.hlbar .tspace{flex:1}
+.hlb{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 11px 3px 9px;font:600 12.5px var(--f-ui);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.hlb::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--k,transparent);border:1.5px solid var(--kb,var(--line-2))}
+.hlb:hover{background:var(--hover)}
+.hlb.hl-ent{--k:color-mix(in srgb,var(--c-ent) 30%,transparent);--kb:var(--c-ent)}
+.hlb.hl-rel{--k:color-mix(in srgb,var(--c-rel) 30%,transparent);--kb:var(--c-rel)}
+.hlb.hl-att{--k:color-mix(in srgb,var(--c-att) 30%,transparent);--kb:var(--c-att)}
+.hlb.hl-off::before{display:none}
+.hlbar.mini{gap:4px;margin:0 0 6px}
+.hlbar.mini .hlb{padding:2px 7px 2px 6px;font-size:11.5px}
+.hlchips{margin-top:10px;display:grid;gap:6px}
+.hlchips .tnote{margin:0;font-size:12.5px;color:var(--muted)}
+.hlrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.hlk{font:600 11px var(--f-ui);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);min-width:84px}
+.hlchip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 4px 1px 9px;font-size:12.5px;border:1px solid var(--kb);background:var(--k)}
+.hlchip.hl-ent{--k:color-mix(in srgb,var(--c-ent) 16%,transparent);--kb:var(--c-ent)}
+.hlchip.hl-rel{--k:color-mix(in srgb,var(--c-rel) 16%,transparent);--kb:var(--c-rel)}
+.hlchip.hl-att{--k:color-mix(in srgb,var(--c-att) 16%,transparent);--kb:var(--c-att)}
+.hlchip button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:11px;padding:1px 4px;border-radius:999px}
+.hlchip button:hover{background:var(--hover);color:var(--ink)}
 .sqlbox{flex:1;width:100%;min-height:200px;resize:none;font:13px/1.6 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line-2);border-radius:5px;padding:12px 14px;tab-size:2;white-space:pre;overflow:auto}
 .sqlbox:focus{outline:none;border-color:var(--accent)}
 .lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px}
@@ -614,7 +670,7 @@ svg .notecard{cursor:move;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.12))}
 </style></head><body>
 <div class="app" id="app">
   <header class="titlebar" id="titlebar">
-    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v2.1</button><span class="tb-proj" id="tbproj"></span></div>
+    <div class="tb-left"><svg class="logo" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Modelado Bases</b><button class="ver" data-act="news" title="Novedades de esta versión">v2.2</button><span class="tb-proj" id="tbproj"></span></div>
     <div class="tb-acts"><button class="tbb" data-act="theory" title="Teoría"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 3.5c2.5-1 4.5-1 6.5.5v11c-2-1.5-4-1.5-6.5-.5zM15.5 3.5c-2.5-1-4.5-1-6.5.5v11c2-1.5 4-1.5 6.5-.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Teoría</span></button><button class="tbb" data-act="controls" title="Controles (F1)"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="4.5" width="15" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 7.5h1M8.5 7.5h1M12.5 7.5h1M5.5 10.5h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Controles</span></button><button class="tbb" data-act="settings" title="Ajustes (Ctrl+,)" aria-label="Ajustes"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 6.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7.7 1.5h2.6l.4 2 1.6.9 1.9-.7 1.3 2.2-1.5 1.4v1.8l1.5 1.4-1.3 2.2-1.9-.7-1.6.9-.4 2H7.7l-.4-2-1.6-.9-1.9.7-1.3-2.2 1.5-1.4V8.3L2.5 6.9l1.3-2.2 1.9.7 1.6-.9z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span>Ajustes</span></button></div>
   </header>
   <aside class="side" aria-label="Proyectos">

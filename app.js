@@ -169,13 +169,19 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Warns about repeated names, entities without a PK and unfinished relationships before converting to tables.",
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
-const NOVEDADES_EN=["Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
+const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
+const NOVEDADES_EN=["Brief highlighter: select a word and mark it as Entity (blue), Relationship (orange) or Attribute (green). It is marked in the whole text, also in the brief next to the canvas. «To the Sketch» creates the entities, their attributes and the lines.","Folders and subfolders to organise projects (e.g. Exercises › Unit 1). Folder button next to «My projects», right-click to create, rename or move, and you can drag projects and folders.","In the Sketch text, relationships with attributes: «Entity1-Entity2; attribute1, attribute2». They are not drawn in the sketch; «To the E-R» puts them on the relationship.","Notes carry over between diagrams: Sketch to E-R, E-R to Relational or DSD, Relational to DSD. They are not repeated if you do it again.","«Find» button in each diagram's toolbar (also Ctrl+F). In the Sketch it also finds attributes.","Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
   'The theory is now in Home, explained with pictures: E-R model, relational model, DSD, SQL to create tables and SQL queries (SELECT, WHERE, JOIN, GROUP BY…).',
   'Group activity: «Create activity» makes a code with the brief, what to do and the minutes. Each classmate imports it, clicks Start and does it by hand against the clock; when time is up it locks until «Leave student mode».',
   "Sketch with a box to write «Entity; attribute1, attribute2…» above the canvas, and zero (○), one (|) or many (crow's foot) marks next to each entity on the lines. «To the E-R» also brings the attributes and cardinalities.",
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.2: subrayador del enunciado: selecciona una palabra y márcala como Entidad (azul), Relación (naranja) o Atributo (verde). Se marca en todo el texto, también en el enunciado de al lado del lienzo. Con «Pasar al Boceto» se crean las entidades, sus atributos y las líneas.',
+  '2.2: carpetas y subcarpetas para ordenar los proyectos (por ejemplo Ejercicios › Tema 1). Botón de carpeta junto a «Mis proyectos», botón derecho para crear, renombrar o mover, y se pueden arrastrar proyectos y carpetas.',
+  '2.2: en el texto del Boceto, las relaciones con atributos: «Entidad1-Entidad2; atributo1, atributo2». En el boceto no se dibujan, y al «Pasar al E-R» se ponen en la relación.',
+  '2.2: las notas pasan de un diagrama a otro: del Boceto al E-R, del E-R al Relacional o al DED, y del Relacional al DED. No se repiten si lo pasas otra vez.',
+  '2.2: botón «Buscar» en la barra de cada diagrama (también Ctrl+F). En el Boceto también encuentra atributos.',
   '2.1: entidad asociativa en el E-R: el rombo dentro de un rectángulo. Se activa en el panel de la relación o con el botón derecho, y se puede unir a otras entidades con su propia relación. Al pasar a tablas sale su tabla con las claves de sus entidades.',
   '2.1: en el Relacional las flechas y en el DED las líneas se pueden tocar: ves qué FK es, puedes pasar la FK a la otra tabla o quitar la relación.',
   '2.1: en el DED, la línea y «Relacionar» preguntan como en el E-R (máximo y mínimo de cada lado) y si la línea es continua o discontinua.',
@@ -452,6 +458,7 @@ const App={
     const keep={};this.projects.forEach(p=>{if(p._dirty)keep[p.folder]=p;});
     try{this.projects=(await window.api.list()).map(p=>keep[p.folder]||Object.assign(p,{_id:uid('p')}));this.updateStatus();}
     catch(e){this.projects=[];this.status('bad','No se pudo leer la carpeta: '+e.message);}
+    try{this.groups=await window.api.groups();}catch(e){this.groups=[];}
     const want=selectFolder||(this.cur&&this.cur.folder);
     this.cur=want?this.projects.find(p=>p.folder===want)||null:null;
     if(this.cur)this.open[this.cur._id]=true;
@@ -506,6 +513,14 @@ const App={
   },
   bind(){
     document.querySelector('.side').addEventListener('click',e=>this.onSide(e));
+    { const tr=document.getElementById('tree');tr.addEventListener('contextmenu',e=>this.treeMenu(e));
+      tr.addEventListener('keydown',e=>{const gf=e.target.closest&&e.target.closest('.gf');if(gf&&(e.key==='Enter'||e.key===' ')&&!e.target.closest('.gname')){e.preventDefault();gf.click();}});
+      // Arrastrar proyectos y carpetas a otra carpeta (o a «Mis proyectos» para sacarlos)
+      tr.addEventListener('dragstart',e=>{const pf=e.target.closest&&e.target.closest('.pf'),gf=e.target.closest&&e.target.closest('.gf');this._drag=pf?{p:this.byId(pf.dataset.pid)}:gf?{g:gf.dataset.g}:null;if(this._drag){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','mb');}});
+      tr.addEventListener('dragover',e=>{const d=e.target.closest&&e.target.closest('[data-gdrop]');if(!d||!this._drag)return;e.preventDefault();tr.querySelectorAll('.dropin').forEach(x=>x!==d&&x.classList.remove('dropin'));d.classList.add('dropin');});
+      tr.addEventListener('dragleave',e=>{const d=e.target.closest&&e.target.closest('[data-gdrop]');if(d&&!d.contains(e.relatedTarget))d.classList.remove('dropin');});
+      tr.addEventListener('drop',e=>{const d=e.target.closest&&e.target.closest('[data-gdrop]');tr.querySelectorAll('.dropin').forEach(x=>x.classList.remove('dropin'));if(!d||!this._drag)return;e.preventDefault();const w=this._drag;this._drag=null;this.moveTo(w,d.dataset.gdrop);});
+      tr.addEventListener('dragend',()=>{this._drag=null;tr.querySelectorAll('.dropin').forEach(x=>x.classList.remove('dropin'));}); }
     document.getElementById('statusbar').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)this.action(b);});
     document.getElementById('mainv').addEventListener('click',e=>this.onMain(e));
     document.getElementById('modal').addEventListener('click',e=>this.onModal(e));
@@ -530,11 +545,51 @@ const App={
   renderCounts(p){const c=this.counts(p);Object.keys(c).forEach(v=>{const el=document.querySelector(`.pi[data-pid="${p._id}"][data-view="${v}"] .cnt`);if(el)el.textContent=c[v];});},
   renderTree(){
     const t=document.getElementById('tree');if(this.solo){t.innerHTML='';return;}
-    if(!this.projects.length){t.innerHTML=`<div class="tree-h">Mis proyectos</div><p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
-    t.innerHTML=`<div class="tree-h">Mis proyectos</div>`+this.projects.map(p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
-      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
-      ${op?`<div class="sub">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;}).join('');
+    const G=this.groups||[],GO=this.gopen(),hdr=`<div class="tree-h" data-gdrop=""><span>Mis proyectos</span><button class="tree-add" data-act="newgroup" title="Nueva carpeta para agrupar proyectos" aria-label="Nueva carpeta">${ICO.grp}<span>+</span></button></div>`;
+    if(!this.projects.length&&!G.length){t.innerHTML=hdr+`<p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
+    const proj=p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
+      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" draggable="true" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
+      ${op?`<div class="sub">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;};
+    const grp=g=>{const op=!!GO[g],kg=G.filter(x=>parOf(x)===g),kp=this.projects.filter(p=>parOf(p.folder)===g),n=this.projects.filter(p=>p.folder.startsWith(g+'/')).length,ed=this._gEdit===g;
+      return `<div class="grp"><div class="gf" role="button" tabindex="0" data-g="${escA(g)}" data-gdrop="${escA(g)}" draggable="${!ed}" aria-expanded="${op}" title="${escA(g)}">${ICO.chev}${ICO.grp}${ed?`<input class="gname" value="${escA(leafOf(g))}" spellcheck="false" aria-label="Nombre de la carpeta">`:`<span class="nm">${esc(leafOf(g))}</span>`}<span class="cnt">${n||''}</span></div>
+        ${op?`<div class="gsub">${kg.map(grp).join('')}${kp.map(proj).join('')}${!kg.length&&!kp.length?`<p class="gempty">Vacía. Arrastra proyectos aquí o usa el botón derecho.</p>`:''}</div>`:''}</div>`;};
+    t.innerHTML=hdr+G.filter(g=>!parOf(g)).map(grp).join('')+this.projects.filter(p=>!parOf(p.folder)).map(proj).join('');
+    const gi=t.querySelector('.gname');if(gi){gi.focus();gi.select();let done=false;const fin=ok=>{if(done)return;done=true;const g=this._gEdit;this._gEdit=null;const v=gi.value.trim();if(ok&&v&&v!==leafOf(g))this.renameGroup(g,v);else this.renderTree();};
+      gi.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();fin(true);}else if(e.key==='Escape'){e.preventDefault();fin(false);}});gi.addEventListener('blur',()=>fin(true));gi.addEventListener('click',e=>e.stopPropagation());}
   },
+  /* ---------- Carpetas para agrupar proyectos ---------- */
+  gopen(){try{return JSON.parse(localStorage.getItem('mb:gopen')||'{}')||{};}catch(e){return {};}},
+  setGOpen(g,v){const o=this.gopen();if(v)o[g]=1;else delete o[g];try{localStorage.setItem('mb:gopen',JSON.stringify(o));}catch(e){}},
+  openPath(folder){let f=parOf(folder);while(f){this.setGOpen(f,true);f=parOf(f);}},
+  async newGroup(parent){const g=await this.run(()=>window.api.mkGroup(parent||'',LANG()==='en'?'New folder':'Nueva carpeta'));if(!g)return;
+    this.groups=await window.api.groups();if(parent)this.setGOpen(parent,true);this.openPath(g);this._gEdit=g;this.renderTree();},
+  async renameGroup(g,name){await this.flushAll();const ng=await this.run(()=>window.api.renameGroup(g,name));if(!ng)return this.renderTree();this.reprefix(g,ng);this.groups=await window.api.groups();this.renderTree();},
+  reprefix(a,b){if(a===b)return;this.projects.forEach(p=>{if(p.folder.startsWith(a+'/')){const old=p.folder;p.folder=b+p.folder.slice(a.length);Recent.rename(old,p.folder);}});
+    const o=this.gopen(),n={};Object.keys(o).forEach(k=>{n[k===a||k.startsWith(a+'/')?b+k.slice(a.length):k]=1;});try{localStorage.setItem('mb:gopen',JSON.stringify(n));}catch(e){}this.updateStatus();},
+  async moveTo(what,to){to=to||'';
+    if(what.p){const p=what.p;if(this.locked.has(p.folder)){toast('Ese proyecto está abierto en otra ventana: ciérrala antes de moverlo.','warn');return;}if(parOf(p.folder)===to)return;
+      let nf=null;await this.queue(p,async()=>{const old=p.folder;nf=await window.api.move(p.folder,to);p.folder=nf;Recent.rename(old,nf);});if(!nf)return;
+      if(to)this.setGOpen(to,true);this.openPath(nf);this.updateStatus();this.renderTree();toast(to?`«${p.name}» movido a «${leafOf(to)}».`:`«${p.name}» sacado de la carpeta.`);return;}
+    const g=what.g;if(g===to||parOf(g)===to)return;if(to===g||to.startsWith(g+'/')){toast('No se puede meter una carpeta dentro de sí misma.','warn');return;}
+    if(this.projects.some(p=>p.folder.startsWith(g+'/')&&this.locked.has(p.folder))){toast('Hay un proyecto de esa carpeta abierto en otra ventana: ciérrala antes.','warn');return;}
+    await this.flushAll();const ng=await this.run(()=>window.api.move(g,to));if(!ng)return;this.reprefix(g,ng);this.groups=await window.api.groups();if(to)this.setGOpen(to,true);this.renderTree();toast(`Carpeta movida.`);},
+  async deleteGroup(g){const inn=this.projects.filter(p=>p.folder.startsWith(g+'/'));
+    if(inn.some(p=>this.locked.has(p.folder))){toast('Hay un proyecto de esa carpeta abierto en otra ventana: ciérrala antes.','warn');return;}
+    this.confirm('Eliminar la carpeta',inn.length?`La carpeta «${leafOf(g)}» y sus ${inn.length} proyecto(s) irán a la papelera de Windows (se pueden recuperar desde ahí).`:`La carpeta «${leafOf(g)}» irá a la papelera.`,'Eliminar',async()=>{
+      await this.flushAll();const r=await this.run(()=>window.api.removeGroup(g));if(r===null)return;if(this.cur&&this.cur.folder.startsWith(g+'/')){this.cur=null;this.home='inicio';}await this.reload();toast('Carpeta eliminada.');});},
+  pickFolder(p){const G=this.groups||[],cur=parOf(p.folder),row=(g,d)=>`<button class="mvopt" data-m="mv" data-to="${escA(g)}" ${g===cur?'disabled':''} style="padding-left:${10+d*16}px">${g?ICO.grp:ICO.home||''}<span>${g?esc(leafOf(g)):'Mis proyectos (sin carpeta)'}</span>${g===cur?'<small>aquí está</small>':''}</button>`;
+    const tree=(par,d)=>G.filter(g=>parOf(g)===par).map(g=>row(g,d)+tree(g,d+1)).join('');
+    this._mvP=p;this.modal(`<h3>Mover «${esc(p.name)}»</h3><p>Elige la carpeta:</p><div class="mvlist">${row('',0)}${tree('',1)}</div><div class="mrow"><button class="ebtn" data-m="mv-new">Nueva carpeta…</button><button class="ebtn" data-m="close">Cancelar</button></div>`);},
+  treeMenu(e){const gf=e.target.closest('.gf'),pf=e.target.closest('.pf'),hd=e.target.closest('.tree-h');if(!gf&&!pf&&!hd)return;e.preventDefault();
+    if(gf){const g=gf.dataset.g;openCtx(e.clientX,e.clientY,[{label:'Nuevo proyecto aquí',fn:()=>this.newProject(g)},{label:'Nueva subcarpeta',fn:()=>this.newGroup(g)},{sep:1},{label:'Renombrar',fn:()=>{this._gEdit=g;this.renderTree();}},{label:'Mover a…',fn:()=>this.pickGroupFolder(g)},{label:'Abrir en el explorador',fn:()=>this.run(()=>window.api.reveal(g))},{sep:1},{label:'Eliminar carpeta',danger:true,fn:()=>this.deleteGroup(g)}]);return;}
+    if(pf){const p=this.byId(pf.dataset.pid);openCtx(e.clientX,e.clientY,[{label:'Abrir',fn:()=>this.go(p,Settings.get().openTab||'er')},{label:'Mover a carpeta…',fn:()=>this.pickFolder(p)},{label:'Abrir en el explorador',fn:()=>this.run(()=>window.api.reveal(p.folder))}]);return;}
+    openCtx(e.clientX,e.clientY,[{label:'Nueva carpeta',fn:()=>this.newGroup('')},{label:'Nuevo proyecto',fn:()=>this.newProject('')}]);},
+  pickGroupFolder(g){const G=(this.groups||[]).filter(x=>x!==g&&!x.startsWith(g+'/')),cur=parOf(g),row=(x,d)=>`<button class="mvopt" data-m="mvg" data-to="${escA(x)}" ${x===cur?'disabled':''} style="padding-left:${10+d*16}px">${ICO.grp}<span>${x?esc(leafOf(x)):'Mis proyectos (arriba del todo)'}</span>${x===cur?'<small>aquí está</small>':''}</button>`;
+    const tree=(par,d)=>G.filter(x=>parOf(x)===par).map(x=>row(x,d)+tree(x,d+1)).join('');this._mvG=g;
+    this.modal(`<h3>Mover la carpeta «${esc(leafOf(g))}»</h3><div class="mvlist">${row('',0)}${tree('',1)}</div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);},
+  async newProject(parent){const base=LANG()==='en'?'project ':'proyecto ',names=new Set(this.projects.map(x=>x.name.toLowerCase()));let n=this.projects.length+1;while(names.has((base+n)))n++;
+    const np=await this.run(()=>window.api.create(base+n,parent||''));if(!np)return;np._id=uid('p');this.projects.push(np);if(parent)this.openPath(np.folder);this.go(np,'er');
+    const i=document.getElementById('pname');if(i){i.focus();i.select();}},
   /* ---------- Actividad conjunta (modo estudiante) ---------- */
   isRO(p,view){const a=p&&p.act;if(!a)return false;if(a.state!=='run')return true;if(view==='enun')return true;return !(a.parts||[]).includes(view);},
   actLeft(p){return Math.max(0,(p.act.end||0)-Date.now());},
@@ -632,8 +687,15 @@ const App={
       if(!ro){const t=document.getElementById('sqltxt');t.addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});t.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});}
       return;}
     if(this.view==='enun'){
-      v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div>`;
+      v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p>${hlBar(true)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div><div class="hlchips" id="hlchips"></div></div>`;
       const et=document.getElementById('enun');if(et.value!==fixBullets(et.value))et.value=fixBullets(et.value);
+      const chips=()=>{const el=document.getElementById('hlchips');if(!el)return;const L=p.hl||[];
+        el.innerHTML=L.length?Object.keys(HL_K).map(k=>{const xs=L.map((m,i)=>[m,i]).filter(([m])=>m.k===k);return xs.length?`<div class="hlrow"><span class="hlk hl-${k}">${{ent:'Entidades',rel:'Relaciones',att:'Atributos'}[k]}</span>${xs.map(([m,i])=>`<span class="hlchip hl-${k}">${esc(m.t)}<button data-hlx="${i}" aria-label="Quitar ${escA(m.t)}">✕</button></span>`).join('')}</div>`:'';}).join(''):
+          `<p class="tnote">Selecciona una palabra (doble clic) y pulsa <b>Entidad</b> (sustantivos: alumno, curso…), <b>Relación</b> (verbos: matricula, imparte…) o <b>Atributo</b> (datos: nombre, DNI…). Se marca en todo el texto. Luego «Pasar al Boceto».</p>`;};
+      const draw=hlWire(et,v.querySelector('.hlback'),()=>p.hl||[]);chips();
+      const bar=v.querySelector('.hlbar');bar.addEventListener('pointerdown',e=>{if(e.target.closest('[data-hl]'))e.preventDefault();});
+      bar.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;if(b.dataset.hl==='tobo'){this.hlToBoceto(p);return;}if(hlApply(p,et,b.dataset.hl)){this.touch(p);draw();chips();}});
+      v.querySelector('#hlchips').addEventListener('click',e=>{const x=e.target.closest('[data-hlx]');if(!x)return;p.hl.splice(+x.dataset.hlx,1);this.touch(p);draw();chips();});
       if(p.act)et.readOnly=true;else et.addEventListener('input',e=>{const t=e.target,v=fixBullets(t.value);if(v!==t.value){const c=t.selectionStart;t.value=v;t.setSelectionRange(c,c);}p.enun=v;this.touch(p);});
     } else if(this.view==='sql'){
       const dl=Settings.get().sqlDialect||'mysql';
@@ -644,9 +706,21 @@ const App={
     } else if(this.view==='test'){Pruebas.render(v,p);
     } else {if(this.view==='bo'&&!p.bo)p.bo={nodes:[],links:[],notes:[]};this.ed.mount(v);this.ed.open(p,this.view);}
   },
-  go(p,view){this.home=null;Recent.touch(p.folder);this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
+  hlToBoceto(p){const r=hlToBo(p.enun||'',p.hl||[]);if(!r.ents.length){toast('Marca primero alguna entidad en el enunciado.');return;}
+    if(p.act&&this.isRO(p,'bo')){toast('En esta actividad no se puede cambiar el Boceto.','warn');return;}
+    this.go(p,'bo');const ed=this.ed;if(!ed||!ed.isBo)return;const was=ed.m.nodes.filter(isEnt).length;
+    const sp=ed.boSplit(ed.boParse(ed.boText())),E=sp.ents.map(x=>({name:x.name,at:[...x.at]})),R=sp.rels.filter(x=>x.ok).map(x=>({a:x.a,b:x.b,at:[...x.at]}));let ne=0,na=0,nr=0;
+    r.ents.forEach(n=>{if(!E.some(x=>lc(x.name)===lc(n))){E.push({name:n,at:[]});ne++;}});
+    Object.entries(r.at).forEach(([n,list])=>{const e=E.find(x=>lc(x.name)===lc(n));if(!e)return;list.forEach(a=>{if(!e.at.some(x=>lc(x)===lc(a))){e.at.push(a);na++;}});});
+    r.rels.forEach(([a,b])=>{if(!R.some(x=>(lc(x.a)===lc(a)&&lc(x.b)===lc(b))||(lc(x.a)===lc(b)&&lc(x.b)===lc(a)))){R.push({a,b,at:[]});nr++;}});
+    if(!ne&&!na&&!nr){toast('El Boceto ya tiene todo lo que has marcado.');return;}
+    ed.boFromText([...E.map(x=>x.name+(x.at.length?'; '+x.at.join(', '):'')),...R.map(x=>x.a+'-'+x.b+(x.at.length?'; '+x.at.join(', '):''))].join('\n'));ed._boEd=false;
+    if(!was)ed.distribute();ed.fit(true);
+    toast(`Pasado al Boceto: ${ne} entidad(es), ${na} atributo(s) y ${nr} línea(s). Revisa el texto de arriba y corrige lo que haga falta. Ctrl+Z lo deshace.`);},
+  go(p,view){this.home=null;Recent.touch(p.folder);if(p.folder&&p.folder.includes('/'))this.openPath(p.folder);this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
   byId(id){return this.projects.find(x=>x._id===id);},
   onSide(e){
+    const gf=e.target.closest('.gf');if(gf){if(e.target.closest('.gname'))return;const g=gf.dataset.g;this.setGOpen(g,gf.getAttribute('aria-expanded')!=='true');this.renderTree();return;}
     const pf=e.target.closest('.pf');if(pf){const p=this.byId(pf.dataset.pid);const op=pf.getAttribute('aria-expanded')==='true';this.open[p._id]=!op;if(!op&&this.cur!==p){this.go(p,'er');return;}this.renderTree();return;}
     const pi=e.target.closest('.pi');if(pi){this.go(this.byId(pi.dataset.pid),pi.dataset.view);return;}
     const b=e.target.closest('[data-act]');if(b)this.action(b);
@@ -678,10 +752,8 @@ const App={
       this.base=r.dir;this.renderFoot();await this.reload();
       toast(r.migrated?`Carpeta lista. He traído ${r.migrated} proyecto(s) de la versión anterior.`:'Carpeta Modelados BDD lista en '+r.dir);return;}
     if(!this.base){toast('Primero elige dónde guardar la carpeta Modelados BDD.');return;}
-    if(a==='newproj'){
-      const base=LANG()==='en'?'project ':'proyecto ',names=new Set(this.projects.map(x=>x.name.toLowerCase()));let n=this.projects.length+1;while(names.has((base+n)))n++;
-      const np=await this.run(()=>window.api.create(base+n));if(!np)return;np._id=uid('p');this.projects.push(np);this.go(np,'er');
-      const i=document.getElementById('pname');if(i){i.focus();i.select();}return;}
+    if(a==='newproj'){await this.newProject('');return;}
+    if(a==='newgroup'){await this.newGroup('');return;}
     if(a==='import'){this.modal(`<h3>Importar código</h3><p>Pega el código que te han pasado (empieza por <code>MB1-</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
       <textarea id="imptxt" spellcheck="false" placeholder="MB1-…"></textarea>
       <div class="mrow"><button class="lnk mmeta" data-m="dir">o importar una carpeta de proyecto…</button><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="code">Importar</button></div>`);document.getElementById('imptxt').focus();return;}
@@ -816,6 +888,9 @@ const App={
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this._capKey=null;this.closeModal();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
+    if(k==='mv'){const p=this._mvP;this.closeModal();if(p)await this.moveTo({p},b.dataset.to);return;}
+    if(k==='mvg'){const g=this._mvG;this.closeModal();if(g)await this.moveTo({g},b.dataset.to);return;}
+    if(k==='mv-new'){const p=this._mvP;this.closeModal();const g=await this.run(()=>window.api.mkGroup('',LANG()==='en'?'New folder':'Nueva carpeta'));if(!g)return;this.groups=await window.api.groups();if(p)await this.moveTo({p},g);this._gEdit=g;this.renderTree();return;}
     if(k==='key-set'){this._capKey=b.dataset.k;this.renderSettings();return;}
     if(k==='key-clear'){const ks={...(Settings.get().keys||{})};ks[b.dataset.k]='';Settings.set('keys',ks);this.renderSettings();return;}
     if(k==='keys-reset'){Settings.set('keys',{});this._capKey=null;this.renderSettings();toast('Atajos restablecidos.');return;}

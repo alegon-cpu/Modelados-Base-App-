@@ -138,3 +138,41 @@ function diffTables(mine,other){
 }
 // Parecido de 0 a 100 (cuántas cosas coinciden)
 function diffScore(d,total){const bad=d.add.length+d.del.length+d.chg.length;return total?Math.max(0,Math.round(100*(1-bad/Math.max(total,bad)))):100;}
+
+/* ===================== Subrayador del enunciado ===================== */
+// p.hl = [{t:'alumno',k:'ent'|'rel'|'att'}]: se marcan todas las veces que sale la palabra (también en plural)
+const HL_K={ent:'Entidad',rel:'Relación',att:'Atributo'};
+function hlRegex(marks){const ts=(marks||[]).filter(m=>m&&m.t&&HL_K[m.k]).map(m=>m.t).sort((a,b)=>b.length-a.length);if(!ts.length)return null;
+  const ex=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+  try{return new RegExp(`(?<![\\p{L}\\p{N}])(?:${ts.map(ex).join('|')})(?:es|s)?(?![\\p{L}\\p{N}])`,'giu');}catch(e){return null;}}
+function hlFind(text,marks){const rx=hlRegex(marks),out=[];if(!rx)return out;let m;
+  const kindOf=w=>{const x=lc(w).replace(/\s+/g,' ');let best=null;(marks||[]).forEach(k=>{const t=lc(k.t).replace(/\s+/g,' ');if((x===t||x===t+'s'||x===t+'es')&&(!best||t.length>best.t.length))best=k;});return best;};
+  while((m=rx.exec(text))){const k=kindOf(m[0]);if(k)out.push({s:m.index,e:m.index+m[0].length,k:k.k,t:k.t});if(m[0].length===0)rx.lastIndex++;}return out;}
+function hlHTML(text,marks){const hits=hlFind(text,marks);let h='',i=0;hits.forEach(o=>{h+=esc(text.slice(i,o.s))+`<mark class="hl-${o.k}">${esc(text.slice(o.s,o.e))}</mark>`;i=o.e;});return h+esc(text.slice(i))+'\n';}
+// Pone el fondo de colores detrás de un textarea y lo mantiene al escribir y al desplazarse
+function hlWire(ta,back,getMarks){const draw=()=>{back.innerHTML=hlHTML(ta.value,getMarks());back.scrollTop=ta.scrollTop;};
+  ta.addEventListener('input',draw);ta.addEventListener('scroll',()=>{back.scrollTop=ta.scrollTop;});draw();return draw;}
+function hlBar(full){return `<div class="hlbar${full?'':' mini'}" role="toolbar" aria-label="Subrayar">${full?'<span class="hl-lab">Selecciona una palabra y márcala como</span>':''}`+
+  Object.entries(HL_K).map(([k,l])=>`<button class="hlb hl-${k}" data-hl="${k}" title="Marca lo seleccionado como ${lc(l)}">${full?l:l.slice(0,3)+'.'}</button>`).join('')+
+  `<button class="hlb hl-off" data-hl="off" title="Quita la marca de lo seleccionado">${full?'Quitar':'✕'}</button>${full?'<span class="tspace"></span><button class="ebtn" data-hl="tobo" title="Crea en el Boceto las entidades, atributos y relaciones marcados">'+(GL.fromer||'')+'<span>Pasar al Boceto</span></button>':''}</div>`;}
+// Aplica un botón del subrayador sobre lo seleccionado en el textarea
+function hlApply(p,ta,k){const s=ta.selectionStart,e=ta.selectionEnd;p.hl=p.hl||[];
+  if(k==='off'){const hits=hlFind(ta.value,p.hl).filter(o=>s===e?(o.s<=s&&s<=o.e):(o.s<e&&o.e>s));if(!hits.length){toast('Pon el cursor o selecciona una palabra marcada para quitarle la marca.');return false;}
+    const kill=new Set(hits.map(o=>lc(o.t)));p.hl=p.hl.filter(m=>!kill.has(lc(m.t)));return true;}
+  let t=ta.value.slice(s,e);
+  if(!t.trim()){const v=ta.value;let a=s,b=s;while(a>0&&/[\p{L}\p{N}_]/u.test(v[a-1]))a--;while(b<v.length&&/[\p{L}\p{N}_]/u.test(v[b]))b++;t=v.slice(a,b);}
+  t=t.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'').replace(/\s+/g,' ');
+  if(k==='ent'&&!/\s/.test(t)&&t.length>4){if(/[rlndj]es$/i.test(t))t=t.slice(0,-2);else if(/[aeiou]s$/i.test(t))t=t.slice(0,-1);} // en singular: «alumnos» → «alumno», «profesores» → «profesor»if(!t){toast('Selecciona primero una palabra del enunciado (doble clic sobre ella).');return false;}
+  if(t.length>40){toast('Selecciona solo una palabra o dos, no una frase entera.','warn');return false;}
+  p.hl=p.hl.filter(m=>lc(m.t)!==lc(t));p.hl.push({t,k});return true;}
+// Del subrayado al boceto: cada atributo va con la entidad que se nombra antes en la misma frase; cada verbo une la entidad de antes con la de después
+function hlToBo(text,marks){const hits=hlFind(text,marks),cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+  const sent=i=>{let a=i;while(a>0&&!/[.;\n!?]/.test(text[a-1]))a--;return a;},sentEnd=i=>{let b=i;while(b<text.length&&!/[.;\n!?]/.test(text[b]))b++;return b;};
+  const entName=t=>cap(t.trim());const ents=[],at={},rels=[];
+  hits.filter(h=>h.k==='ent').forEach(h=>{const n=entName(h.t);if(!ents.some(x=>lc(x)===lc(n)))ents.push(n);});
+  const entsBefore=(i,lim)=>hits.filter(h=>h.k==='ent'&&h.e<=i&&h.s>=lim),entsAfter=(i,lim)=>hits.filter(h=>h.k==='ent'&&h.s>=i&&h.e<=lim);
+  hits.filter(h=>h.k==='att').forEach(h=>{let o=entsBefore(h.s,sent(h.s)).pop();if(!o)o=hits.filter(x=>x.k==='ent'&&x.e<=h.s).pop();if(!o)o=hits.find(x=>x.k==='ent'&&x.s>=h.e);if(!o)return;
+    const n=entName(o.t),a=h.t.trim();(at[n]=at[n]||[]);if(!at[n].some(x=>lc(x)===lc(a)))at[n].push(a);});
+  hits.filter(h=>h.k==='rel').forEach(h=>{const A=entsBefore(h.s,sent(h.s)).pop(),B=entsAfter(h.e,sentEnd(h.e))[0];if(!A||!B)return;const a=entName(A.t),b=entName(B.t);
+    if(!rels.some(r=>(lc(r[0])===lc(a)&&lc(r[1])===lc(b))||(lc(r[0])===lc(b)&&lc(r[1])===lc(a))))rels.push([a,b]);});
+  return{ents,at,rels};}
