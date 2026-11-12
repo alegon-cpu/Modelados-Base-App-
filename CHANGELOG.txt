@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.5.1  (12/11/2026)
+--------------------
+- Busca actualizaciones nada mas abrir la app.
+
 v2.5  (12/11/2026)
 ------------------
 - Serpiente fluida y como la clasica (se supera llenando el mapa); 1 token por mapa lleno.
