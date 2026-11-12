@@ -70,7 +70,8 @@ const Juegos={
     s.tokens=s.tokens|0;s.frags=s.frags|0;s.pity=s.pity|0;s.pulls=s.pulls|0;s.owned=s.owned||{};s.eq=s.eq||{};s.nick=s.nick||'';s.snake=s.snake||{wins:0,best:0,speed:'normal',size:'m'};
     s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
   save(){try{localStorage.setItem('mb:juego',JSON.stringify(this.st()));}catch(e){}},
-  give(n,why){const s=this.st();s.tokens+=n;s.earned+=n;this.save();toast(`+${n} token${n>1?'s':''}${why?' · '+why:''}. Ya tienes ${s.tokens}.`);this.celebrate(true);},
+  give(n,why){const s=this.st();s.tokens+=n;s.earned+=n;this.save();this.badge();toast(`+${n} token${n>1?'s':''}${why?' · '+why:''}. Ya tienes ${s.tokens}.`);this.celebrate(true);},
+  badge(){const s=this.st();document.querySelectorAll('.jg-tok').forEach(el=>{const b=el.querySelector('b');if(b)b.textContent=s.tokens;el.lastChild.textContent=' token'+(s.tokens===1?'':'s');});document.querySelectorAll('.jg-frag').forEach(el=>el.textContent='◆ '+s.frags);},
   profile(){const s=this.st(),t=RWBY[s.eq.title];return{nick:s.nick||'',title:t?t.n:''};},
   /* ---------- aspecto: lo equipado ---------- */
   skinMode(){const s=this.st(),t=RWBY[s.eq.theme];return t?(t.t[1]?'dark':'light'):null;},
@@ -122,7 +123,7 @@ const Juegos={
   /* ---------- pantallas ---------- */
   sub:'menu',
   go(k){this.stopAll();this.sub=k;if(k==='quiz')this._qz=null;if(k==='bdq')this._bdq=null;App.renderMain();document.getElementById('mainv').scrollTop=0;},
-  stopAll(){if(this._snk){clearInterval(this._snk.iv);this._snk=null;}},
+  stopAll(){if(this._snk){clearInterval(this._snk.iv);cancelAnimationFrame(this._snk.raf);this._snk=null;}},
   head(t,back){const s=this.st();return `<header class="ph"><span class="pname static">${t}</span><div class="ph-acts"><span class="jg-tok" title="Tokens para tiradas">${GL.tok||'🎟️'} <b>${s.tokens}</b> token${s.tokens===1?'':'s'}</span><span class="jg-frag" title="Fragmentos (de premios repetidos): ${FRAG_TOKEN} = 1 token">◆ ${s.frags}</span>${back?`<button class="ebtn" data-jg="menu">← Juegos</button>`:''}<button class="ebtn" data-act="home">← Inicio</button></div></header>`;},
   avatar(big){const s=this.st(),p=this.profile(),ini=(p.nick||'?').trim().slice(0,2).toUpperCase()||'?',img=typeof s.avatar==='string'&&s.avatar.startsWith('data:image/')?s.avatar:'';
     return `<span class="jg-av${big?' big':''}${img?' img':''}${s.eq.frame==='l-marco'?' fr-gold':''}"${img?` style="background-image:url('${img}')"`:''}><span>${img?'':esc(ini)}</span></span>`;},
@@ -145,9 +146,9 @@ const Juegos={
         <span class="jg-feat-cta"><span class="jg-feat-tok">${s.tokens}<small>token${s.tokens===1?'':'s'}</small></span><span class="jg-feat-go">Tirar →</span></span></button>
       <h3 class="jg-h">Gana tokens</h3>
       <div class="jg-grid">
-        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Elige velocidad y tamaño del mapa. Cada 10 partidas superadas, 1 token.</small><span class="jg-prog"><i style="width:${w*10}%"></i></span><em>${w}/10 para el próximo token</em></button>
-        <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Si aciertas las 10 de una ronda, 1 token.</small><em>Rondas perfectas: ${s.quiz.perfect}</em></button>
-        <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Si aciertas los 5 de una ronda, 1 token.</small><em>Rondas perfectas: ${s.bdq.perfect}</em></button>
+        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Cada vez que lo consigues, 1 token.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
+        <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Rondas de 10: si aciertas al menos la mitad, 1 token.</small><em>Rondas con token: ${s.quiz.perfect}</em></button>
+        <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Rondas de 5: si aciertas al menos 3, 1 token.</small><em>Rondas con token: ${s.bdq.perfect}</em></button>
       </div>
       <h3 class="jg-h">Lo tuyo</h3>
       <div class="jg-grid two">
@@ -185,7 +186,7 @@ const Juegos={
         <label><b>Color de acento</b>${sel('acc','acc','El del tema')}</label><label><b>Notas</b>${sel('note','note','Normales')}</label>
         <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label></div>
       <p class="tnote">Tu nombre y tu título salen en Inicio y en los proyectos que compartes con «Exportar código». Mientras uses un tema, los botones Claro/Oscuro no cambian nada.</p>
-      <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
+      <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz con token: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
     const fi=document.getElementById('jgimg');fi.addEventListener('change',async()=>{await this.setAvatar(fi.files[0]);this.perfilView(mv);});
     const fx=document.getElementById('jgimgx');if(fx)fx.addEventListener('click',()=>{delete s.avatar;this.save();this.perfilView(mv);});
     const n=document.getElementById('jgnick');n.addEventListener('input',()=>{s.nick=n.value.trim().slice(0,24);this.save();const av=mv.querySelector('.jg-av:not(.img) span');if(av)av.textContent=(s.nick||'?').slice(0,2).toUpperCase();});
@@ -199,53 +200,75 @@ const Juegos={
 };
 
 /* ---------- Serpiente ---------- */
-const SNK_SPEED={lenta:['Lenta',170],normal:['Normal',115],rapida:['Rápida',80],extrema:['Extrema',55]};
-const SNK_SIZE={s:['Pequeño',12,12],m:['Mediano',18,18],l:['Grande',24,25]}; // [nombre, casillas por lado, manzanas para superarla]
+// Como la clásica: se supera llenando todo el mapa. Se mueve fluida: la lógica va por casillas y el dibujo se desliza entre ellas.
+const SNK_SPEED={lenta:['Lenta',190],normal:['Normal',135],rapida:['Rápida',95],extrema:['Extrema',65]};
+const SNK_SIZE={xs:['Mini',6],s:['Pequeño',10],m:['Mediano',14],l:['Grande',20]}; // [nombre, casillas por lado]
 Object.assign(Juegos,{
-  snakeView(mv){const s=this.st(),S=s.snake,w=S.wins%10;
-    mv.innerHTML=this.head('Serpiente',true)+`<div class="view jg"><section class="snk-wrap">
+  snakeView(mv){const s=this.st(),S=s.snake;if(!SNK_SIZE[S.size])S.size='s';if(!SNK_SPEED[S.speed])S.speed='normal';const N=SNK_SIZE[S.size][1];
+    mv.innerHTML=this.head('Serpiente',true)+`<div class="view jg"><div class="jg-in"><section class="snk-wrap">
       <div class="snk-side">
         <div class="snk-opt"><b>Velocidad</b><div class="seg wide">${Object.entries(SNK_SPEED).map(([k,v])=>`<button class="segb" data-snk-speed="${k}" aria-pressed="${S.speed===k}">${v[0]}</button>`).join('')}</div></div>
         <div class="snk-opt"><b>Tamaño del mapa</b><div class="seg wide">${Object.entries(SNK_SIZE).map(([k,v])=>`<button class="segb" data-snk-size="${k}" aria-pressed="${S.size===k}">${v[0]} <small>${v[1]}×${v[1]}</small></button>`).join('')}</div></div>
-        <p class="tnote">Para superarla come <b>${SNK_SIZE[S.size][2]} manzanas</b> sin chocar con las paredes ni contigo. Flechas o WASD para moverte, espacio para pausar.</p>
-        <div class="snk-tok"><b>Próximo token</b><span class="jg-prog big"><i style="width:${w*10}%"></i></span><span>${w}/10 partidas superadas</span><small>Total superadas: ${S.wins} · récord: ${S.best} manzanas</small></div>
+        <p class="tnote">Como la clásica: para superarla tienes que <b>llenar todo el mapa</b> (${N*N} casillas) comiendo fruta, sin chocar con las paredes ni contigo. Flechas o WASD para moverte, espacio para pausar.</p>
+        <div class="snk-tok"><b>1 token cada vez que llenes el mapa</b><small>Mapas llenos: ${S.wins} · récord: ${S.best||0} de largo</small></div>
         <button class="ebtn pri big" id="snkgo">${GL.play||'▶'} Jugar</button></div>
-      <div class="snk-board"><canvas id="snk" width="504" height="504" tabindex="0" aria-label="Tablero de la serpiente"></canvas><div class="snk-hud"><span id="snkscore">0 / ${SNK_SIZE[S.size][2]}</span><span id="snkmsg">Pulsa «Jugar»</span></div></div>
-    </section></div>`;
-    this.snkDraw(null);
+      <div class="snk-board"><canvas id="snk" tabindex="0" aria-label="Tablero de la serpiente"></canvas><div class="snk-hud"><span id="snkscore">Largo 3 / ${N*N}</span><span id="snkmsg">Pulsa «Jugar»</span></div><span class="jg-prog snk-fill"><i id="snkfill" style="width:${3/(N*N)*100}%"></i></span></div>
+    </section></div></div>`;
+    this.snkSize();this.snkPaint(null,0);
     mv.querySelectorAll('[data-snk-speed]').forEach(b=>b.addEventListener('click',()=>{S.speed=b.dataset.snkSpeed;this.save();this.stopAll();this.snakeView(mv);}));
     mv.querySelectorAll('[data-snk-size]').forEach(b=>b.addEventListener('click',()=>{S.size=b.dataset.snkSize;this.save();this.stopAll();this.snakeView(mv);}));
     document.getElementById('snkgo').addEventListener('click',()=>this.snkStart());},
-  snkStart(){this.stopAll();const S=this.st().snake,N=SNK_SIZE[S.size][1],goal=SNK_SIZE[S.size][2],m=Math.floor(N/2);
-    const g={N,goal,body:[[m-2,m],[m-1,m],[m,m]],dir:[1,0],q:[],eat:0,over:false,pause:false};g.food=this.snkFood(g);this._snk=g;
-    const cv=document.getElementById('snk');cv.focus();
+  // Resolución del lienzo según su tamaño en pantalla (nítido en pantallas grandes)
+  snkSize(){const cv=document.getElementById('snk');if(!cv)return;const d=window.devicePixelRatio||1,px=Math.round((cv.clientWidth||504)*d);if(cv.width!==px){cv.width=px;cv.height=px;}},
+  snkStart(){this.stopAll();const S=this.st().snake,N=SNK_SIZE[S.size][1],m=Math.floor(N/2),x0=Math.max(2,Math.floor(N/4));
+    const g={N,body:[[x0-2,m],[x0-1,m],[x0,m]],prev:null,grew:false,dir:[1,0],q:[],over:false,win:false,pause:false,acc:0,last:0,speed:SNK_SPEED[S.speed][1],pop:0};g.food=this.snkFood(g);this._snk=g;
+    const cv=document.getElementById('snk');cv.focus();this.snkSize();
     if(!this._snkKey){this._snkKey=e=>{const G=this._snk;if(!G||!document.getElementById('snk'))return;const k=e.key.toLowerCase(),D={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[k];
-      if(D||k===' '){e.preventDefault();e.stopPropagation();}if(k===' '){if(!G.over){G.pause=!G.pause;this.snkMsg(G.pause?'Pausa':'');}return;}
+      if(D||k===' '){e.preventDefault();e.stopPropagation();}if(k===' '){if(!G.over){G.pause=!G.pause;this.snkMsg(G.pause?'Pausa (espacio para seguir)':'');}return;}
       if(D&&G.q.length<3){const last=G.q.length?G.q[G.q.length-1]:G.dir;if(last[0]!==-D[0]||last[1]!==-D[1])G.q.push(D);}};window.addEventListener('keydown',this._snkKey,true);}
-    this.snkMsg('');g.iv=setInterval(()=>this.snkTick(),SNK_SPEED[S.speed][1]);this.snkDraw(g);},
-  snkFood(g){const free=[];for(let x=0;x<g.N;x++)for(let y=0;y<g.N;y++)if(!g.body.some(b=>b[0]===x&&b[1]===y))free.push([x,y]);return free[Math.floor(Math.random()*free.length)];},
+    this.snkMsg('');this.snkHud(g);
+    const frame=t=>{const G=this._snk;if(G!==g)return;if(!document.getElementById('snk')){this.stopAll();return;}
+      if(!g.last)g.last=t;const dt=Math.min(100,t-g.last);g.last=t;
+      if(!g.pause&&!g.over){g.acc+=dt;while(g.acc>=g.speed&&!g.over){g.acc-=g.speed;this.snkTick(g);}}
+      this.snkPaint(g,g.over?1:Math.min(1,g.acc/g.speed),t);if(!g.over||g.fade<1)g.raf=requestAnimationFrame(frame);};
+    g.raf=requestAnimationFrame(frame);},
+  snkFood(g){const occ=new Set(g.body.map(b=>b[0]+','+b[1])),free=[];for(let x=0;x<g.N;x++)for(let y=0;y<g.N;y++)if(!occ.has(x+','+y))free.push([x,y]);return free.length?free[Math.floor(Math.random()*free.length)]:null;},
   snkMsg(t){const el=document.getElementById('snkmsg');if(el)el.textContent=t;},
-  snkTick(){const g=this._snk;if(!g)return;if(!document.getElementById('snk')){this.stopAll();return;}if(g.pause||g.over)return;
-    if(g.q.length)g.dir=g.q.shift();const h=g.body[g.body.length-1],n=[h[0]+g.dir[0],h[1]+g.dir[1]];
-    const grow=g.food&&n[0]===g.food[0]&&n[1]===g.food[1];
-    if(n[0]<0||n[1]<0||n[0]>=g.N||n[1]>=g.N||g.body.slice(grow?0:1).some(b=>b[0]===n[0]&&b[1]===n[1])){g.over=true;clearInterval(g.iv);this.snkEnd(false);this.snkDraw(g);return;}
-    g.body.push(n);if(grow){g.eat++;const sc=document.getElementById('snkscore');if(sc)sc.textContent=`${g.eat} / ${g.goal}`;if(g.eat>=g.goal){g.over=true;clearInterval(g.iv);this.snkDraw(g);this.snkEnd(true);return;}g.food=this.snkFood(g);}else g.body.shift();
-    this.snkDraw(g);},
-  snkEnd(win){const s=this.st(),S=s.snake,g=this._snk;S.best=Math.max(S.best,g?g.eat:0);
-    if(win){S.wins++;this.save();if(S.wins%10===0){this.give(1,'10 partidas de la serpiente superadas');}else{this.celebrate(false);toast(`¡Superada! Llevas ${S.wins%10}/10 para el próximo token.`);}}
-    else{this.save();this.snkMsg(`Has chocado: ${g?g.eat:0} manzanas. Pulsa «Jugar» para otra.`);}
-    const mv=document.getElementById('mainv');const tok=mv&&mv.querySelector('.snk-tok');if(tok){const w=S.wins%10;tok.innerHTML=`<b>Próximo token</b><span class="jg-prog big"><i style="width:${w*10}%"></i></span><span>${w}/10 partidas superadas</span><small>Total superadas: ${S.wins} · récord: ${S.best} manzanas</small>`;}
-    if(win)this.snkMsg('¡Superada! Pulsa «Jugar» para otra.');},
-  snkDraw(g){const cv=document.getElementById('snk');if(!cv)return;const x=cv.getContext('2d'),cs=getComputedStyle(document.documentElement),V=k=>cs.getPropertyValue(k).trim();
-    const S=this.st().snake,N=g?g.N:SNK_SIZE[S.size][1],c=cv.width/N;x.fillStyle=V('--surface');x.fillRect(0,0,cv.width,cv.height);
-    for(let i=0;i<N;i++)for(let j=0;j<N;j++)if((i+j)%2){x.fillStyle=V('--hover');x.fillRect(i*c,j*c,c,c);}
-    if(!g)return;const acc=V('--accent');
-    if(g.food){x.fillStyle='#E0402F';x.beginPath();x.arc(g.food[0]*c+c/2,g.food[1]*c+c/2+1,c*0.36,0,Math.PI*2);x.fill();x.fillStyle='#3B8F3A';x.fillRect(g.food[0]*c+c/2-1,g.food[1]*c+c*0.12,2.5,c*0.22);}
-    g.body.forEach((b,i)=>{const t=i/g.body.length;x.globalAlpha=0.55+0.45*t;x.fillStyle=acc;const p=c*0.08;const r=c*0.28;const X=b[0]*c+p,Y=b[1]*c+p,W=c-2*p;
-      x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+W,r);x.arcTo(X+W,Y+W,X,Y+W,r);x.arcTo(X,Y+W,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.fill();});x.globalAlpha=1;
-    const h=g.body[g.body.length-1];x.fillStyle=V('--surface');const e1=[h[0]*c+c/2+g.dir[0]*c*0.18-g.dir[1]*c*0.16,h[1]*c+c/2+g.dir[1]*c*0.18-g.dir[0]*c*0.16],e2=[h[0]*c+c/2+g.dir[0]*c*0.18+g.dir[1]*c*0.16,h[1]*c+c/2+g.dir[1]*c*0.18+g.dir[0]*c*0.16];
-    [e1,e2].forEach(e=>{x.beginPath();x.arc(e[0],e[1],c*0.09,0,Math.PI*2);x.fill();});
-    if(g.over){x.fillStyle='rgba(0,0,0,.35)';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#fff';x.font='bold 28px '+V('--f-ui');x.textAlign='center';x.fillText(g.eat>=g.goal?'¡Superada!':'Fin',cv.width/2,cv.height/2);}}
+  snkHud(g){const sc=document.getElementById('snkscore'),f=document.getElementById('snkfill'),n=g.N*g.N;if(sc)sc.textContent=`Largo ${g.body.length} / ${n}`;if(f)f.style.width=(g.body.length/n*100)+'%';},
+  snkTick(g){if(g.q.length)g.dir=g.q.shift();const h=g.body[g.body.length-1],n=[h[0]+g.dir[0],h[1]+g.dir[1]];
+    const grow=!!g.food&&n[0]===g.food[0]&&n[1]===g.food[1];
+    if(n[0]<0||n[1]<0||n[0]>=g.N||n[1]>=g.N||g.body.slice(grow?0:1).some(b=>b[0]===n[0]&&b[1]===n[1])){g.over=true;g.prev=null;g.fade=0;this.snkEnd(false);return;}
+    g.prev=g.body.map(b=>[b[0],b[1]]);g.grew=grow;g.body.push(n);if(!grow)g.body.shift();
+    if(grow){g.pop=1;this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
+  snkEnd(win){const s=this.st(),S=s.snake,g=this._snk;S.best=Math.max(S.best||0,g?g.body.length:0);
+    if(win){S.wins++;this.save();this.give(1,'mapa de la serpiente lleno');}
+    else{this.save();this.snkMsg(`Has chocado con ${g?g.body.length:0} de largo. Pulsa «Jugar» para otra.`);}
+    const mv=document.getElementById('mainv');const tok=mv&&mv.querySelector('.snk-tok');if(tok)tok.innerHTML=`<b>1 token cada vez que llenes el mapa</b><small>Mapas llenos: ${S.wins} · récord: ${S.best} de largo</small>`;
+    if(win)this.snkMsg('¡Has llenado el mapa! Pulsa «Jugar» para otra.');},
+  // Dibujo: tablero, fruta que late y la serpiente como un trazo continuo que avanza «t» (0..1) entre casilla y casilla
+  snkPaint(g,t,now){const cv=document.getElementById('snk');if(!cv)return;const x=cv.getContext('2d'),cs=getComputedStyle(document.documentElement),V=k=>cs.getPropertyValue(k).trim();
+    const S=this.st().snake,N=g?g.N:SNK_SIZE[S.size][1],W=cv.width,c=W/N,C=p=>[p[0]*c+c/2,p[1]*c+c/2],L=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];
+    x.fillStyle=V('--surface');x.fillRect(0,0,W,W);x.fillStyle=V('--hover');for(let i=0;i<N;i++)for(let j=0;j<N;j++)if((i+j)%2)x.fillRect(i*c,j*c,c,c);
+    if(!g)return;const acc=V('--accent')||'#2F6B4F',ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,k=g.over?1:ease(t);
+    // fruta
+    if(g.food){const p=C(g.food),pul=1+0.07*Math.sin((now||0)/180);x.save();x.translate(p[0],p[1]+c*0.03);x.scale(pul,pul);
+      x.fillStyle='rgba(0,0,0,.12)';x.beginPath();x.ellipse(0,c*0.33,c*0.26,c*0.07,0,0,Math.PI*2);x.fill();
+      x.fillStyle='#E0402F';x.beginPath();x.arc(0,0,c*0.32,0,Math.PI*2);x.fill();x.fillStyle='rgba(255,255,255,.45)';x.beginPath();x.arc(-c*0.11,-c*0.1,c*0.08,0,Math.PI*2);x.fill();
+      x.strokeStyle='#5B3A1E';x.lineWidth=Math.max(1.5,c*0.05);x.beginPath();x.moveTo(0,-c*0.28);x.lineTo(c*0.04,-c*0.42);x.stroke();
+      x.fillStyle='#3B8F3A';x.beginPath();x.ellipse(c*0.13,-c*0.36,c*0.11,c*0.05,-0.5,0,Math.PI*2);x.fill();x.restore();}
+    // cuerpo
+    let pts;if(g.prev&&!g.over){const P=[...g.prev.map(C),C(g.body[g.body.length-1])],n=P.length;pts=[g.grew?P[0]:L(P[0],P[1],k),...P.slice(1,n-1),L(P[n-2],P[n-1],k)];}
+    else pts=g.body.map(C);
+    const lw=c*0.72;x.save();x.lineCap='round';x.lineJoin='round';x.shadowColor='rgba(0,0,0,.22)';x.shadowBlur=c*0.25;x.shadowOffsetY=c*0.06;
+    x.strokeStyle=acc;x.lineWidth=lw;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));if(pts.length===1)x.lineTo(pts[0][0]+0.01,pts[0][1]);x.stroke();
+    x.shadowColor='transparent';x.strokeStyle='rgba(255,255,255,.18)';x.lineWidth=lw*0.28;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0]-lw*0.12,p[1]-lw*0.12):x.moveTo(p[0]-lw*0.12,p[1]-lw*0.12));x.stroke();x.restore();
+    // cabeza con ojos mirando hacia donde va
+    const h=pts[pts.length-1],d=g.dir,hr=c*0.42*(1+0.12*(g.pop||0));g.pop=Math.max(0,(g.pop||0)-0.08);
+    x.fillStyle=acc;x.beginPath();x.arc(h[0],h[1],hr,0,Math.PI*2);x.fill();
+    [[-1],[1]].forEach(([s])=>{const ex=h[0]+d[0]*c*0.14-d[1]*c*0.17*s,ey=h[1]+d[1]*c*0.14+d[0]*c*0.17*s;x.fillStyle='#fff';x.beginPath();x.arc(ex,ey,c*0.12,0,Math.PI*2);x.fill();
+      x.fillStyle='#1B1B1B';x.beginPath();x.arc(ex+d[0]*c*0.04,ey+d[1]*c*0.04,c*0.06,0,Math.PI*2);x.fill();});
+    if(g.over){g.fade=Math.min(1,(g.fade||0)+0.06);x.fillStyle=`rgba(0,0,0,${0.38*g.fade})`;x.fillRect(0,0,W,W);x.globalAlpha=g.fade;x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
+      x.font=`700 ${Math.round(W/14)}px ${V('--f-ui')}`;x.fillText(g.win?'¡Mapa lleno!':'¡Choque!',W/2,W/2-W/30);x.font=`500 ${Math.round(W/30)}px ${V('--f-ui')}`;x.fillText(`Largo ${g.body.length} de ${g.N*g.N}`,W/2,W/2+W/22);x.globalAlpha=1;}}
 });
 
 /* ---------- Quiz de cultura ---------- */
@@ -257,13 +280,13 @@ Object.assign(Juegos,{
   quizView(mv){const Q=this._qz;
     if(!Q){const s=this.st(),cats=[...new Set(QZ_ALL().map(q=>q.c))];
       mv.innerHTML=this.head('Quiz de cultura',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">🧠</span><h2>10 preguntas al azar</h2>
-        <p>Hay <b>${QZ_ALL().length}</b> preguntas de: ${cats.map(c=>`<span class="qz-cat">${esc(c)}</span>`).join(' ')}</p><p>Si aciertas <b>las 10</b>, ganas <b>1 token</b>.</p>
-        <button class="ebtn pri big" data-qz="start">Empezar ronda</button><p class="tnote">Rondas jugadas: ${s.quiz.rounds} · perfectas: ${s.quiz.perfect}</p></section></div>`;
+        <p>Hay <b>${QZ_ALL().length}</b> preguntas de: ${cats.map(c=>`<span class="qz-cat">${esc(c)}</span>`).join(' ')}</p><p>Si aciertas <b>al menos la mitad (5 de 10)</b>, ganas <b>1 token</b>.</p>
+        <button class="ebtn pri big" data-qz="start">Empezar ronda</button><p class="tnote">Rondas jugadas: ${s.quiz.rounds} · con token: ${s.quiz.perfect}</p></section></div>`;
       mv.querySelector('[data-qz=start]').addEventListener('click',()=>this.qzStart());return;}
     const q=Q.list[Q.i],done=Q.ans[Q.i]!=null;
-    if(Q.i>=Q.list.length){const ok=Q.ans.filter(Boolean).length,perfect=ok===Q.list.length;
-      mv.innerHTML=this.head('Quiz de cultura',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">${perfect?'🏆':ok>=7?'👏':'📚'}</span><h2>${ok} de ${Q.list.length}</h2>
-        <p>${perfect?'¡Perfecta! Has ganado 1 token.':'Para ganar el token hay que acertar las 10. ¡Otra!'}</p>
+    if(Q.i>=Q.list.length){const ok=Q.ans.filter(Boolean).length,perfect=ok===Q.list.length,pass=ok*2>=Q.list.length;
+      mv.innerHTML=this.head('Quiz de cultura',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">${perfect?'🏆':pass?'👏':'📚'}</span><h2>${ok} de ${Q.list.length}</h2>
+        <p>${perfect?'¡Perfecta! Has ganado 1 token.':pass?'¡Bien! Has acertado al menos la mitad: 1 token.':'Para ganar el token hay que acertar al menos la mitad (5). ¡Otra!'}</p>
         <div class="qz-rev">${Q.list.map((x,i)=>`<div class="${Q.ans[i]?'ok':'bad'}"><b>${Q.ans[i]?'✓':'✗'}</b> ${esc(x.q)} <small>→ ${esc(x.a)}</small></div>`).join('')}</div>
         <button class="ebtn pri big" data-qz="start">Otra ronda</button></section></div>`;
       mv.querySelector('[data-qz=start]').addEventListener('click',()=>this.qzStart());return;}
@@ -278,5 +301,5 @@ Object.assign(Juegos,{
   qzStart(){const s=this.st(),all=QZ_ALL(),seen=new Set(s.quiz.seen||[]);let pool=all.map((q,i)=>i).filter(i=>!seen.has(i));if(pool.length<10){s.quiz.seen=[];pool=all.map((q,i)=>i);}
     const pick=shuffle(pool).slice(0,10);s.quiz.seen=[...(s.quiz.seen||[]),...pick].slice(-Math.max(10,all.length-20));this.save();
     const list=pick.map(i=>all[i]);this._qz={list,i:0,ans:[],pick:null,opts:shuffle([list[0].a,...list[0].w.slice(0,3)])};this.quizView(document.getElementById('mainv'));},
-  qzFinish(){const s=this.st(),Q=this._qz,ok=Q.ans.filter(Boolean).length;s.quiz.rounds++;if(ok===Q.list.length){s.quiz.perfect++;this.save();this.give(1,'ronda perfecta del quiz');}else this.save();}
+  qzFinish(){const s=this.st(),Q=this._qz,ok=Q.ans.filter(Boolean).length;s.quiz.rounds++;if(ok*2>=Q.list.length){s.quiz.perfect++;this.save();this.give(1,`${ok} de ${Q.list.length} en el quiz`);}else this.save();}
 });

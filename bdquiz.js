@@ -85,11 +85,11 @@ Object.assign(Juegos,{
   bdqView(mv){const B=this._bdq,s=this.st();
     if(!B){mv.innerHTML=this.head('¿Está bien el diagrama?',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">🔎</span><h2>¿Está bien hecho?</h2>
         <p>Te sale un enunciado corto y su diagrama (E-R, Relacional o DED). <b>Casi siempre tiene fallos</b>: entre 1 y 4. Pulsa sobre lo que esté mal (una entidad, un atributo, una cardinalidad, una tabla o una flecha) y luego «Comprobar». Si crees que está perfecto, pulsa «Está bien».</p>
-        <p>Rondas de <b>5 diagramas</b>: si aciertas los 5, ganas <b>1 token</b>.</p><button class="ebtn pri big" data-bq="start">Empezar ronda</button>
-        <p class="tnote">Rondas: ${s.bdq.rounds} · perfectas: ${s.bdq.perfect} · diagramas acertados: ${s.bdq.ok}</p></section></div>`;
+        <p>Rondas de <b>5 diagramas</b>: si aciertas <b>al menos 3</b>, ganas <b>1 token</b>.</p><button class="ebtn pri big" data-bq="start">Empezar ronda</button>
+        <p class="tnote">Rondas: ${s.bdq.rounds} · con token: ${s.bdq.perfect} · diagramas acertados: ${s.bdq.ok}</p></section></div>`;
       mv.querySelector('[data-bq=start]').addEventListener('click',()=>this.bqStart());return;}
-    if(B.i>=B.list.length){const ok=B.res.filter(Boolean).length,perfect=ok===B.list.length;
-      mv.innerHTML=this.head('¿Está bien el diagrama?',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">${perfect?'🏆':ok>=3?'👏':'📚'}</span><h2>${ok} de ${B.list.length}</h2><p>${perfect?'¡Perfecta! Has ganado 1 token.':'Para ganar el token hay que acertar los 5. ¡Otra!'}</p><button class="ebtn pri big" data-bq="start">Otra ronda</button></section></div>`;
+    if(B.i>=B.list.length){const ok=B.res.filter(Boolean).length,perfect=ok===B.list.length,pass=ok*2>=B.list.length;
+      mv.innerHTML=this.head('¿Está bien el diagrama?',true)+`<div class="view jg"><section class="qz-start"><span class="jg-ic big">${perfect?'🏆':pass?'👏':'📚'}</span><h2>${ok} de ${B.list.length}</h2><p>${perfect?'¡Perfecta! Has ganado 1 token.':pass?'¡Bien! Has acertado al menos 3: 1 token.':'Para ganar el token hay que acertar al menos 3. ¡Otra!'}</p><button class="ebtn pri big" data-bq="start">Otra ronda</button></section></div>`;
       mv.querySelector('[data-bq=start]').addEventListener('click',()=>this.bqStart());return;}
     const q=B.list[B.i],done=B.res[B.i]!=null,T=new Set(q.errs.map(e=>e.tg)),M=B.marks;
     mv.innerHTML=this.head('¿Está bien el diagrama?',true)+`<div class="view jg"><section class="bdq">
@@ -113,5 +113,5 @@ Object.assign(Juegos,{
   bqStart(){const s=this.st(),all=BDQ.bank(),seen=new Set(s.bdq.seen||[]);let pool=all.map(q=>q.id).filter(i=>!seen.has(i));if(pool.length<5){s.bdq.seen=[];pool=all.map(q=>q.id);}
     const pick=shuffle(pool).slice(0,5);s.bdq.seen=[...(s.bdq.seen||[]),...pick].slice(-90);this.save();
     this._bdq={list:pick.map(i=>all.find(q=>q.id===i)),i:0,res:[],marks:new Set()};this.bdqView(document.getElementById('mainv'));},
-  bqFinish(){const s=this.st(),B=this._bdq,ok=B.res.filter(Boolean).length;s.bdq.rounds++;if(ok===B.list.length){s.bdq.perfect++;this.save();this.give(1,'ronda perfecta de diagramas');}else this.save();}
+  bqFinish(){const s=this.st(),B=this._bdq,ok=B.res.filter(Boolean).length;s.bdq.rounds++;if(ok*2>=B.list.length){s.bdq.perfect++;this.save();this.give(1,`${ok} de ${B.list.length} diagramas`);}else this.save();}
 });
