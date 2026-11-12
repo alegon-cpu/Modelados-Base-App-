@@ -53,7 +53,8 @@ function load(base, folder) {
   try { enun = fs.readFileSync(path.join(dir, 'Enunciado.txt'), 'utf8'); } catch (e) {}
   const p = { folder, name: meta.name || folder, created: meta.created || 0, updated: meta.updated || 0, enun };
   if (meta.act && typeof meta.act === 'object') p.act = meta.act;
-  if (Array.isArray(meta.hl)) p.hl = meta.hl.filter(m => m && typeof m.t === 'string' && ['ent', 'rel', 'att'].includes(m.k)).map(m => ({ t: m.t, k: m.k }));
+  if (typeof meta.icon === 'string' && meta.icon.length <= 8) p.icon = meta.icon;
+  if (Array.isArray(meta.hl)) p.hl = meta.hl.filter(m => m && ['ent', 'rel', 'att'].includes(m.k) && (typeof m.t === 'string' || (Number.isInteger(m.s) && Number.isInteger(m.e) && m.e > m.s))).map(m => typeof m.t === 'string' ? { t: m.t, k: m.k } : { s: m.s, e: m.e, k: m.k });
   for (const [k, s] of Object.entries(SUBS)) {
     const v = readJSON(path.join(dir, s, 'diagrama.json'), null);
     p[k] = v && typeof v === 'object' ? v : EMPTY[k]();
@@ -109,7 +110,7 @@ function renameGroup(base, g, name) {
 }
 function save(base, p, svgs) {
   const dir = inside(base, p.folder);
-  writeAtomic(path.join(dir, 'proyecto.json'), JSON.stringify(Object.assign({ app: 'modelado-bases', version: 2, name: p.name, created: p.created, updated: p.updated }, p.act ? { act: p.act } : {}, Array.isArray(p.hl) && p.hl.length ? { hl: p.hl } : {}), null, 2));
+  writeAtomic(path.join(dir, 'proyecto.json'), JSON.stringify(Object.assign({ app: 'modelado-bases', version: 2, name: p.name, created: p.created, updated: p.updated }, p.act ? { act: p.act } : {}, Array.isArray(p.hl) && p.hl.length ? { hl: p.hl } : {}, typeof p.icon === 'string' && p.icon ? { icon: p.icon } : {}), null, 2));
   writeAtomic(path.join(dir, 'Enunciado.txt'), p.enun || '');
   for (const [k, s] of Object.entries(SUBS)) {
     writeAtomic(path.join(dir, s, 'diagrama.json'), JSON.stringify(p[k] || EMPTY[k](), null, 1));

@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.2';
+const VERSION='2.3';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -34,9 +34,10 @@ function noteLines(n){const per=Math.max(8,Math.floor((n.w-22)/6.7)),out=[];
   return out.length?out:[''];}
 function noteSize(n){n.w=n.w||180;n.lines=noteLines(n);n.h=Math.max(46,18+n.lines.length*16);return n;}
 function noteSVG(n,cls=''){noteSize(n);const x=n.x,y=n.y,w=n.w,h=n.h,f=12;
-  return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/><path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
+  const tape=typeof document!=='undefined'&&document.documentElement.classList.contains('nt-cinta')?`<rect x="${x+w/2-28}" y="${y-9}" width="56" height="18" rx="2" class="note-tape" transform="rotate(-4 ${x+w/2} ${y})"/>`:'';
+  return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/>`+tape+`<path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
     n.lines.map((l,i)=>`<text x="${x+10}" y="${y+21+i*16}" class="note-tx">${esc(l)}</text>`).join('');}
-const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),...(p.hl&&p.hl.length?{hl:p.hl}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
+const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),...(p.hl&&p.hl.length?{hl:p.hl}:{}),...(p.icon?{icon:p.icon}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
 function guessType(name,f){
   const s=lc(name);
   if(f&&(f.pk||f.fk))return /^(dni|nif|nie)/.test(s)?'CHAR(9)':/^(mat|isbn|iata|cod[a-z]*str)/.test(s)?'VARCHAR(20)':'INT';
@@ -334,9 +335,8 @@ class Editor{
     this.insp.addEventListener('input',e=>{const t=e.target;if(t.type==='checkbox'||t.tagName==='SELECT')return;if(!this.editing){this.snap();this.editing=true;}this.apply(t);this.save();this.render();this.markDup();});
     this.insp.addEventListener('change',e=>{const t=e.target;if(!(t.type==='checkbox'||t.tagName==='SELECT')||t.dataset.pendchk)return;this.snap();this.apply(t);this.save();this.render();this.renderInsp();});
     this.insp.addEventListener('keydown',e=>this.onInspKey(e));
-    this._hlDraw=hlWire(this.enT,el.querySelector('.ed-en .hlback'),()=>(this.p&&this.p.hl)||[]);
-    { const hb=el.querySelector('.ed-en .hlbar');hb.addEventListener('pointerdown',e=>{if(e.target.closest('[data-hl]'))e.preventDefault();});
-      hb.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b||!this.p)return;if(hlApply(this.p,this.enT,b.dataset.hl)){this.app.touch(this.p);this._hlDraw();}}); }
+    this._hlDraw=hlWire(this.enT,el.querySelector('.ed-en .hlback'),()=>this.p,()=>this.app.touch(this.p));
+    hlBind(el.querySelector('.ed-en .hlbar'),this.enT,()=>this.p,()=>{this.app.touch(this.p);this._hlDraw();});
     this.enT.addEventListener('input',()=>{const v=fixBullets(this.enT.value);if(v!==this.enT.value){const c=this.enT.selectionStart;this.enT.value=v;this.enT.setSelectionRange(c,c);}this.p.enun=v;this.app.touch(this.p);});
     this.boZ=el.querySelector('.bo-zone');this.boT=el.querySelector('#botxt');
     this.boT.addEventListener('input',()=>{if(this.ro)return;clearTimeout(this._boT);this._boT=setTimeout(()=>this.boFromText(this.boT.value),350);});

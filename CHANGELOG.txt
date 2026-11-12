@@ -41,6 +41,15 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.3  (12/11/2026)
+------------------
+- "No cliques esto": Serpiente, Quiz de cultura (1000+ preguntas) y
+  "Esta bien el diagrama?" (100 diagramas con fallos). Ganan tokens.
+- Tiradas (60/28/10/2 %, legendaria asegurada a las 40, epica en las de
+  10), album, perfil con titulo y tema, iconos de proyecto.
+- Progreso y ajustes en progreso-modelado.json, en la carpeta que elijas.
+- Subrayador del enunciado a mano, con rotuladores y goma.
+
 v2.2  (12/11/2026)
 ------------------
 - Subrayador del enunciado (Entidad, Relacion, Atributo) y "Pasar al

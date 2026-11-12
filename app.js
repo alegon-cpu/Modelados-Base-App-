@@ -92,7 +92,7 @@ const b64u={enc(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharC
   dec(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}};
 async function pipeBytes(data,stream){return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());}
 async function toCode(list){
-  const json=JSON.stringify({app:'modelado-bases',v:1,proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,bo:q.bo,er:q.er,rel:q.rel,ded:q.ded};})});
+  const json=JSON.stringify({app:'modelado-bases',v:1,by:(()=>{try{const p=Juegos.profile();return p.nick||p.title?p:undefined;}catch(e){return undefined;}})(),proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,bo:q.bo,er:q.er,rel:q.rel,ded:q.ded};})});
   return 'MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
 }
 async function fromCode(txt){
@@ -110,7 +110,7 @@ async function fromCode(txt){
 /* ===================== Tema claro / oscuro ===================== */
 const Theme={
   get(){try{return localStorage.getItem('mb:theme')||'system';}catch(e){return 'system';}},
-  apply(m){if(m==='light'||m==='dark')document.documentElement.setAttribute('data-theme',m);else document.documentElement.removeAttribute('data-theme');
+  apply(m){try{const sk=Juegos.skinMode();if(sk)m=sk;}catch(e){}if(m==='light'||m==='dark')document.documentElement.setAttribute('data-theme',m);else document.documentElement.removeAttribute('data-theme');
     document.querySelectorAll('[data-theme-set]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.themeSet===m)));
     try{window.api.setTheme&&window.api.setTheme(m).catch(()=>{});}catch(e){}},
   set(m){try{localStorage.setItem('mb:theme',m);}catch(e){}this.apply(m);if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();},
@@ -170,13 +170,18 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
   "Large canvas with zoom, multiple selection, right-click menu, find (Ctrl+F), copy and paste, undo, Arrange, align, notes and drag-and-drop buttons.",
   "Full theory, accessibility settings, Spanish and English. Saves automatically (and with Ctrl+S), updates itself, shares projects with a code, exports images and ERDPlus files."];
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
-const NOVEDADES_EN=["Brief highlighter: select a word and mark it as Entity (blue), Relationship (orange) or Attribute (green). It is marked in the whole text, also in the brief next to the canvas. «To the Sketch» creates the entities, their attributes and the lines.","Folders and subfolders to organise projects (e.g. Exercises › Unit 1). Folder button next to «My projects», right-click to create, rename or move, and you can drag projects and folders.","In the Sketch text, relationships with attributes: «Entity1-Entity2; attribute1, attribute2». They are not drawn in the sketch; «To the E-R» puts them on the relationship.","Notes carry over between diagrams: Sketch to E-R, E-R to Relational or DSD, Relational to DSD. They are not repeated if you do it again.","«Find» button in each diagram's toolbar (also Ctrl+F). In the Sketch it also finds attributes.","Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
+const NOVEDADES_EN=["«Don't click this» (top): mini-games to earn tokens. Snake (choose speed and size; every 10 wins, 1 token), a culture quiz with more than 1000 questions (10 out of 10 = 1 token) and «Is the diagram right?» with 100 E-R, Relational and DSD diagrams to find their mistakes (5 out of 5 = 1 token).","Pulls with tokens: accent colours and project icons (common 60 %), titles (rare 28 %), full themes (epic 10 %) and special themes, note styles, cursor, frame and effects (legendary 2 %). Legendary guaranteed at 40 pulls, epic guaranteed in 10-pulls. Duplicates give fragments.","Album with your collection and profile with your name, title and theme; shown on Home and in the projects you share. An icon for each project with right-click.","Your progress and settings are also saved in «progreso-modelado.json», in the folder you choose in Settings › General (by default, your projects folder).","The brief highlighter is now manual: choose a marker (Entity, Relationship or Attribute) and drag the mouse over what you want to highlight. The eraser removes it.","Brief highlighter: select a word and mark it as Entity (blue), Relationship (orange) or Attribute (green). It is marked in the whole text, also in the brief next to the canvas. «To the Sketch» creates the entities, their attributes and the lines.","Folders and subfolders to organise projects (e.g. Exercises › Unit 1). Folder button next to «My projects», right-click to create, rename or move, and you can drag projects and folders.","In the Sketch text, relationships with attributes: «Entity1-Entity2; attribute1, attribute2». They are not drawn in the sketch; «To the E-R» puts them on the relationship.","Notes carry over between diagrams: Sketch to E-R, E-R to Relational or DSD, Relational to DSD. They are not repeated if you do it again.","«Find» button in each diagram's toolbar (also Ctrl+F). In the Sketch it also finds attributes.","Associative entity in the E-R: the diamond inside a rectangle. Turn it on in the relationship panel or with right-click; it can be joined to other entities with its own relationship. When converted to tables it gets its own table with the keys of its entities.","In the Relational the arrows, and in the DSD the lines, can be tapped: you see which FK it is, and you can move the FK to the other table or remove the relationship.","In the DSD, the line and «Relate» ask like in the E-R (maximum and minimum on each side) and whether the line is solid or dashed.","In the Relational, «Relate» only asks where the arrow goes (which table gets the FK): no zero, one or many.","«Copy my relational» to the DSD also copies the relationships only with easy mode; otherwise only the tables.","New theory: associative entity, and in the DSD when the line is solid or dashed, with examples.","In the Sketch each line's cardinalities are chosen like in the E-R (maximum 1/N and minimum 0/1) and shown as (min,max) next to each entity.","Small diamond in the middle of Sketch lines. It can be turned off in Settings › Canvas › «Diamond on Sketch lines».","In the Sketch the entities show only their name; attributes are written in the box above and appear with «To the E-R».","Bullets pasted from Word no longer show as little squares in the brief.",'Home screen when the app opens, with your last opened projects (in order, with a diagram thumbnail). «Home» button at the top left.',
   'The theory is now in Home, explained with pictures: E-R model, relational model, DSD, SQL to create tables and SQL queries (SELECT, WHERE, JOIN, GROUP BY…).',
   'Group activity: «Create activity» makes a code with the brief, what to do and the minutes. Each classmate imports it, clicks Start and does it by hand against the clock; when time is up it locks until «Leave student mode».',
   "Sketch with a box to write «Entity; attribute1, attribute2…» above the canvas, and zero (○), one (|) or many (crow's foot) marks next to each entity on the lines. «To the E-R» also brings the attributes and cardinalities.",
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.3: «No cliques esto» (arriba): minijuegos para ganar tokens. Serpiente (eliges velocidad y tamaño; cada 10 partidas superadas, 1 token), Quiz de cultura con más de 1000 preguntas (10 de 10 = 1 token) y «¿Está bien el diagrama?» con 100 diagramas de E-R, Relacional y DED para encontrar sus fallos (5 de 5 = 1 token).',
+  '2.3: tiradas con los tokens: colores de acento e iconos de proyecto (común 60 %), títulos (rara 28 %), temas completos (épica 10 %) y temas especiales, estilos de nota, cursor, marco y efectos (legendaria 2 %). Legendaria asegurada a las 40 tiradas y épica asegurada en las de 10. Los repetidos dan fragmentos.',
+  '2.3: álbum con tu colección y perfil con tu nombre, título y tema; salen en Inicio y en los proyectos que compartes. Icono para cada proyecto con el botón derecho.',
+  '2.3: tu progreso y tus ajustes se guardan también en «progreso-modelado.json», en la carpeta que elijas en Ajustes › General (por defecto, la de tus proyectos). Si la carpeta está en OneDrive o Drive, lo tienes en todos tus ordenadores.',
+  '2.3: el subrayador del enunciado ahora es a mano: elige un rotulador (Entidad, Relación o Atributo) y arrastra el ratón sobre lo que quieras subrayar. Con la goma lo quitas.',
   '2.2: subrayador del enunciado: selecciona una palabra y márcala como Entidad (azul), Relación (naranja) o Atributo (verde). Se marca en todo el texto, también en el enunciado de al lado del lienzo. Con «Pasar al Boceto» se crean las entidades, sus atributos y las líneas.',
   '2.2: carpetas y subcarpetas para ordenar los proyectos (por ejemplo Ejercicios › Tema 1). Botón de carpeta junto a «Mis proyectos», botón derecho para crear, renombrar o mover, y se pueden arrastrar proyectos y carpetas.',
   '2.2: en el texto del Boceto, las relaciones con atributos: «Entidad1-Entidad2; atributo1, atributo2». En el boceto no se dibujan, y al «Pasar al E-R» se ponen en la relación.',
@@ -260,11 +265,15 @@ const App={
   get autosave(){return true;},
   async start(){
     if(this.solo)document.body.classList.add('solo');
-    Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();setInterval(()=>this.actTick(),1000);
+    Sync.hook();Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();setInterval(()=>this.actTick(),1000);
     window.api.onCloseRequest(()=>this.onCloseRequest());
     window.api.onWindows(l=>{this.locked=new Set(l);this.renderTree();if(this.cur&&this.view)this.renderMain();});
     window.api.onWindowClosed(f=>this.afterWindow(f));
     try{this.base=await window.api.baseGet();}catch(e){}
+    if(this.base&&!this.solo){const fresh=await Sync.load();Sync._ready=true;if(fresh)this.afterSync(true);}else Sync._ready=!this.solo;
+    Juegos._s=null;
+    try{this._prog=await window.api.progInfo();}catch(e){}
+    Juegos.apply();
     this.renderFoot();
     if(this.solo){await this.startSolo();return;}
     setTimeout(()=>this.archiveWarn(),900);
@@ -277,6 +286,9 @@ const App={
     this.maybeNews();
     setTimeout(()=>this.checkUpdates(false),1500);
   },
+  // Tras traer el progreso del archivo: volver a leer ajustes, tema y juegos sin recargar la ventana
+  afterSync(quiet){try{Settings._c=null;Settings.apply(Settings.get());}catch(e){}try{Theme.apply(Theme.get());}catch(e){}Juegos._s=null;Juegos.apply();
+    if(!quiet){this.renderTree();this.renderMain();}},
   keepPlace(){try{sessionStorage.setItem('mb:reopen',JSON.stringify({f:this.home?null:this.cur&&this.cur.folder,v:this.view,home:this.home||null,set:this.settingsOpen?this._sec:null}));}catch(e){}},
   async startSolo(){
     try{const p=await window.api.load(this.solo);p._id=uid('p');this.projects=[p];this.cur=p;this.view='er';this.status('ok','Todo guardado');
@@ -371,6 +383,7 @@ const App={
     if(sec==='general'){h=H('General')+seg('startScreen','Al abrir la app','Inicio: últimos proyectos y teoría. Último proyecto: entra directo donde lo dejaste.',[['home','Inicio'],['last','Último proyecto']])+
         seg('openTab','Pestaña al abrir un proyecto','Desde Inicio o desde la lista de la izquierda.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']])+
         seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
+        (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guarda tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes, en <code>progreso-modelado.json</code>. Ahora: <code>${esc(P.dir||'—')}</code>${P.custom?'':' (la carpeta de proyectos)'}. Si eliges una carpeta que ya tiene un progreso más nuevo, se carga ese.</small></div><div class="row"><button class="ebtn" data-act="prog-choose">Cambiar…</button><button class="ebtn" data-act="prog-reveal">Abrir</button>${P.custom?'<button class="ebtn" data-act="prog-reset">Usar la de proyectos</button>':''}</div></div>`;})()+
         tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
         tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.');}
     else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+
@@ -548,7 +561,7 @@ const App={
     const G=this.groups||[],GO=this.gopen(),hdr=`<div class="tree-h" data-gdrop=""><span>Mis proyectos</span><button class="tree-add" data-act="newgroup" title="Nueva carpeta para agrupar proyectos" aria-label="Nueva carpeta">${ICO.grp}<span>+</span></button></div>`;
     if(!this.projects.length&&!G.length){t.innerHTML=hdr+`<p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
     const proj=p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
-      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" draggable="true" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
+      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" draggable="true" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${p.icon?`<span class="picon">${esc(p.icon)}</span>`:ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
       ${op?`<div class="sub">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;};
     const grp=g=>{const op=!!GO[g],kg=G.filter(x=>parOf(x)===g),kp=this.projects.filter(p=>parOf(p.folder)===g),n=this.projects.filter(p=>p.folder.startsWith(g+'/')).length,ed=this._gEdit===g;
       return `<div class="grp"><div class="gf" role="button" tabindex="0" data-g="${escA(g)}" data-gdrop="${escA(g)}" draggable="${!ed}" aria-expanded="${op}" title="${escA(g)}">${ICO.chev}${ICO.grp}${ed?`<input class="gname" value="${escA(leafOf(g))}" spellcheck="false" aria-label="Nombre de la carpeta">`:`<span class="nm">${esc(leafOf(g))}</span>`}<span class="cnt">${n||''}</span></div>
@@ -582,8 +595,10 @@ const App={
     this._mvP=p;this.modal(`<h3>Mover «${esc(p.name)}»</h3><p>Elige la carpeta:</p><div class="mvlist">${row('',0)}${tree('',1)}</div><div class="mrow"><button class="ebtn" data-m="mv-new">Nueva carpeta…</button><button class="ebtn" data-m="close">Cancelar</button></div>`);},
   treeMenu(e){const gf=e.target.closest('.gf'),pf=e.target.closest('.pf'),hd=e.target.closest('.tree-h');if(!gf&&!pf&&!hd)return;e.preventDefault();
     if(gf){const g=gf.dataset.g;openCtx(e.clientX,e.clientY,[{label:'Nuevo proyecto aquí',fn:()=>this.newProject(g)},{label:'Nueva subcarpeta',fn:()=>this.newGroup(g)},{sep:1},{label:'Renombrar',fn:()=>{this._gEdit=g;this.renderTree();}},{label:'Mover a…',fn:()=>this.pickGroupFolder(g)},{label:'Abrir en el explorador',fn:()=>this.run(()=>window.api.reveal(g))},{sep:1},{label:'Eliminar carpeta',danger:true,fn:()=>this.deleteGroup(g)}]);return;}
-    if(pf){const p=this.byId(pf.dataset.pid);openCtx(e.clientX,e.clientY,[{label:'Abrir',fn:()=>this.go(p,Settings.get().openTab||'er')},{label:'Mover a carpeta…',fn:()=>this.pickFolder(p)},{label:'Abrir en el explorador',fn:()=>this.run(()=>window.api.reveal(p.folder))}]);return;}
+    if(pf){const p=this.byId(pf.dataset.pid);openCtx(e.clientX,e.clientY,[{label:'Abrir',fn:()=>this.go(p,Settings.get().openTab||'er')},{label:'Mover a carpeta…',fn:()=>this.pickFolder(p)},{label:'Icono del proyecto…',fn:()=>this.pickIcon(p)},{label:'Abrir en el explorador',fn:()=>this.run(()=>window.api.reveal(p.folder))}]);return;}
     openCtx(e.clientX,e.clientY,[{label:'Nueva carpeta',fn:()=>this.newGroup('')},{label:'Nuevo proyecto',fn:()=>this.newProject('')}]);},
+  pickIcon(p){const s=Juegos.st(),own=REWARDS.filter(x=>x.kind==='icon'&&s.owned[x.id]);this._icP=p;
+    this.modal(`<h3>Icono de «${esc(p.name)}»</h3>${own.length?`<div class="ic-grid"><button class="ic-o${p.icon?'':' on'}" data-m="ic" data-ic="">${ICO.folder}<small>Normal</small></button>${own.map(x=>`<button class="ic-o${p.icon===x.e?' on':''}" data-m="ic" data-ic="${escA(x.e)}"><span>${x.e}</span><small>${esc(x.n.replace(/^Icono /,''))}</small></button>`).join('')}</div>`:`<p>Aún no tienes iconos. Se consiguen en las tiradas de «No cliques esto».</p>`}<div class="mrow"><button class="ebtn" data-m="close">Cerrar</button></div>`);},
   pickGroupFolder(g){const G=(this.groups||[]).filter(x=>x!==g&&!x.startsWith(g+'/')),cur=parOf(g),row=(x,d)=>`<button class="mvopt" data-m="mvg" data-to="${escA(x)}" ${x===cur?'disabled':''} style="padding-left:${10+d*16}px">${ICO.grp}<span>${x?esc(leafOf(x)):'Mis proyectos (arriba del todo)'}</span>${x===cur?'<small>aquí está</small>':''}</button>`;
     const tree=(par,d)=>G.filter(x=>parOf(x)===par).map(x=>row(x,d)+tree(x,d+1)).join('');this._mvG=g;
     this.modal(`<h3>Mover la carpeta «${esc(leafOf(g))}»</h3><div class="mvlist">${row('',0)}${tree('',1)}</div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);},
@@ -641,6 +656,7 @@ const App={
     try{const parts=svgParts(p),k=['er','ded','rel'].find(x=>parts[x]);if(k){const {inner,b}=parts[k],pd=30;h=`<svg viewBox="${f1(b[0]-pd)} ${f1(b[1]-pd)} ${f1(b[2]-b[0]+2*pd)} ${f1(b[3]-b[1]+2*pd)}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;}}catch(e){}
     return this._th[key]=h;},
   renderHome(mv){const en=LANG()==='en';
+    if(this.home==='juegos'){Juegos.render(mv);return;}
     if(this.home==='teoria'){
       mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Theory':'Teoría'}</span><div class="ph-acts"><button class="ebtn" data-act="home">← ${en?'Home':'Inicio'}</button></div></header><div class="view home-th" id="thview">${theoryHTML(this._thc,this._ths,this._thq)}</div>`;
       const q=document.getElementById('thq2');q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderMain();const q2=document.getElementById('thq2');q2.focus();q2.setSelectionRange(pos,pos);});
@@ -650,7 +666,7 @@ const App={
     const extra=this.projects.filter(p=>!rec.some(r=>r.p===p)).slice(0,Math.max(0,N-rec.length)).map(p=>({p,t:0}));
     const list=[...rec,...extra];
     mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Home':'Inicio'}</span></header><div class="view home">
-      <section class="home-top"><div><h2>Modelado Bases</h2><p>E-R, relacional, DED y SQL de tus ejercicios de bases de datos.</p></div>
+      <section class="home-top"><div><h2>Modelado Bases</h2><p>E-R, relacional, DED y SQL de tus ejercicios de bases de datos.</p></div>${Juegos.profileCard()}
         <div class="row"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import" title="También para unirte a una actividad: pega el código que te han pasado">Importar código o actividad</button><button class="ebtn" data-act="controls">Controles</button><button class="ebtn" data-act="settings">Ajustes</button></div></section>
       <section><h3>Últimos proyectos abiertos</h3>${list.length?`<div class="rc-grid">${list.map(({p,t})=>{const c=this.counts(p);return `<button class="rc" data-pid="${p._id}"><span class="rc-th">${this.thumb(p)||'<span class="rc-empty">Vacío</span>'}</span><b class="rc-n">${esc(p.name)}</b><small>${t?ago(t):'Sin abrir todavía'}${[c.er,c.ded||c.rel].filter(Boolean).map(x=>' · '+x).join('')}${p.act?' · Actividad':''}</small></button>`;}).join('')}</div>`:'<p class="tnote">Todavía no tienes proyectos. Pulsa «Nuevo proyecto».</p>'}</section>
       <section><h3>Teoría</h3><div class="thc-grid">${TH_CH.map(c=>`<button class="thc" data-thc="${c.id}">${ICO[c.ico]||''}<b>${esc(en?c.te:c.t)}</b><small>${thSections(c).slice(0,5).map(s=>esc(s.t)).join(' · ')}${thSections(c).length>5?' …':''}</small></button>`).join('')}</div></section></div>`;},
@@ -689,13 +705,13 @@ const App={
     if(this.view==='enun'){
       v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p>${hlBar(true)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div><div class="hlchips" id="hlchips"></div></div>`;
       const et=document.getElementById('enun');if(et.value!==fixBullets(et.value))et.value=fixBullets(et.value);
-      const chips=()=>{const el=document.getElementById('hlchips');if(!el)return;const L=p.hl||[];
-        el.innerHTML=L.length?Object.keys(HL_K).map(k=>{const xs=L.map((m,i)=>[m,i]).filter(([m])=>m.k===k);return xs.length?`<div class="hlrow"><span class="hlk hl-${k}">${{ent:'Entidades',rel:'Relaciones',att:'Atributos'}[k]}</span>${xs.map(([m,i])=>`<span class="hlchip hl-${k}">${esc(m.t)}<button data-hlx="${i}" aria-label="Quitar ${escA(m.t)}">✕</button></span>`).join('')}</div>`:'';}).join(''):
-          `<p class="tnote">Selecciona una palabra (doble clic) y pulsa <b>Entidad</b> (sustantivos: alumno, curso…), <b>Relación</b> (verbos: matricula, imparte…) o <b>Atributo</b> (datos: nombre, DNI…). Se marca en todo el texto. Luego «Pasar al Boceto».</p>`;};
-      const draw=hlWire(et,v.querySelector('.hlback'),()=>p.hl||[]);chips();
-      const bar=v.querySelector('.hlbar');bar.addEventListener('pointerdown',e=>{if(e.target.closest('[data-hl]'))e.preventDefault();});
-      bar.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;if(b.dataset.hl==='tobo'){this.hlToBoceto(p);return;}if(hlApply(p,et,b.dataset.hl)){this.touch(p);draw();chips();}});
-      v.querySelector('#hlchips').addEventListener('click',e=>{const x=e.target.closest('[data-hlx]');if(!x)return;p.hl.splice(+x.dataset.hlx,1);this.touch(p);draw();chips();});
+      const chips=()=>{const el=document.getElementById('hlchips');if(!el)return;const txt=et.value,L=hlHits(txt,hlList(p));
+        el.innerHTML=L.length?Object.keys(HL_K).map(k=>{const g=new Map();L.filter(m=>m.k===k).forEach(m=>{const key=lc(m.t.trim().replace(/\s+/g,' '));g.set(key,(g.get(key)||{t:m.t.trim(),n:0}));g.get(key).n++;});
+          return g.size?`<div class="hlrow"><span class="hlk hl-${k}">${{ent:'Entidades',rel:'Relaciones',att:'Atributos'}[k]}</span>${[...g.entries()].map(([key,o])=>`<span class="hlchip hl-${k}">${esc(o.t)}${o.n>1?` <small>×${o.n}</small>`:''}<button data-hlx="${escA(key)}" data-hlk="${k}" aria-label="Quitar ${escA(o.t)}">✕</button></span>`).join('')}</div>`:'';}).join(''):
+          `<p class="tnote">Elige un rotulador (<b>Entidad</b> para sustantivos como alumno o curso, <b>Relación</b> para verbos como matricula o imparte, <b>Atributo</b> para datos como nombre o DNI) y arrastra el ratón sobre las palabras para subrayarlas. Con la <b>Goma</b> lo quitas. Luego «Pasar al Boceto».</p>`;};
+      const draw=hlWire(et,v.querySelector('.hlback'),()=>p,()=>{this.touch(p);chips();});chips();
+      hlBind(v.querySelector('.hlbar'),et,()=>p,w=>{if(w==='tobo'){this.hlToBoceto(p);return;}this.touch(p);draw();chips();});
+      v.querySelector('#hlchips').addEventListener('click',e=>{const x=e.target.closest('[data-hlx]');if(!x)return;const txt=et.value;p.hl=hlList(p).filter(m=>!(m.k===x.dataset.hlk&&lc(txt.slice(m.s,m.e).trim().replace(/\s+/g,' '))===x.dataset.hlx));this.touch(p);draw();chips();});
       if(p.act)et.readOnly=true;else et.addEventListener('input',e=>{const t=e.target,v=fixBullets(t.value);if(v!==t.value){const c=t.selectionStart;t.value=v;t.setSelectionRange(c,c);}p.enun=v;this.touch(p);});
     } else if(this.view==='sql'){
       const dl=Settings.get().sqlDialect||'mysql';
@@ -706,7 +722,7 @@ const App={
     } else if(this.view==='test'){Pruebas.render(v,p);
     } else {if(this.view==='bo'&&!p.bo)p.bo={nodes:[],links:[],notes:[]};this.ed.mount(v);this.ed.open(p,this.view);}
   },
-  hlToBoceto(p){const r=hlToBo(p.enun||'',p.hl||[]);if(!r.ents.length){toast('Marca primero alguna entidad en el enunciado.');return;}
+  hlToBoceto(p){const r=hlToBo(p.enun||'',hlList(p));if(!r.ents.length){toast('Subraya primero alguna entidad en el enunciado.');return;}
     if(p.act&&this.isRO(p,'bo')){toast('En esta actividad no se puede cambiar el Boceto.','warn');return;}
     this.go(p,'bo');const ed=this.ed;if(!ed||!ed.isBo)return;const was=ed.m.nodes.filter(isEnt).length;
     const sp=ed.boSplit(ed.boParse(ed.boText())),E=sp.ents.map(x=>({name:x.name,at:[...x.at]})),R=sp.rels.filter(x=>x.ok).map(x=>({a:x.a,b:x.b,at:[...x.at]}));let ne=0,na=0,nr=0;
@@ -726,6 +742,7 @@ const App={
     const b=e.target.closest('[data-act]');if(b)this.action(b);
   },
   onMain(e){
+    if(this.home==='juegos'&&Juegos.onClick(e))return;
     const vt=e.target.closest('.vtabs [data-view]');if(vt){this.go(this.cur,vt.dataset.view);return;}
     const rc=e.target.closest('.home .rc[data-pid]');if(rc){this.go(this.byId(rc.dataset.pid),Settings.get().openTab||'er');return;}
     const tc=e.target.closest('[data-thc]');if(tc&&this.home){this._thc=tc.dataset.thc;this._ths=tc.dataset.ths||null;this.home='teoria';if(!tc.dataset.ths)this._thq=this._thq||'';this.renderMain();if(!tc.dataset.ths){const a=document.getElementById('thart2');if(a)a.scrollTop=0;}return;}
@@ -742,14 +759,18 @@ const App={
     if(a==='mkact'){this.showMakeActivity();return;}
     if(a==='act-start'){this.startActivity(this.cur);return;}
     if(a==='act-exit'){this.exitActivity(this.cur);return;}
-    if(a==='home'){this.showHome('inicio');return;}
+    if(a==='home'){Juegos.stopAll();this.showHome('inicio');return;}
+    if(a==='games'||a==='games-profile'){if(this.cur&&this.cur.act&&this.cur.act.state==='run'&&!this.home){toast('Durante la actividad no se puede jugar.','warn');return;}Juegos.stopAll();Juegos.sub=a==='games'?'menu':'perfil';Juegos._qz=null;Juegos._bdq=null;this.showHome('juegos');return;}
+    if(a==='prog-choose'){const r=await this.run(()=>window.api.progChoose());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();toast('He cargado el progreso que había en esa carpeta.');this.renderSettings();return;}Sync.save(true);toast('Tu progreso se guarda ahora en '+r.dir);this.renderSettings();return;}
+    if(a==='prog-reset'){const r=await this.run(()=>window.api.progReset());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();this.renderSettings();return;}Sync.save(true);this.renderSettings();return;}
+    if(a==='prog-reveal'){this.run(()=>window.api.progReveal());return;}
     if(a==='news'){this.showNews();return;}
     if(a==='save'){this.saveNow();return;}
     if(a==='upd-retry'){if(this._upd)this.prepareSilently(this._upd);return;}
     if(a==='upd-now'){b.disabled=true;b.textContent='Actualizando…';try{await this.flushAll();await window.api.updateInstall(this._upd.asset.url);}catch(e){b.disabled=false;b.textContent='Reiniciar y actualizar';toast('No se pudo actualizar: '+e.message,'warn');}return;}
     if(a==='setup-choose'||a==='setup-default'){
       const r=await this.run(()=>window.api.baseSetup(a==='setup-default'));if(!r)return;
-      this.base=r.dir;this.renderFoot();await this.reload();
+      this.base=r.dir;try{if(await Sync.load())this.afterSync(true);this._prog=await window.api.progInfo();}catch(e){}this.renderFoot();await this.reload();
       toast(r.migrated?`Carpeta lista. He traído ${r.migrated} proyecto(s) de la versión anterior.`:'Carpeta Modelados BDD lista en '+r.dir);return;}
     if(!this.base){toast('Primero elige dónde guardar la carpeta Modelados BDD.');return;}
     if(a==='newproj'){await this.newProject('');return;}
@@ -876,7 +897,7 @@ const App={
       np.enun=String(src.enun||'');np.sql=String(src.sql||'');np.test=String(src.test||'');np.er=cleanModel(src.er||{},'er');np.rel=cleanModel(src.rel||{},'rel');np.ded=cleanModel(src.ded||{},'ded');np.bo=cleanModel(src.bo||{},'bo');np.updated=Date.now();
       await this.run(()=>window.api.save(plainProject(np),exportSVGs(np)));got.push(np.folder);
     }
-    if(got.length){await this.reload(got[0]);toast(got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`);}
+    if(got.length){await this.reload(got[0]);const by=list.by&&(list.by.nick||list.by.title)?` Compartido por ${list.by.nick||'alguien'}${list.by.title?' («'+list.by.title+'»)':''}.`:'';toast((got.length===1?'Proyecto importado.':`${got.length} proyectos importados.`)+by);}
   },
   async onModal(e){
     if(e.target.id==='modal'){this.closeModal();return;}
@@ -888,6 +909,7 @@ const App={
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this._capKey=null;this.closeModal();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
+    if(k==='ic'){const p=this._icP;this.closeModal();if(!p)return;if(b.dataset.ic)p.icon=b.dataset.ic;else delete p.icon;this.touch(p);this.renderTree();return;}
     if(k==='mv'){const p=this._mvP;this.closeModal();if(p)await this.moveTo({p},b.dataset.to);return;}
     if(k==='mvg'){const g=this._mvG;this.closeModal();if(g)await this.moveTo({g},b.dataset.to);return;}
     if(k==='mv-new'){const p=this._mvP;this.closeModal();const g=await this.run(()=>window.api.mkGroup('',LANG()==='en'?'New folder':'Nueva carpeta'));if(!g)return;this.groups=await window.api.groups();if(p)await this.moveTo({p},g);this._gEdit=g;this.renderTree();return;}

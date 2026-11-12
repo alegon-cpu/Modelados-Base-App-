@@ -140,39 +140,57 @@ function diffTables(mine,other){
 function diffScore(d,total){const bad=d.add.length+d.del.length+d.chg.length;return total?Math.max(0,Math.round(100*(1-bad/Math.max(total,bad)))):100;}
 
 /* ===================== Subrayador del enunciado ===================== */
-// p.hl = [{t:'alumno',k:'ent'|'rel'|'att'}]: se marcan todas las veces que sale la palabra (también en plural)
+// p.hl = [{s,e,k}]: trozos del texto subrayados a mano (k: 'ent' | 'rel' | 'att'), sin solaparse
 const HL_K={ent:'Entidad',rel:'Relación',att:'Atributo'};
-function hlRegex(marks){const ts=(marks||[]).filter(m=>m&&m.t&&HL_K[m.k]).map(m=>m.t).sort((a,b)=>b.length-a.length);if(!ts.length)return null;
-  const ex=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
-  try{return new RegExp(`(?<![\\p{L}\\p{N}])(?:${ts.map(ex).join('|')})(?:es|s)?(?![\\p{L}\\p{N}])`,'giu');}catch(e){return null;}}
-function hlFind(text,marks){const rx=hlRegex(marks),out=[];if(!rx)return out;let m;
-  const kindOf=w=>{const x=lc(w).replace(/\s+/g,' ');let best=null;(marks||[]).forEach(k=>{const t=lc(k.t).replace(/\s+/g,' ');if((x===t||x===t+'s'||x===t+'es')&&(!best||t.length>best.t.length))best=k;});return best;};
-  while((m=rx.exec(text))){const k=kindOf(m[0]);if(k)out.push({s:m.index,e:m.index+m[0].length,k:k.k,t:k.t});if(m[0].length===0)rx.lastIndex++;}return out;}
-function hlHTML(text,marks){const hits=hlFind(text,marks);let h='',i=0;hits.forEach(o=>{h+=esc(text.slice(i,o.s))+`<mark class="hl-${o.k}">${esc(text.slice(o.s,o.e))}</mark>`;i=o.e;});return h+esc(text.slice(i))+'\n';}
-// Pone el fondo de colores detrás de un textarea y lo mantiene al escribir y al desplazarse
-function hlWire(ta,back,getMarks){const draw=()=>{back.innerHTML=hlHTML(ta.value,getMarks());back.scrollTop=ta.scrollTop;};
-  ta.addEventListener('input',draw);ta.addEventListener('scroll',()=>{back.scrollTop=ta.scrollTop;});draw();return draw;}
-function hlBar(full){return `<div class="hlbar${full?'':' mini'}" role="toolbar" aria-label="Subrayar">${full?'<span class="hl-lab">Selecciona una palabra y márcala como</span>':''}`+
-  Object.entries(HL_K).map(([k,l])=>`<button class="hlb hl-${k}" data-hl="${k}" title="Marca lo seleccionado como ${lc(l)}">${full?l:l.slice(0,3)+'.'}</button>`).join('')+
-  `<button class="hlb hl-off" data-hl="off" title="Quita la marca de lo seleccionado">${full?'Quitar':'✕'}</button>${full?'<span class="tspace"></span><button class="ebtn" data-hl="tobo" title="Crea en el Boceto las entidades, atributos y relaciones marcados">'+(GL.fromer||'')+'<span>Pasar al Boceto</span></button>':''}</div>`;}
-// Aplica un botón del subrayador sobre lo seleccionado en el textarea
-function hlApply(p,ta,k){const s=ta.selectionStart,e=ta.selectionEnd;p.hl=p.hl||[];
-  if(k==='off'){const hits=hlFind(ta.value,p.hl).filter(o=>s===e?(o.s<=s&&s<=o.e):(o.s<e&&o.e>s));if(!hits.length){toast('Pon el cursor o selecciona una palabra marcada para quitarle la marca.');return false;}
-    const kill=new Set(hits.map(o=>lc(o.t)));p.hl=p.hl.filter(m=>!kill.has(lc(m.t)));return true;}
-  let t=ta.value.slice(s,e);
-  if(!t.trim()){const v=ta.value;let a=s,b=s;while(a>0&&/[\p{L}\p{N}_]/u.test(v[a-1]))a--;while(b<v.length&&/[\p{L}\p{N}_]/u.test(v[b]))b++;t=v.slice(a,b);}
-  t=t.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'').replace(/\s+/g,' ');
-  if(k==='ent'&&!/\s/.test(t)&&t.length>4){if(/[rlndj]es$/i.test(t))t=t.slice(0,-2);else if(/[aeiou]s$/i.test(t))t=t.slice(0,-1);} // en singular: «alumnos» → «alumno», «profesores» → «profesor»if(!t){toast('Selecciona primero una palabra del enunciado (doble clic sobre ella).');return false;}
-  if(t.length>40){toast('Selecciona solo una palabra o dos, no una frase entera.','warn');return false;}
-  p.hl=p.hl.filter(m=>lc(m.t)!==lc(t));p.hl.push({t,k});return true;}
+const hlSing=t=>{t=String(t).trim();if(!/\s/.test(t)&&t.length>4){if(/[rlndj]es$/i.test(t))return t.slice(0,-2);if(/[aeiou]s$/i.test(t))return t.slice(0,-1);}return t;};
+// Marcas antiguas (por palabra, versión 2.2) → trozos
+function hlMigrate(p){if(!p||!Array.isArray(p.hl)||!p.hl.some(m=>m&&m.t))return;const text=p.enun||'',out=[];
+  p.hl.filter(m=>m&&m.t&&HL_K[m.k]).forEach(m=>{const ex=m.t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let rx;try{rx=new RegExp(`(?<![\\p{L}\\p{N}])${ex}(?:es|s)?(?![\\p{L}\\p{N}])`,'giu');}catch(e){return;}let r;
+    while((r=rx.exec(text))){if(!out.some(o=>o.s<r.index+r[0].length&&o.e>r.index))out.push({s:r.index,e:r.index+r[0].length,k:m.k});}});
+  p.hl=[...out,...p.hl.filter(m=>m&&typeof m.s==='number')].sort((a,b)=>a.s-b.s);}
+function hlList(p){hlMigrate(p);const n=(p&&p.enun||'').length;return ((p&&p.hl)||[]).filter(m=>m&&HL_K[m.k]&&m.s>=0&&m.e<=n&&m.e>m.s).sort((a,b)=>a.s-b.s);}
+function hlHits(text,marks){return (marks||[]).filter(m=>m.e<=text.length&&m.e>m.s).sort((a,b)=>a.s-b.s).map(m=>({s:m.s,e:m.e,k:m.k,t:text.slice(m.s,m.e)}));}
+function hlHTML(text,marks){let h='',i=0;hlHits(text,marks).forEach(o=>{if(o.s<i)return;h+=esc(text.slice(i,o.s))+`<mark class="hl-${o.k}">${esc(text.slice(o.s,o.e))}</mark>`;i=o.e;});return h+esc(text.slice(i))+'\n';}
+// Quita lo marcado entre s y e (corta las marcas que lo pisan)
+function hlCut(L,s,e){const out=[];L.forEach(m=>{if(m.e<=s||m.s>=e){out.push(m);return;}if(m.s<s)out.push({s:m.s,e:s,k:m.k});if(m.e>e)out.push({s:e,e:m.e,k:m.k});});return out;}
+// Al escribir, las marcas se mueven con el texto
+function hlShift(L,oldV,newV){let a=0;const ol=oldV.length,nl=newV.length;while(a<ol&&a<nl&&oldV[a]===newV[a])a++;let b=0;while(b<ol-a&&b<nl-a&&oldV[ol-1-b]===newV[nl-1-b])b++;
+  const oe=ol-b,d=nl-ol;if(!d&&a===oe)return L;
+  return L.map(m=>{if(m.e<=a)return m;if(m.s>=oe)return{...m,s:m.s+d,e:m.e+d};if(m.s<=a&&m.e>=oe)return{...m,e:m.e+d};if(m.s<a)return{...m,e:a};return{...m,s:nl-b,e:m.e+d};}).filter(m=>m.e>m.s);}
+// Pone el fondo de colores detrás de un textarea; getP() da el proyecto; onChange() guarda
+function hlWire(ta,back,getP,onChange){let prev=ta.value;
+  const draw=()=>{const p=getP();prev=ta.value;back.innerHTML=hlHTML(ta.value,p?hlList(p):[]);back.scrollTop=ta.scrollTop;};
+  ta.addEventListener('input',()=>{const p=getP();if(p&&p.hl&&p.hl.length&&prev!==ta.value){p.hl=hlShift(hlList(p),prev,ta.value);onChange&&onChange();}prev=ta.value;back.innerHTML=hlHTML(ta.value,p?hlList(p):[]);back.scrollTop=ta.scrollTop;});
+  ta.addEventListener('scroll',()=>{back.scrollTop=ta.scrollTop;});draw();return draw;}
+function hlBar(full){return `<div class="hlbar${full?'':' mini'}" role="toolbar" aria-label="Subrayar">${full?'<span class="hl-lab">Elige un rotulador y subraya arrastrando con el ratón:</span>':''}`+
+  Object.entries(HL_K).map(([k,l])=>`<button class="hlb hl-${k}" data-hl="${k}" aria-pressed="false" title="Rotulador de ${lc(l)}: arrastra sobre el texto para subrayar">${full?l:l.slice(0,3)+'.'}</button>`).join('')+
+  `<button class="hlb hl-off" data-hl="off" aria-pressed="false" title="Goma: arrastra sobre lo subrayado para quitarlo">${full?'Goma':'✕'}</button>${full?'<span class="tspace"></span><button class="ebtn" data-hl="tobo" title="Crea en el Boceto las entidades, atributos y relaciones subrayados">'+(GL.fromer||'')+'<span>Pasar al Boceto</span></button>':''}</div>`;}
+// Subraya (o borra con la goma) lo seleccionado
+function hlApply(p,ta,k){let s=ta.selectionStart,e=ta.selectionEnd;const v=ta.value;
+  while(s<e&&/\s/.test(v[s]))s++;while(e>s&&/\s/.test(v[e-1]))e--;
+  let L=hlList(p);
+  if(k==='off'){if(s===e){const m=L.find(m=>m.s<=s&&s<=m.e);if(!m)return false;L=L.filter(x=>x!==m);}else L=hlCut(L,s,e);p.hl=L;return true;}
+  if(s===e)return false;L=hlCut(L,s,e);L.push({s,e,k});p.hl=L.sort((a,b)=>a.s-b.s);return true;}
+// Conecta la barra de rotuladores: con un rotulador elegido, cada selección con el ratón se subraya sola
+function hlBind(bar,ta,getP,after){let brush=null;const set=k=>{brush=k;bar.querySelectorAll('[data-hl]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hl===brush)));ta.classList.toggle('hlpen',!!brush);};
+  bar.addEventListener('pointerdown',e=>{if(e.target.closest('[data-hl]'))e.preventDefault();});
+  bar.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;const k=b.dataset.hl,p=getP();if(!p)return;if(k==='tobo'){after('tobo');return;}
+    if(ta.selectionStart!==ta.selectionEnd&&!ta.readOnly){if(hlApply(p,ta,k)){after();ta.setSelectionRange(ta.selectionEnd,ta.selectionEnd);}return;}set(brush===k?null:k);});
+  const up=()=>{const p=getP();if(!brush||!p||ta.selectionStart===ta.selectionEnd)return;if(hlApply(p,ta,brush)){after();const x=ta.selectionEnd;ta.setSelectionRange(x,x);}};
+  ta.addEventListener('mouseup',up);ta.addEventListener('keyup',e=>{if(e.shiftKey)return;});
+  ta.addEventListener('dblclick',()=>setTimeout(up,0));return set;}
 // Del subrayado al boceto: cada atributo va con la entidad que se nombra antes en la misma frase; cada verbo une la entidad de antes con la de después
-function hlToBo(text,marks){const hits=hlFind(text,marks),cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function hlToBo(text,marks){const hits=hlHits(text,marks),cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   const sent=i=>{let a=i;while(a>0&&!/[.;\n!?]/.test(text[a-1]))a--;return a;},sentEnd=i=>{let b=i;while(b<text.length&&!/[.;\n!?]/.test(text[b]))b++;return b;};
-  const entName=t=>cap(t.trim());const ents=[],at={},rels=[];
+  const entName=t=>cap(hlSing(t).replace(/\s+/g,' '));const ents=[],at={},rels=[];
   hits.filter(h=>h.k==='ent').forEach(h=>{const n=entName(h.t);if(!ents.some(x=>lc(x)===lc(n)))ents.push(n);});
-  const entsBefore=(i,lim)=>hits.filter(h=>h.k==='ent'&&h.e<=i&&h.s>=lim),entsAfter=(i,lim)=>hits.filter(h=>h.k==='ent'&&h.s>=i&&h.e<=lim);
-  hits.filter(h=>h.k==='att').forEach(h=>{let o=entsBefore(h.s,sent(h.s)).pop();if(!o)o=hits.filter(x=>x.k==='ent'&&x.e<=h.s).pop();if(!o)o=hits.find(x=>x.k==='ent'&&x.s>=h.e);if(!o)return;
-    const n=entName(o.t),a=h.t.trim();(at[n]=at[n]||[]);if(!at[n].some(x=>lc(x)===lc(a)))at[n].push(a);});
+  // Cuenta como mención de una entidad cada vez que sale su palabra en el texto (aunque no esté subrayada esa vez)
+  const ment=[];ents.forEach(n=>{const ex=hlSing(n).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');let rx;try{rx=new RegExp(`(?<![\\p{L}\\p{N}])${ex}(?:es|s)?(?![\\p{L}\\p{N}])`,'giu');}catch(e){return;}let r;
+    while((r=rx.exec(text)))ment.push({s:r.index,e:r.index+r[0].length,k:'ent',t:n});});
+  hits.filter(h=>h.k==='ent').forEach(h=>{if(!ment.some(m=>m.s<h.e&&m.e>h.s))ment.push(h);});ment.sort((x,y)=>x.s-y.s);
+  const entsBefore=(i,lim)=>ment.filter(h=>h.e<=i&&h.s>=lim),entsAfter=(i,lim)=>ment.filter(h=>h.s>=i&&h.e<=lim);
+  hits.filter(h=>h.k==='att').forEach(h=>{let o=entsBefore(h.s,sent(h.s)).pop();if(!o)o=ment.filter(x=>x.e<=h.s).pop();if(!o)o=ment.find(x=>x.s>=h.e);if(!o)return;
+    const n=entName(o.t),a=h.t.trim().replace(/\s+/g,' ');(at[n]=at[n]||[]);if(!at[n].some(x=>lc(x)===lc(a)))at[n].push(a);});
   hits.filter(h=>h.k==='rel').forEach(h=>{const A=entsBefore(h.s,sent(h.s)).pop(),B=entsAfter(h.e,sentEnd(h.e))[0];if(!A||!B)return;const a=entName(A.t),b=entName(B.t);
     if(!rels.some(r=>(lc(r[0])===lc(a)&&lc(r[1])===lc(b))||(lc(r[0])===lc(b)&&lc(r[1])===lc(a))))rels.push([a,b]);});
   return{ents,at,rels};}
