@@ -125,8 +125,9 @@ function makeWindow(opts, query) {
     updLog('ventana mostrada (' + why + ')');
   };
   w.once('ready-to-show', () => showIt('lista'));
-  // Por si «lista» no llega nunca (o tarda), se enseña igual
-  setTimeout(() => showIt('a la fuerza'), 6000);
+  w.webContents.once('did-finish-load', () => showIt('cargada'));
+  // En algunos Windows «lista» no llega nunca: se enseña igual enseguida (antes había que abrir la app dos veces)
+  setTimeout(() => showIt('a la fuerza'), 1500);
   w.webContents.on('render-process-gone', (e, d) => updLog('la ventana se ha caído: ' + (d && d.reason)));
   w.loadFile(path.join(__dirname, 'index.html'), query ? { query } : undefined);
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});

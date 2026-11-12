@@ -915,6 +915,33 @@ html.cur-pen body,html.cur-pen .ed-cv,html.cur-pen .ed-cv svg{cursor:url("data:i
 /* barra de abajo */
 .statusbar{background:linear-gradient(0deg,var(--panel),color-mix(in srgb,var(--accent) 4%,var(--panel)))}
 @media (prefers-reduced-motion:reduce){.rc,.thc,.vtab .ico{transition:none}}
+
+/* 2.5.2: cadena entre diagramas, ERDPlus, Workbench, cabecera y actividad en Inicio */
+.tgroup.chain{margin-left:auto;gap:4px;padding:2px 3px;border:0;border-radius:7px;background:color-mix(in srgb,var(--accent) 9%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 28%,transparent)}
+.ed-tools .tgroup.chain .ebtn{font-weight:600;color:var(--ink)}
+.ed-tools .tgroup.chain .ebtn.chf{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ed-tools .tgroup.chain .ebtn.chf:hover{filter:brightness(1.08)}
+.ed-tools .tgroup.chain .ebtn.chb:hover{background:var(--surface)}
+.ed-tools .tgroup.chain .gl path{stroke:currentColor}
+.tgroup.chain+.tgroup{margin-left:0}
+.ed-tools .tspace{flex:1}
+.tgroup.chain~.tspace{display:none}
+.tgroup.erdp .tlab{font-weight:700;letter-spacing:.02em}
+.ph-win{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer;flex:none}
+.ph-win:hover{color:var(--accent);border-color:var(--accent)}
+.ph-acts{gap:6px}
+.ph-grp{display:flex;align-items:center;gap:1px;padding:1px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+.ph-lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:0 6px 0 8px}
+.wbbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 14px;border-radius:9px;border:1px solid color-mix(in srgb,#00758F 45%,var(--line));background:linear-gradient(110deg,color-mix(in srgb,#00758F 14%,var(--surface)),color-mix(in srgb,#F29111 10%,var(--surface)))}
+.wb-ic{color:#00758F;display:grid;place-items:center;flex:none}
+.wb-t{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 220px}.wb-t b{font-size:14px}.wb-t small{color:var(--muted)}
+.wb-b{display:flex;gap:8px;flex-wrap:wrap}
+.wbbar .ebtn.pri{background:#00758F;border-color:#00758F;color:#fff}
+.home-act{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(120deg,color-mix(in srgb,var(--c-rel) 10%,var(--panel)),var(--panel) 60%)}
+.home-act .ha-ic{color:var(--c-rel);display:grid;place-items:center;flex:none}
+.home-act .ha-t{flex:1 1 260px;min-width:0}.home-act h3{margin:0 0 3px}.home-act p{margin:0;color:var(--muted)}
+.home-act .ha-f{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.home-act select{height:30px;max-width:260px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);color:var(--ink);padding:0 8px;font:inherit}
 </style></head><body>
 <div class="app" id="app">
   <header class="titlebar" id="titlebar">

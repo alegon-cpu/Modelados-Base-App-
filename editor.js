@@ -238,6 +238,8 @@ const GL={
   table:gsv(18,'<rect x="1.5" y="2" width="15" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 6h15" stroke="var(--ded-head)" stroke-width="2.6"/><path d="M7 6v8" stroke="currentColor" stroke-width="1.1"/>'),
   relate:gsv(24,'<rect x="1" y="4" width="7" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="16" y="4" width="7" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 8h8" stroke="var(--fk)" stroke-width="1.4"/><path d="M13 5.5 16 8l-3 2.5" fill="none" stroke="var(--fk)" stroke-width="1.3"/>'),
   fromer:gsv(26,'<rect x="1" y="5" width="7" height="6" fill="none" stroke="var(--c-ent)" stroke-width="1.2"/><path d="M10 8h5m-2-2.5L15.5 8 13 10.5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="17" y="3" width="8" height="10" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M17 6h8" stroke="var(--ded-head)" stroke-width="1.6"/>'),
+  back:gsv(16,'<path d="M14 8H3m4-4.5L2.5 8 7 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'),
+  fwd:gsv(16,'<path d="M2 8h11M9 3.5 13.5 8 9 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'),
   copy:gsv(18,'<rect x="1.5" y="1.5" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6.5" y="4.5" width="10" height="10" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>'),
   easy:gsv(18,'<path d="M9 1.5l1.9 4 4.4.5-3.3 3 .9 4.3L9 11.1l-3.9 2.2.9-4.3-3.3-3 4.4-.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>'),
   dist:gsv(18,'<rect x="1" y="1" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="12" y="1" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="12" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="12" y="12" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/>'),
@@ -363,9 +365,12 @@ class Editor{
   renderTools(){
     const B=(act,txt,cls='',ic='',tip='',pressed)=>`<button class="ebtn ${cls}" data-act="${act}"${tip?` title="${tip}"`:''}${pressed!=null?` aria-pressed="${pressed}"`:''}>${ic?GL[ic]:''}<span>${txt}</span></button>`;
     let h='<div class="tgroup">';const st=Settings.get();
-    if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('connect','Unir','tool','sk','Une dos entidades con una línea (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades para que las líneas se crucen lo menos posible')+'</div><div class="tgroup">'+B('bo2er','Pasar al E-R','','fromer','Crea en el E-R las entidades que falten y una relación por cada línea, para terminarlas allí');
-    else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+'';
-    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Pasar desde mi E-R','','fromer','Crea las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Copiar mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy);
+    const act=!!(this.p&&this.p.act),CB=(a,txt,tip,fw)=>`<button class="ebtn ch${fw?'f':'b'}" data-act="${a}" title="${tip}">${fw?'':GL.back}<span>${txt}</span>${fw?GL.fwd:''}</button>`,
+      CH=(b,f)=>act&&!(f&&/bo2er/.test(f))?'':`</div><div class="tgroup chain" role="group" aria-label="Pasar entre diagramas">${act?'':b}${f}`,
+      ERDP=act?'':`</div><div class="tgroup erdp" role="group" aria-label="ERDPlus"><span class="tlab">ERDPlus</span>${B('erdplus','Exportar','','copy','Guarda tu E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar','','open','Abre un archivo .erdplus y lo pasa a tu E-R')}`;
+    if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('connect','Unir','tool','sk','Une dos entidades con una línea (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades para que las líneas se crucen lo menos posible')+CH('',CB('bo2er','Pasar al E-R','Crea en el E-R las entidades que falten y una relación por cada línea, para terminarlas allí',1));
+    else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+ERDP+CH(CB('er2bo','Actualizar el boceto','Añade al boceto las entidades, atributos y líneas del E-R que le falten (no borra nada)'),CB('er2rel','Pasar al relacional','Va al relacional y crea las tablas a partir de este E-R',1));
+    else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Traer de mi E-R','','fromer','Crea aquí las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Traer mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy)+(this.mode==='rel'?ERDP+CH(CB('rel2er','Actualizar el E-R','Crea en el E-R las entidades, atributos y relaciones que falten a partir de estas tablas'),CB('rel2ded','Pasar al DED','Va al DED y copia allí estas tablas',1)):CH(CB('ded2rel','Actualizar el relacional','Copia estas tablas (con sus claves ajenas) al relacional'),CB('ded2sql','Pasar al SQL','Va al SQL y genera el script a partir de este DED',1)));
     const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
     h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
     if(this.ro)h=`<div class="tgroup"><span class="tnote rotag">${GL.lock} Solo lectura${this.p.act&&this.p.act.state==='over'?': se acabó el tiempo de la actividad':this.p.act&&this.p.act.state==='ready'?': pulsa «Empezar» para comenzar la actividad':': esta parte no hay que hacerla en la actividad'}</span></div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
@@ -585,6 +590,13 @@ class Editor{
     if(a==='fromer'){this.fromER();return;}
     if(a==='find'){this.openSearch();return;}
     if(a==='copyrel'){this.copyRel();return;}
+    if(a==='er2bo'){this.erToBo();return;}
+    if(a==='er2rel'){this.chainGo('rel',()=>this.fromER());return;}
+    if(a==='rel2er'){this.relToER();return;}
+    if(a==='rel2ded'){this.chainGo('ded',()=>this.copyRel());return;}
+    if(a==='ded2rel'){this.dedToRel();return;}
+    if(a==='ded2sql'){const p=this.p,app=this.app;app.go(p,'sql');app.action({dataset:{act:'sql-ded'}});return;}
+    if(a==='erdplus'||a==='erdplus-import'){this.app.action({dataset:{act:a}});return;}
     if(a==='clear'){this.app.confirm(`Vaciar ${VIEWS[this.mode]}`,`Se borrará todo lo que hay en el ${VIEWS[this.mode]} de este proyecto. Puedes recuperarlo con Ctrl+Z.`,'Vaciar',()=>{this.snap();this.p[this.mode]=this.isER?{nodes:[],links:[],notes:[]}:{t:[],notes:[]};this.selIds=new Set();this.selLink=null;this.pend=null;this.save();this.render();this.renderInsp();});return;}
     if(a==='addcol'){this.addColumn();return;}
     if(a==='delcol'){const t=this.single();if(!t)return;this.snap();t.c.splice(+b.dataset.ci,1);this.save();this.render();this.renderInsp();return;}
@@ -1217,5 +1229,69 @@ class Editor{
     if(!this.m.t.length){doIt();return;}
     this.app.confirm('Copiar el relacional','Se sustituirán las tablas del DED por las del relacional. Puedes volver atrás con Ctrl+Z.','Sustituir',doIt);
   }
+  /* ---------- Cadena Boceto ⇄ E-R ⇄ Relacional ⇄ DED ⇄ SQL ---------- */
+  chainGo(view,fn){if(this.p.act&&this.app.isRO&&this.app.isRO(this.p,view)){toast('En esta actividad no se puede cambiar esa pestaña.','warn');return;}this.app.go(this.p,view);fn();}
+  // E-R → Boceto: añade entidades, atributos y una línea por relación binaria (con sus cardinalidades). No borra nada.
+  erToBo(){const p=this.p,er=p.er,X=erIdx(er),ents=er.nodes.filter(isEnt);if(!ents.length){toast('Tu E-R está vacío.');return;}
+    p.bo=p.bo||{nodes:[],links:[],notes:[]};const bo=p.bo;bo.nodes=bo.nodes||[];bo.links=bo.links||[];
+    const snapBo=JSON.stringify(cleanModel(bo,'bo')),byName={},bents=bo.nodes.filter(isEnt);bents.forEach(e=>byName[lc(e.n)]=e);
+    const bx=ents.map(e=>e.x),by=ents.map(e=>e.y),cx=(Math.min(...bx)+Math.max(...bx))/2,cy=(Math.min(...by)+Math.max(...by))/2;
+    let dx=W/2,dy=H/2;if(bents.length){dx=(Math.min(...bents.map(n=>n.x))+Math.max(...bents.map(n=>n.x)))/2;dy=Math.max(...bents.map(n=>n.y))+180+(Math.max(...by)-Math.min(...by))/3.6;}
+    const map={},names=o=>X.attrsOf(o).map(a=>String(a.n||'').trim()).filter(Boolean);let ne=0,na=0,nl=0,skip=0;
+    ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)/1.8),y:Math.round(dy+(e.y-cy)/1.8),f:{}};bo.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;
+      t.f=t.f||{};const at=t.f.at||[];names(e).forEach(n=>{if(!at.some(x=>lc(x)===lc(n))){at.push(n);na++;}});if(at.length)t.f.at=at;});
+    const mark=x=>x&&x.mx?(x.mn||'?')+x.mx:null,used=new Set();
+    er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);if(en.length!==2){if(en.length>2)skip++;return;}
+      const A=map[en[0].e.id],B=map[en[1].e.id];if(!A||!B)return;
+      let l=bo.links.find(l=>!used.has(l)&&((l.a===A.id&&l.b===B.id)||(l.a===B.id&&l.b===A.id)));
+      if(!l){l={id:uid(),a:A.id,b:B.id};bo.links.push(l);nl++;}
+      used.add(l);if(!l.ea&&!l.eb){const fw=l.a===A.id,ea=mark(fw?en[0]:en[1]),eb=mark(fw?en[1]:en[0]);if(ea)l.ea=ea;if(eb)l.eb=eb;}
+      const ra=names(r);if(ra.length){l.at=l.at||[];ra.forEach(n=>{if(!l.at.some(x=>lc(x)===lc(n))){l.at.push(n);na++;}});}});
+    const nn=carryNotes(er,bo,false);
+    if(!ne&&!na&&!nl&&!nn){toast('Tu boceto ya tiene todo lo del E-R.');return;}
+    this.hist.push({mode:'bo',data:snapBo});this.app.touch(p);if(p._views)delete p._views.bo;this.app.go(p,'bo');
+    toast(`Boceto actualizado: ${ne} entidad(es), ${na} atributo(s) y ${nl} línea(s) nuevas.`+(skip?` Las relaciones de 3 o más entidades (${skip}) no caben en el boceto.`:'')+' Ctrl+Z lo deshace.');}
+  // Relacional → E-R (ingeniería inversa): tabla = entidad; columna FK = relación 1:N (o 1:1 si es única); tabla cuya PK son solo FK = relación N:M
+  relToER(){const p=this.p,src=(p.rel.t||[]).filter(t=>String(t.n||'').trim());if(!src.length){toast('Tu relacional está vacío.');return;}
+    const tBy={};src.forEach(t=>tBy[lc(t.n)]=t);
+    const C=t=>t.c.filter(c=>String(c[0]||'').trim()).map(c=>({n:String(c[0]).trim(),f:parseF(c[2])})),pkN=t=>Math.max(1,C(t).filter(c=>c.f.pk).length);
+    const refs=cols=>{const g={};cols.filter(c=>c.f.fk&&tBy[lc(c.f.fk)]).forEach(c=>{(g[lc(c.f.fk)]=g[lc(c.f.fk)]||[]).push(c);});const out=[];
+      Object.entries(g).forEach(([k,cs])=>{const n=pkN(tBy[k]);for(let i=0;i<cs.length;i+=n)out.push({P:tBy[k],cs:cs.slice(i,i+n)});});return out;};
+    const isLink=t=>{const cs=C(t),pk=cs.filter(c=>c.f.pk);if(pk.length<2||!pk.every(c=>c.f.fk&&tBy[lc(c.f.fk)]))return false;if(cs.some(c=>!c.f.pk&&c.f.fk))return false;return refs(pk).length>=2;};
+    const doIt=replace=>{const er0=JSON.stringify(cleanModel(p.er,'er')),wasEmpty=!p.er.nodes.length||replace;
+      const er=replace?{nodes:[],links:[],notes:p.er.notes||[]}:p.er,X0=erIdx(er),ed2=new Editor(this.app);ed2.p=p;ed2.mode='er';
+      const eBy={};er.nodes.filter(isEnt).forEach(e=>eBy[lc(e.n)]=e);let ne=0,na=0,nr=0;
+      const ents=src.filter(t=>!isLink(t)),boxes=ents.map(t=>{const s=tableSize(t);return{t,x:t.x+s.w/2,y:t.y+s.h/2};});
+      const xs=boxes.map(b=>b.x),ys=boxes.map(b=>b.y),cx=xs.length?(Math.min(...xs)+Math.max(...xs))/2:0,cy=ys.length?(Math.min(...ys)+Math.max(...ys))/2:0;
+      let dx=W/2,dy=H/2;if(!wasEmpty&&er.nodes.length){const ex=er.nodes.map(n=>n.x),ey=er.nodes.map(n=>n.y);dx=(Math.min(...ex)+Math.max(...ex))/2;dy=Math.max(...ey)+320+(ys.length?(Math.max(...ys)-Math.min(...ys))*0.8:0);}
+      const addAttr=(o,c,fl)=>{const X=erIdx(er);if(X.attrsOf(o).some(a=>lc(a.n)===lc(c.n)))return;const nn={id:uid(),k:'attr',n:c.n,x:o.x,y:o.y,f:fl};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:o.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(o);if(!wasEmpty)ed2.placeAttr(o,nn);na++;};
+      boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk);let e=eBy[lc(t.n)];
+        if(!e){e={id:uid(),k:weak?'weak':'ent',n:t.n,x:Math.round(dx+(x-cx)*1.6),y:Math.round(dy+(y-cy)*1.6),f:{}};er.nodes.push(e);eBy[lc(t.n)]=e;ne++;}
+        cs.filter(c=>!c.f.fk).forEach(c=>{const fl={};if(c.f.pk){if(weak)fl.p=1;else fl.k=1;}if(c.f.nul&&!c.f.pk)fl.o=1;addAttr(e,c,fl);});});
+      const relNames=er.nodes.filter(isRel).map(r=>r.n),has=(A,B)=>{const X=erIdx(er);return er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());};
+      const lk=(r,e,mn,mx)=>({id:uid(),a:r.id,b:e.id,mn,mx,c:`(${mn},${mx})`});
+      const mkRel=(name,ends,k)=>{const r={id:uid(),k:k||'rel',n:this.uniqueName(name,relNames),x:Math.round(ends.reduce((s,x)=>s+x[0].x,0)/ends.length),y:Math.round(ends.reduce((s,x)=>s+x[0].y,0)/ends.length),f:{}};
+        if(ends.length===2&&ends[0][0]===ends[1][0]){r.x+=170;r.y-=100;}relNames.push(r.n);er.nodes.push(r);ends.forEach(([e,mn,mx])=>er.links.push(lk(r,e,mn,mx)));nr++;return r;};
+      const base=LANG()==='en'?'relationship':'relacion';
+      ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE)return;if(!replace&&has(E,PE))return;
+        const uq=cs.every(c=>c.f.uq)||(cs.every(c=>c.f.pk)&&C(t).filter(c=>c.f.pk).length===cs.length),nul=cs.some(c=>c.f.nul),ident=E.k==='weak'&&cs.every(c=>c.f.pk);
+        mkRel(base,[[E,'0',uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
+      src.filter(isLink).forEach(t=>{const rs=refs(C(t).filter(c=>c.f.pk)),ends=rs.map(({P})=>eBy[lc(P.n)]).filter(Boolean);if(ends.length<2)return;
+        if(!replace&&ends.length===2&&has(ends[0],ends[1]))return;
+        const r=mkRel(t.n,ends.map(e=>[e,'0','N']));C(t).filter(c=>!c.f.pk&&!c.f.fk).forEach(c=>addAttr(r,c,c.f.nul?{o:1}:{}));});
+      if(!ne&&!na&&!nr){toast('Tu E-R ya tiene todo lo del relacional.');return;}
+      this.hist.push({mode:'er',data:er0});p.er=er;carryNotes(p.rel,p.er,false);this.app.touch(p);if(p._views)delete p._views.er;this.app.go(p,'er');
+      if(wasEmpty&&this.isER)this.distribute();
+      toast(`E-R ${replace?'rehecho':'actualizado'} desde el relacional: ${ne} entidad(es), ${na} atributo(s) y ${nr} relación(es). Pon un verbo a cada relación y revisa las cardinalidades mínimas. Ctrl+Z lo deshace.`);};
+    if(!p.er.nodes.length){doIt(true);return;}
+    this.app.modal(`<h3>Tu E-R no está vacío</h3><p>¿Qué hago con lo que ya tienes?</p><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn" data-m="fe-add">Añadir solo lo que falta</button><button class="ebtn pri" data-m="fe-rep">Rehacerlo entero</button></div>`);
+    this.app._feCb=doIt;}
+  // DED → Relacional: copia las tablas tal cual (con sus claves ajenas)
+  dedToRel(){const p=this.p,src=p.ded.t||[];if(!src.length){toast('Tu DED está vacío.');return;}
+    const doIt=()=>{this.hist.push({mode:'rel',data:JSON.stringify(cleanModel(p.rel,'rel'))});
+      p.rel={notes:p.rel.notes||[],t:src.map(t=>({id:uid(),n:t.n,x:t.x,y:t.y,c:t.c.map(c=>[c[0],c[1],c[2]])}))};carryNotes(p.ded,p.rel,true);
+      if(p._views)delete p._views.rel;this.app.touch(p);this.app.go(p,'rel');toast('Relacional actualizado con las tablas del DED. Ctrl+Z lo deshace.');};
+    if(!(p.rel.t||[]).length){doIt();return;}
+    this.app.confirm('Actualizar el relacional','Se sustituirán las tablas del relacional por las del DED (con sus claves ajenas). Puedes volver atrás con Ctrl+Z en el relacional.','Sustituir',doIt);}
 }
 Editor.clip=null;

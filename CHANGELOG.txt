@@ -43,7 +43,16 @@ HISTORIAL DE VERSIONES
 
 v2.5.2  (12/11/2026)
 --------------------
-- Al actualizar se vuelve a abrir sola con mas seguridad (plan B).
+- Botones para pasar de una pestana a otra en los dos sentidos:
+  Boceto -> E-R; E-R -> actualizar boceto / pasar al relacional;
+  Relacional -> actualizar E-R (ingenieria inversa) / pasar al DED;
+  DED -> actualizar relacional / pasar al SQL; SQL -> actualizar DED.
+- Bloque propio y visible para MySQL Workbench / phpMyAdmin en el SQL.
+- ERDPlus pasa a la barra del E-R y del relacional.
+- Cabecera reordenada: abrir en ventana (icono), Exportar, Comparar junto
+  a Duplicar. Crear actividad se hace desde Inicio.
+- La ventana aparece siempre al abrir (antes a veces habia que abrir la
+  app dos veces) y al actualizar se vuelve a abrir sola (plan B).
 
 v2.5.1  (12/11/2026)
 --------------------
