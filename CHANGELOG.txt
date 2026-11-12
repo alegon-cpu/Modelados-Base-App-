@@ -41,6 +41,14 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.0.1  (12/11/2026)
+--------------------
+- Boceto: en el lienzo las entidades salen solo con su nombre. Los
+  atributos se escriben en la zona de texto de arriba y aparecen al
+  "Pasar al E-R".
+- Las viñetas pegadas desde Word ya no salen como cuadraditos en el
+  enunciado.
+
 v2.0  (11/11/2026)
 ------------------
 - Pantalla de Inicio al abrir: ultimos proyectos abiertos, en orden y con

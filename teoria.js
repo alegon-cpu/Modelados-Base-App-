@@ -18,7 +18,7 @@ const TEORIA=[
 <li>Lo que «identifica» o «no se puede repetir» (DNI, código, matrícula) → <b>clave primaria</b>.</li></ul>`},
 
 {id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades lineas relacionar empezar',h:`
-<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. Solo hay <b>entidades</b> (con los nombres de sus atributos, sin decir de qué tipo son) y <b>líneas</b> entre ellas con marcas de cero, uno o muchos. Ni rombos ni nombres de relación.</p>
+<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. En el dibujo solo hay <b>entidades</b> y <b>líneas</b> entre ellas con marcas de cero, uno o muchos; los atributos se escriben en la zona de texto de arriba (solo los nombres). Ni rombos ni nombres de relación.</p>
 <ol><li>Lee el enunciado y pon una entidad por cada sustantivo importante (Alumno, Curso, Profesor…).</li><li>Une con una línea las que se relacionan (Mayús + clic, o «Unir»).</li><li>En la zona de arriba escribe cada entidad con sus atributos: <code>Alumno; DNI, Nombre, FechaNac</code>. Solo los nombres: la clave y el tipo los decides en el E-R.</li><li>Pulsa una línea y elige, junto a cada entidad, cuántas puede haber: <b>○</b> cero, <b>|</b> uno, <b>pata</b> muchos (es opcional).</li><li>Pulsa <b>Pasar al E-R</b>: se crean las entidades que falten con sus atributos y un rombo por cada línea con sus cardinalidades. Allí marcas las claves y le pones el verbo a cada relación.</li></ol>
 <p class="th-tip">Si una entidad no tiene ninguna línea, quizá sobra, o es un atributo de otra.</p>`},
 {id:'entidades',t:'Entidades',k:'entidad fuerte debil rectangulo doble',h:`

@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.0';
+const VERSION='2.0.1';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -237,6 +237,8 @@ const ALG={l:ai('<path d="M2.5 1.5v15" stroke="currentColor" stroke-width="1.4"/
   b:ai('<path d="M1.5 15.5h15" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="3.5" width="3.5" height="10" fill="currentColor"/><rect x="10.5" y="7.5" width="3.5" height="6" fill="currentColor"/>'),
   dh:ai('<rect x="1.5" y="5" width="3" height="8" fill="currentColor"/><rect x="7.5" y="5" width="3" height="8" fill="currentColor"/><rect x="13.5" y="5" width="3" height="8" fill="currentColor"/>'),
   dv:ai('<rect x="5" y="1.5" width="8" height="3" fill="currentColor"/><rect x="5" y="7.5" width="8" height="3" fill="currentColor"/><rect x="5" y="13.5" width="8" height="3" fill="currentColor"/>')};
+// Viñetas pegadas desde Word (caracteres de la fuente Symbol que no se ven): se cambian por •
+const fixBullets=s=>String(s||'').replace(/[\uF0A7\uF0B7\uF0D8\uF0FC\uF076\uF06E\uF0A8]/g,'•');
 const umlMult=c=>c.mn==null||c.mx==null?'?':c.mx==='1'?(c.mn==='0'?'0..1':'1'):(c.mn==='0'?'0..*':'1..*');
 // Solo el máximo (uno o muchos) cuando el mínimo está sin decidir
 function markerMax(P,u,many){const n=[-u[1],u[0]],at=d=>[P[0]+u[0]*d,P[1]+u[1]*d],off=(p,k)=>[p[0]+n[0]*k,p[1]+n[1]*k];
@@ -306,7 +308,7 @@ class Editor{
     this.insp.addEventListener('input',e=>{const t=e.target;if(t.type==='checkbox'||t.tagName==='SELECT')return;if(!this.editing){this.snap();this.editing=true;}this.apply(t);this.save();this.render();this.markDup();});
     this.insp.addEventListener('change',e=>{const t=e.target;if(!(t.type==='checkbox'||t.tagName==='SELECT')||t.dataset.pendchk)return;this.snap();this.apply(t);this.save();this.render();this.renderInsp();});
     this.insp.addEventListener('keydown',e=>this.onInspKey(e));
-    this.enT.addEventListener('input',()=>{this.p.enun=this.enT.value;this.app.touch(this.p);});
+    this.enT.addEventListener('input',()=>{const v=fixBullets(this.enT.value);if(v!==this.enT.value){const c=this.enT.selectionStart;this.enT.value=v;this.enT.setSelectionRange(c,c);}this.p.enun=v;this.app.touch(this.p);});
     this.boZ=el.querySelector('.bo-zone');this.boT=el.querySelector('#botxt');
     this.boT.addEventListener('input',()=>{if(this.ro)return;clearTimeout(this._boT);this._boT=setTimeout(()=>this.boFromText(this.boT.value),350);});
     this.boT.addEventListener('blur',()=>{clearTimeout(this._boT);if(this.isBo&&this.p&&!this.ro){this.boFromText(this.boT.value);this._boEd=false;this.boT.value=this.boText();}});
@@ -317,7 +319,7 @@ class Editor{
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
     if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
-    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=p.enun||'';
+    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');
     this.renderTools();this.render();this.renderInsp();
     if(first){if(this.hasContent())this.fit(true);else this.centerView();}else this.applyView();
   }
@@ -379,7 +381,7 @@ class Editor{
   node(id){return (this.isER?this.m.nodes:this.m.t).find(n=>n.id===id)||this.notes.find(n=>n.id===id);}
   X(){return erIdx(this.m);}
   size(n,X){n.f=n.f||{};const nt=this.not;
-    if(isEnt(n)&&this.isBo){const at=n.f.at||[];n.w=Math.max(110,String(n.n).length*7.8+34,...at.map(a=>String(a).length*6.7+24));n.h=at.length?30+at.length*16+6:40;n.rows=null;}
+    if(isEnt(n)&&this.isBo){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;} // en el boceto solo el nombre: los atributos están en el texto de arriba
     else if(isEnt(n)){if(nt==='chen'){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;}
       else{const rows=this.rowsOf(n,X);n.rows=rows;n.w=Math.max(120,String(n.n).length*7.8+34,...rows.map(r=>r.t.length*6.9+(nt==='crow'?46:26)));n.h=30+Math.max(1,rows.length)*17+6;}}
     else if(isRel(n)){if(nt==='chen'){n.w=Math.max(96,String(n.n).length*7.6+40);n.h=48;n.rows=null;}
@@ -810,7 +812,7 @@ class Editor{
         if(!crowTag&&(r.k||r.p)){const w=r.t.trim().length*CH;s+=`<line x1="${f1(tx)}" y1="${f1(y+2.5)}" x2="${f1(tx+w)}" y2="${f1(y+2.5)}" class="ul${r.p?' p':''}"/>`;}
         return s;}).join('');
       if(isEnt(n)){
-        if(bo&&(n.f.at||[]).length){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
+        if(false){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
           n.f.at.forEach((a,i)=>{g+=`<text x="${f1(x0+10)}" y="${f1(y0+30+13+i*16)}" class="tx">${esc(a)}</text>`;});}
         else if(!hide){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+4)}" y="${f1(y0+4)}" width="${f1(n.w-8)}" height="${n.h-8}" class="ent in${dup}"/>`;g+=`<text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;}
         else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?4:0}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+3)}" y="${f1(y0+3)}" width="${f1(n.w-6)}" height="${n.h-6}" rx="${nt==='crow'?3:0}" class="ent in${dup}"/>`;
