@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.3.2  (12/11/2026)
+--------------------
+- Pantallas de juegos centradas y mas grandes en pantallas anchas.
+
 v2.3.1  (12/11/2026)
 --------------------
 - Menu de juegos centrado y rediseñado, con las Tiradas destacadas.
