@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.5  (13/11/2026)
+--------------------
+- En los ejercicios la mascota va tras el titulo y no tapa el zoom.
+
 v2.8.4  (13/11/2026)
 --------------------
 - Flappy: la mascota ya no sale casi transparente en Windows.

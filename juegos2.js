@@ -232,9 +232,15 @@ Object.assign(Juegos,{
 
 /* ============================== Mascota (abajo a la derecha) ============================== */
 const Pet={el:null,id:null,
+  // Dentro de un ejercicio la mascota va al final del título (abajo a la derecha tapaba los botones del zoom)
+  place(){const el=this.el;if(!el)return;const t=typeof App!=='undefined'&&App.cur&&!App.home?document.querySelector('#mainv .ph .pname'):null;
+    if(t){if(el.previousElementSibling!==t||!el.classList.contains('inhead')){t.after(el);el.classList.add('inhead');}}
+    else if(el.parentElement!==document.body||el.classList.contains('inhead')){document.body.appendChild(el);el.classList.remove('inhead');}
+    document.documentElement.classList.toggle('has-pet',!!el&&!el.classList.contains('inhead'));},
+  watch(){if(this._ob)return;const mv=document.getElementById('mainv');if(!mv)return;this._ob=new MutationObserver(()=>{clearTimeout(this._pt);this._pt=setTimeout(()=>this.place(),0);});this._ob.observe(mv,{childList:true});},
   set(x){const id=x?x.id:null;if(id===this.id&&(!id||this.el))return;this.id=id;if(this.el){this.el.remove();this.el=null;}document.documentElement.classList.toggle('has-pet',!!x);if(!x)return;
     const el=document.createElement('button');el.id='mbpet';el.type='button';el.className='pet r-'+x.r;el.title=x.n.replace(/^Mascota /,'')+' · haz clic para acariciar';el.setAttribute('aria-label','Mascota: '+x.n);
-    el.innerHTML=`<span class="pet-aura" aria-hidden="true"></span><span class="pet-e">${x.e}</span><span class="pet-sh" aria-hidden="true"></span>`;document.body.appendChild(el);this.el=el;
+    el.innerHTML=`<span class="pet-aura" aria-hidden="true"></span><span class="pet-e">${x.e}</span><span class="pet-sh" aria-hidden="true"></span>`;document.body.appendChild(el);this.el=el;this.place();this.watch();
     el.addEventListener('click',()=>{if(el.classList.contains('pet-spin'))return;el.classList.add('pet-spin');const n=x.r==='m'?7:x.r==='l'?5:3;
       for(let i=0;i<n;i++){const h=document.createElement('span');h.className='pet-heart';h.textContent=x.r==='m'?['💖','✨','🌈','💫'][i%4]:x.r==='l'?['💛','✨'][i%2]:'❤️';h.style.setProperty('--dx',(Math.random()*60-30)+'px');h.style.animationDelay=(i*90)+'ms';el.appendChild(h);setTimeout(()=>h.remove(),1500+i*90);}
       setTimeout(()=>el.classList.remove('pet-spin'),900);});}
