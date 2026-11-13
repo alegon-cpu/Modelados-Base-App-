@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.1  (13/11/2026)
+--------------------
+- Clasificacion fija para toda la clase (alegon-cpu/Clasificiacion-BDD),
+  se conecta sola y explica como pedir permiso.
+
 v2.8.0  (13/11/2026)
 --------------------
 - Nivel de jugador (XP por jugar, tiradas, ruleta y entrar cada dia):

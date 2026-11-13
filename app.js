@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.1: la clasificación de la clase es la misma para todos (repositorio alegon-cpu/Clasificiacion-BDD) y se conecta sola: no hay que pegar ninguna dirección. Si aún no tienes permiso, te explica cómo pedirlo.',
   '2.8: nivel de jugador: ganas experiencia jugando, con las tiradas y la ruleta y entrando cada día. Cada nivel da 2 tokens y cada 10 niveles un premio exclusivo.',
   '2.8: racha diaria: cuenta los días seguidos que abres la app; a los 3, 7, 14, 30, 60 y 100 días hay tokens de premio.',
   '2.8: los juegos se dividen en «Juegos de BDD» (Quiz, ¿Está bien el diagrama? y la nueva Cardinalidad rápida: 10 segundos por frase) y «Juegos wapos».',

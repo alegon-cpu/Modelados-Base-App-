@@ -81,30 +81,28 @@ Object.assign(Juegos,{
     return {id:p.id,name:p.name,tag:p.tag,lvl:L.lv,xp:s.xp,streak:s.streak.n,streakBest:s.streak.best,tetris:s.tetris.best,snake:s.snake.wins,flappy:s.flappy.best,mines:s.mines.wins,card:s.card.best,quiz:s.quiz.perfect,
       bdq:s.bdq.perfect,coleccion:Object.keys(s.owned).length,pase:(s.pase&&s.pase.lv)||0,pet:pet?pet.e:'',title:tt?tt.n:'',t:Date.now(),v:VERSION};},
   rankSoon(){clearTimeout(this._rkT);this._rkT=setTimeout(()=>this.rankPush(),4000);},
-  async rankPush(){try{const d=this.rankData();if(!d||!window.api.rankPublish)return;const i=await window.api.rankInfo();if(!i.on)return;await window.api.rankPublish(d);this._rkLast=Date.now();}catch(e){}},
+  async rankConnect(){if(this._rkTry)return this._rkTry;this._rkTry=window.api.rankSetup().then(()=>true,e=>{this._rkTry=null;throw e;});return this._rkTry;},
+  async rankPush(){try{const d=this.rankData();if(!d||!window.api.rankPublish)return;let i=await window.api.rankInfo();if(!i.on){await this.rankConnect();i=await window.api.rankInfo();}if(!i.on)return;await window.api.rankPublish(d);this._rkLast=Date.now();}catch(e){}},
   RANK_COLS:[['lvl','Nivel',r=>`Nv. ${r.lvl}`,(a,b)=>b.lvl-a.lvl||b.xp-a.xp],['streak','Racha',r=>`🔥 ${r.streak} días`,(a,b)=>b.streak-a.streak],['tetris','Tetris',r=>`${r.tetris} puntos`,(a,b)=>b.tetris-a.tetris],
     ['snake','Serpiente',r=>`${r.snake} mapas`,(a,b)=>b.snake-a.snake],['flappy','Flappy',r=>`${r.flappy} tubos`,(a,b)=>b.flappy-a.flappy],['mines','Buscaminas',r=>`${r.mines} ganadas`,(a,b)=>b.mines-a.mines],
     ['card','Cardinalidad',r=>`${r.card}/10`,(a,b)=>b.card-a.card],['coleccion','Colección',r=>`${r.coleccion} premios`,(a,b)=>b.coleccion-a.coleccion]],
-  async rankView(mv){const by=this._rkBy||'lvl';let info={on:false};try{info=await window.api.rankInfo();}catch(e){}
-    const me=this.player();
-    if(!info.on){mv.innerHTML=this.head('Clasificación de la clase',true)+`<div class="view jg"><div class="jg-in narrow"><section class="rk-setup"><span class="jg-ic big">🏆</span><h2>Clasificación de la clase</h2>
-        <p>Se hace con un repositorio de GitHub que compartís toda la clase. La app de cada uno sube solo un archivo con su nombre de jugador, nivel, racha y récords (nada de tus proyectos), y descarga los de los demás.</p>
-        <ol class="rk-steps"><li><b>Una persona</b> (por ejemplo tú) crea en GitHub un repositorio vacío, por ejemplo <code>clasificacion-daw</code>, con un README para que no esté vacío.</li><li>En el repositorio: <b>Settings › Collaborators › Add people</b> e invita a cada compañero por su usuario de GitHub.</li>
-          <li>Cada compañero <b>acepta la invitación</b> (le llega al correo) y pega aquí la dirección del repositorio.</li></ol>
-        ${me?'':'<p class="in-p warn">Antes crea tu nombre de jugador en el menú de «No cliques esto».</p>'}
-        <div class="row"><input id="rkurl" placeholder="https://github.com/usuario/clasificacion-daw" value="${escA(info.url||'')}" spellcheck="false"><button class="ebtn pri" id="rkgo" ${me?'':'disabled'}>Conectar</button></div>
-        <small class="tnote">Usa el Git del ordenador y tu cuenta de GitHub, como la sincronización. No se guarda ninguna contraseña en la app.</small></section></div></div>`;
-      const go=document.getElementById('rkgo');go.addEventListener('click',async()=>{go.disabled=true;go.textContent='Conectando…';try{await window.api.rankSetup(document.getElementById('rkurl').value);await this.rankPush();toast('¡Conectado a la clasificación!');this.rankView(mv);}catch(e){toast(String(e.message||e).replace(/^Error: /,''),'warn');go.disabled=false;go.textContent='Conectar';}});return;}
-    mv.innerHTML=this.head('Clasificación de la clase',true)+`<div class="view jg"><div class="jg-in"><p class="tnote">Cargando la clasificación…</p></div></div>`;
-    await this.rankPush();let r={list:[]};try{r=await window.api.rankList();}catch(e){toast('No se ha podido cargar: '+String(e.message||e),'warn');}
-    if(this.sub!=='rank')return;const C=this.RANK_COLS.find(c=>c[0]===by)||this.RANK_COLS[0],list=[...r.list].sort(C[3]);
-    mv.innerHTML=this.head('Clasificación de la clase',true)+`<div class="view jg"><div class="jg-in"><section class="rk-top"><div class="seg wide">${this.RANK_COLS.map(c=>`<button class="segb" data-rk="${c[0]}" aria-pressed="${c[0]===C[0]}">${c[1]}</button>`).join('')}</div>
-        <div class="row"><button class="ebtn" id="rkre">↻ Actualizar</button><button class="ebtn danger" id="rkoff">Desconectar</button></div></section>${r.offline?'<p class="in-p warn">Sin conexión: se enseña lo último que se descargó.</p>':''}
+  async rankView(mv){const by=this._rkBy||'lvl',me=this.player();let info={on:false};try{info=await window.api.rankInfo();}catch(e){}
+    const page=body=>{mv.innerHTML=this.head('Clasificación de la clase',true)+`<div class="view jg"><div class="jg-in">${body}</div></div>`;};
+    if(!info.on){page('<p class="tnote">Conectando con la clasificación de la clase…</p>');try{await this.rankConnect();info=await window.api.rankInfo();}catch(e){
+        if(this.sub!=='rank')return;page(`<section class="rk-setup"><span class="jg-ic big">🏆</span><h2>No se ha podido conectar</h2><p>${esc(String(e.message||e).replace(/^Error: /,''))}</p><div class="row"><button class="ebtn pri" id="rkgo">Reintentar</button></div></section>`);
+        document.getElementById('rkgo').addEventListener('click',()=>this.rankView(mv));return;}}
+    if(this.sub!=='rank')return;page('<p class="tnote">Cargando la clasificación…</p>');
+    await this.rankPush();let r={list:[]};try{r=await window.api.rankList();}catch(e){toast('No se ha podido cargar: '+String(e.message||e),'warn');}try{info=await window.api.rankInfo();}catch(e){}
+    if(this.sub!=='rank')return;const C=this.RANK_COLS.find(c=>c[0]===by)||this.RANK_COLS[0],list=[...r.list].filter(p=>!(info.err==='noperm'&&me&&p.id===me.id)).sort(C[3]),mine=me&&list.some(p=>p.id===me.id);
+    const warn=!me?'<p class="in-p warn">Crea tu nombre de jugador en el menú de «No cliques esto» para salir en la clasificación.</p>'
+      :info.err==='noperm'?`<section class="rk-perm"><b>Aún no puedes salir en la clasificación</b><ol><li>Pide a <b>alegon-cpu</b> que te invite en GitHub (en el repositorio: <i>Settings › Collaborators › Add people</i>, con tu usuario de GitHub).</li><li>Acepta la invitación: te llega al correo de GitHub.</li><li>Pulsa «Actualizar». Si Git te pide iniciar sesión, entra con tu cuenta de GitHub.</li></ol><small>Mientras tanto puedes ver la clasificación de los demás.</small></section>`
+      :info.err?`<p class="in-p warn">No se ha podido subir tu puntuación: ${esc(info.err)}</p>`:'';
+    page(`<section class="rk-top"><div class="seg wide">${this.RANK_COLS.map(c=>`<button class="segb" data-rk="${c[0]}" aria-pressed="${c[0]===C[0]}">${c[1]}</button>`).join('')}</div>
+        <div class="row"><button class="ebtn" id="rkre">↻ Actualizar</button></div></section>${r.offline?'<p class="in-p warn">Sin conexión: se enseña lo último que se descargó.</p>':''}${warn}
       <ol class="rk-list">${list.map((p,i)=>`<li class="${me&&p.id===me.id?'me':''}${i<3?' top'+(i+1):''}"><span class="rk-pos">${['🥇','🥈','🥉'][i]||i+1}</span><span class="rk-pet">${esc(p.pet||'🙂')}</span><span class="rk-name"><b>${esc(p.name)}<small>#${esc(p.tag)}</small></b><small>${esc(p.title||'')}${p.title?' · ':''}Nv. ${p.lvl|0} · 🔥 ${p.streak|0}</small></span><span class="rk-val">${esc(C[2](p))}</span></li>`).join('')||'<li class="empty">Aún no hay nadie. ¡Sé el primero jugando!</li>'}</ol>
-      <p class="tnote">${list.length} jugador${list.length===1?'':'es'} · Repositorio: <code>${esc(info.url)}</code></p></div></div>`;
+      <p class="tnote">${list.length} jugador${list.length===1?'':'es'}${me&&mine?' · tu puntuación se sube sola cuando subes de nivel o juegas':''} · se guarda en <code>${esc(String(info.url).replace(/^https:\/\/github\.com\//,''))}</code></p>`);
     mv.querySelectorAll('[data-rk]').forEach(b=>b.addEventListener('click',()=>{this._rkBy=b.dataset.rk;this.rankView(mv);}));
-    document.getElementById('rkre').addEventListener('click',()=>this.rankView(mv));
-    document.getElementById('rkoff').addEventListener('click',()=>App.confirm('Desconectar la clasificación','Dejarás de subir tus récords y de ver los de la clase. Tu nombre y tu progreso no se borran.','Desconectar',async()=>{await window.api.rankOff();this.rankView(mv);}));}
+    document.getElementById('rkre').addEventListener('click',()=>this.rankView(mv));}
 });
 // menú: tarjeta de Cardinalidad rápida
 const _menuExtra=Juegos.menuExtra;

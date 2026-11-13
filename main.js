@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.8.0';
+const VERSION = '2.8.1';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -215,6 +215,7 @@ const GitSync = makeGit(() => base(), () => cfg, saveCfg);
 h('git:info', () => GitSync.info());
 // ---------- Clasificación de la clase (2.8): un repositorio de GitHub compartido; cada jugador sube solo su archivo jugadores/<id>.json ----------
 const rankGit = makeGit.git;
+const RANK_REPO = process.env.MB_RANK_REPO || 'https://github.com/alegon-cpu/Clasificiacion-BDD.git'; // la clasificación de la clase es fija: no se puede cambiar desde la app
 const rankDir = () => path.join(app.getPath('userData'), 'clasificacion');
 const rankCfg = () => cfg.rank || {};
 let rankQ = Promise.resolve();
@@ -222,8 +223,8 @@ const rankRun = fn => (rankQ = rankQ.then(fn, fn));
 const rankMust = async (args, dir, t) => { const r = await rankGit(args, dir, t); if (r.code !== 0) throw new Error((r.err || r.out || 'Error de Git').trim().split('\n').slice(-3).join(' ')); return r; };
 const rankId = c => ['-c', 'user.name=' + (c.who || 'Modelado Bases'), '-c', 'user.email=' + (c.mail || 'modelado-bases@users.noreply.github.com')];
 const rankUrl = u => { u = String(u || '').trim().replace(/\/+$/, ''); if (/^[\w.-]+\/[\w.-]+$/.test(u)) u = 'https://github.com/' + u; if (!/^https:\/\/[^\s]+$/i.test(u) && !/^(file:\/\/|\/|[A-Za-z]:\\)/.test(u)) throw new Error('Pega la dirección del repositorio, por ejemplo https://github.com/tu-usuario/clasificacion-daw'); return u.endsWith('.git') || !/^https:\/\/github\.com\//i.test(u) ? u : u + '.git'; };
-h('rank:info', () => ({ url: rankCfg().url || '', on: !!(rankCfg().url && fs.existsSync(path.join(rankDir(), '.git'))) }));
-h('rank:setup', url => rankRun(async () => { const u = rankUrl(url), dir = rankDir();
+h('rank:info', () => ({ url: RANK_REPO.replace(/\.git$/, ''), on: rankCfg().url === RANK_REPO && fs.existsSync(path.join(rankDir(), '.git')), err: rankCfg().err || '' }));
+h('rank:setup', () => rankRun(async () => { const u = RANK_REPO, dir = rankDir();
   fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(path.dirname(dir), { recursive: true });
   const r = await rankGit(['clone', '-q', u, dir], path.dirname(dir), 120000);
   if (r.code !== 0) { fs.rmSync(dir, { recursive: true, force: true }); throw new Error(/not found|does not exist|403|denied/i.test(r.err) ? 'No puedo entrar en ese repositorio: comprueba la dirección y que tu cuenta de GitHub tenga acceso (acepta la invitación del dueño).' : (r.missing ? r.err : 'No se ha podido conectar: ' + r.err.trim().split('\n').pop())); }
@@ -238,7 +239,7 @@ h('rank:publish', d => rankRun(async () => { const dir = rankDir(); if (!fs.exis
   await rankMust(['add', '-A', 'jugadores'], dir); const st = await rankGit(['status', '--porcelain'], dir);
   if (st.out.trim()) await rankMust([...rankId(d), 'commit', '-q', '-m', 'Clasificación: ' + (d.name || d.id)], dir);
   for (let i = 0; i < 4; i++) { const br = await rankPull(dir).catch(() => null); const p = await rankGit(['push', '-q', 'origin', 'HEAD:' + (br || 'main')], dir, 90000);
-    if (p.code === 0) return { ok: true }; if (!/rejected|fetch first|non-fast-forward/i.test(p.err)) throw new Error(/403|denied|permission/i.test(p.err) ? 'No tienes permiso para subir a ese repositorio: pide al dueño que te invite como colaborador.' : p.err.trim().split('\n').pop()); }
+    if (p.code === 0) { cfg.rank.err = ''; saveCfg(); return { ok: true }; } if (!/rejected|fetch first|non-fast-forward/i.test(p.err)) { const m = /403|denied|permission|could not read|authentication|terminal prompts/i.test(p.err) ? 'noperm' : p.err.trim().split('\n').pop(); cfg.rank.err = m; saveCfg(); throw new Error(m); } }
   throw new Error('No se ha podido subir la puntuación, inténtalo más tarde.'); }));
 h('rank:list', () => rankRun(async () => { const dir = rankDir(); if (!fs.existsSync(path.join(dir, '.git'))) return { off: true, list: [] };
   let offline = false; try { await rankPull(dir); } catch (e) { offline = true; }
