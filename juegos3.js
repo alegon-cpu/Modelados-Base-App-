@@ -87,7 +87,7 @@ Object.assign(Juegos,{
     ['snake','Serpiente',r=>`${r.snake} mapas`,(a,b)=>b.snake-a.snake],['flappy','Flappy',r=>`${r.flappy} tubos`,(a,b)=>b.flappy-a.flappy],['mines','Buscaminas',r=>`${r.mines} ganadas`,(a,b)=>b.mines-a.mines],
     ['card','Cardinalidad',r=>`${r.card}/10`,(a,b)=>b.card-a.card],['coleccion','Colección',r=>`${r.coleccion} premios`,(a,b)=>b.coleccion-a.coleccion]],
   async rankView(mv){const by=this._rkBy||'lvl',me=this.player();let info={on:false};try{info=await window.api.rankInfo();}catch(e){}
-    const page=body=>{mv.innerHTML=this.head('Clasificación de la clase',true)+`<div class="view jg"><div class="jg-in">${body}</div></div>`;};
+    const page=body=>{mv.innerHTML=this.head('Clasificación de 1º DAW',true)+`<div class="view jg"><div class="jg-in">${body}</div></div>`;};
     if(!info.on){page('<p class="tnote">Conectando con la clasificación de la clase…</p>');try{await this.rankConnect();info=await window.api.rankInfo();}catch(e){
         if(this.sub!=='rank')return;page(`<section class="rk-setup"><span class="jg-ic big">🏆</span><h2>No se ha podido conectar</h2><p>${esc(String(e.message||e).replace(/^Error: /,''))}</p><div class="row"><button class="ebtn pri" id="rkgo">Reintentar</button></div></section>`);
         document.getElementById('rkgo').addEventListener('click',()=>this.rankView(mv));return;}}

@@ -248,7 +248,7 @@ const Juegos={
       <div class="jg-grid three">
         <button class="jg-card row" data-jg="album"><span class="jg-ic">📒</span><span><b>Álbum</b><small>Tu colección: ${own} de ${REWARDS.length}.</small><span class="jg-prog"><i style="width:${own/REWARDS.length*100}%"></i></span></span></button>
         <button class="jg-card row" data-jg="perfil"><span class="jg-ic">🪪</span><span><b>Perfil</b><small>Foto, nombre, título y tema. Salen en Inicio y en lo que compartes.</small></span></button>
-        <button class="jg-card row" data-jg="rank"><span class="jg-ic">🏆</span><span><b>Clasificación de la clase</b><small>Compara tu nivel, racha y récords con tus compañeros.</small></span></button>
+        <button class="jg-card row" data-jg="rank"><span class="jg-ic">🏆</span><span><b>Clasificación de 1º DAW</b><small>Compara tu nivel, racha y récords con tus compañeros de 1º DAW.</small></span></button>
       </div></div></div>`;},
   rewardThumb(x,owned){if(!owned)return `<span class="rw-th lock">?</span>`;
     if(x.kind==='acc')return `<span class="rw-th" style="background:${x.c}"></span>`;if(x.kind==='icon')return `<span class="rw-th emo">${x.e}</span>`;

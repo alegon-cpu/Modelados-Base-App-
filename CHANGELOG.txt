@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.2  (13/11/2026)
+--------------------
+- La clasificacion se llama "Clasificacion de 1o DAW".
+
 v2.8.1  (13/11/2026)
 --------------------
 - Clasificacion fija para toda la clase (alegon-cpu/Clasificiacion-BDD),
