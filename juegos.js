@@ -142,6 +142,11 @@ const Juegos={
     if(typeof Theme!=='undefined')Theme.apply(Theme.get());if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();this.rain();},
   equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx',bg:'bg',trail:'trail'}[x.kind];if(!slot)return;
     s.eq[slot]=s.eq[slot]===id?null:id;this.save();this.apply();},
+  /* ---------- código de creador (solo se guarda su huella SHA-256, no el código) ---------- */
+  CREATOR:'9da102814cd1688cf410f64548c93a23c7b3391c83b6cfbaffae82aa6095481f',
+  async redeem(code){const t=String(code||'').trim().toUpperCase();if(!t)return false;let h='';
+    try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));h=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return false;}
+    if(h!==this.CREATOR)return false;const s=this.st();REWARDS.forEach(x=>{if(!s.owned[x.id])s.owned[x.id]=1;});s.tokens+=1000;s.earned+=1000;s.creator=1;this.save();this.badge();this.celebrate(true);return true;},
   /* ---------- tiradas ---------- */
   roll(force){const s=this.st();let r;
     if(s.pityM>=PITY_M-1)r='m';else if(s.pity>=PITY-1)r='l';
@@ -248,9 +253,12 @@ const Juegos={
         <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label>
         <label><b>Fondo animado</b>${sel('bg','bg','Ninguno')}</label><label><b>Estela del ratón</b>${sel('trail','trail','Ninguna')}</label></div>
       <p class="tnote">Tu nombre y tu título salen en Inicio y en los proyectos que compartes con «Exportar código». Mientras uses un tema, los botones Claro/Oscuro no cambian nada.</p>
+      <details class="jg-code"><summary>¿Tienes un código?</summary><div class="row"><input id="jgcode" maxlength="40" placeholder="Escribe el código" autocomplete="off" spellcheck="false"><button class="ebtn" id="jgcodego">Canjear</button></div></details>
       <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz con token: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
     const fi=document.getElementById('jgimg');fi.addEventListener('change',async()=>{await this.setAvatar(fi.files[0]);this.perfilView(mv);});
     const fx=document.getElementById('jgimgx');if(fx)fx.addEventListener('click',()=>{delete s.avatar;this.save();this.perfilView(mv);});
+    const cgo=document.getElementById('jgcodego'),cin=document.getElementById('jgcode'),red=async()=>{if(await this.redeem(cin.value)){toast('Código de creador: tienes todos los premios y +1000 tokens.');this.perfilView(mv);}else{toast('Ese código no es válido.','warn');cin.select();}};
+    cgo.addEventListener('click',red);cin.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();red();}});
     const n=document.getElementById('jgnick');n.addEventListener('input',()=>{s.nick=n.value.trim().slice(0,24);this.save();const av=mv.querySelector('.jg-av:not(.img) span');if(av)av.textContent=(s.nick||'?').slice(0,2).toUpperCase();});
     mv.querySelectorAll('[data-jg-slot]').forEach(el=>el.addEventListener('change',()=>{s.eq[el.dataset.jgSlot]=el.value||null;this.save();this.apply();this.go('perfil');}));},
   onClick(e){const b=e.target.closest('[data-jg],[data-jg-pull],[data-jg-swap],[data-jg-eq]');if(!b)return false;

@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.6.1  (13/11/2026)
+--------------------
+- Perfil: apartado para canjear codigos.
+
 v2.6.0  (13/11/2026)
 --------------------
 - Tiradas: 100 premios nuevos (200 en total) y calidad Mitica (1 %,

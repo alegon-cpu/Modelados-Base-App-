@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.6.1: en el Perfil hay un apartado «¿Tienes un código?» para canjear códigos.',
   '2.6: tiradas con 100 premios nuevos (200 en total) y una calidad nueva, Mítica (1 %, asegurada a las 60 tiradas): fondos animados, estelas del ratón y títulos míticos. También cursores, marcos y títulos animados nuevos.',
   '2.6: las tiradas tienen animación de «salto» entre estrellas con un cometa del color de lo mejor que te ha tocado, y cada premio se enseña en su carta. Puedes saltarla.',
   '2.6: la serpiente da de 1 a 5 tokens al llenar el mapa (según tamaño y velocidad) y 1 fragmento ◆ cada 5 frutas.',
