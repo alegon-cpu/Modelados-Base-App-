@@ -28,7 +28,7 @@ const FX={
     const cv=document.createElement('canvas');cv.id='mbbg';cv.className='bg-'+kind+(season?' season':'');document.body.appendChild(cv);const g=cv.getContext('2d');
     const B={kind,cv,g,P:[],t0:performance.now(),last:0,season};this._bg=B;
     const rs=()=>{cv.width=innerWidth;cv.height=innerHeight;B.P=this.bgSeed(kind,cv.width,cv.height);};B.rs=rs;rs();addEventListener('resize',rs);
-    const step=t=>{B.raf=requestAnimationFrame(step);const vis=typeof App!=='undefined'&&!!App.home&&!document.hidden&&!(typeof Juegos!=='undefined'&&Juegos._snk&&!Juegos._snk.over);
+    const step=t=>{B.raf=requestAnimationFrame(step);const vis=typeof App!=='undefined'&&!!App.home&&!document.hidden&&!(typeof Juegos!=='undefined'&&((Juegos._snk&&!Juegos._snk.over)||(Juegos._gm&&Juegos.sub!=='ruleta')));
       cv.style.display=vis?'':'none';if(!vis||t-B.last<32)return;const dt=Math.min(80,t-(B.last||t));B.last=t;this.bgDraw(B,(t-B.t0)/1000,dt/16.7);};
     B.raf=requestAnimationFrame(step);},
   bgSeed(k,W,H){const R=Math.random,P=[];

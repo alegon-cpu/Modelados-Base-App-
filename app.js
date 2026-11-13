@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.3: Flappy: antes de empezar ya se ven los tubos y un aviso de «¡Pulsa para volar!». Los fondos animados se esconden mientras juegas.',
   '2.8.2: la clasificación ahora se llama «Clasificación de 1º DAW».',
   '2.8.1: la clasificación de la clase es la misma para todos (repositorio alegon-cpu/Clasificiacion-BDD) y se conecta sola: no hay que pegar ninguna dirección. Si aún no tienes permiso, te explica cómo pedirlo.',
   '2.8: nivel de jugador: ganas experiencia jugando, con las tiradas y la ruleta y entrando cada día. Cada nivel da 2 tokens y cada 10 niveles un premio exclusivo.',

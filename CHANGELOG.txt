@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.3  (13/11/2026)
+--------------------
+- Flappy: se ven los tubos y el aviso para empezar.
+- Los fondos animados se esconden mientras juegas.
+
 v2.8.2  (13/11/2026)
 --------------------
 - La clasificacion se llama "Clasificacion de 1o DAW".

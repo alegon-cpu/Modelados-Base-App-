@@ -139,7 +139,7 @@ Object.assign(Juegos,{
       <p class="tnote">Récord: <b>${s.flappy.best}</b> tubos · Partidas: ${s.flappy.games}</p></section></div></div>`;
     this.flSize();this.flDraw(null,0);document.getElementById('flgo').addEventListener('click',()=>this.flStart());},
   flSize(){const cv=document.getElementById('fl');if(!cv)return;const d=devicePixelRatio||1,h=Math.min(620,Math.max(420,innerHeight-220)),w=Math.round(h*0.66);cv.style.width=w+'px';cv.style.height=h+'px';cv.width=w*d;cv.height=h*d;this._flk=cv.height/600;},
-  flStart(){this.stopAll();const g={y:280,vy:0,pipes:[],sc:0,fr:0,over:false,started:false,t:0,last:0,dist:0,tok:false,flap:0};this._fl=g;
+  flStart(){this.stopAll();const g={y:280,vy:0,pipes:[{x:330,top:150,gap:160,ok:false},{x:545,top:230,gap:158,ok:false}],sc:0,fr:0,over:false,started:false,t:0,last:0,dist:0,tok:false,flap:0};this._fl=g;
     this._gm={stop:()=>{cancelAnimationFrame(g.raf);g.unkey&&g.unkey();const cv=document.getElementById('fl');if(cv&&g.click)cv.removeEventListener('pointerdown',g.click);}};
     document.getElementById('flover').hidden=true;const cv=document.getElementById('fl');cv.focus();
     const flap=()=>{if(g.over)return;g.started=true;g.vy=-7.6;g.flap=1;};g.click=e=>{e.preventDefault();flap();};cv.addEventListener('pointerdown',g.click);
@@ -165,6 +165,8 @@ Object.assign(Juegos,{
     else{x.fillStyle='#FFD23F';x.beginPath();x.ellipse(0,0,18,15,0,0,6.3);x.fill();x.strokeStyle='#C99A1E';x.lineWidth=2;x.stroke();x.fillStyle='#FFF';x.beginPath();x.arc(7,-5,6,0,6.3);x.fill();x.fillStyle='#222';x.beginPath();x.arc(9,-5,2.6,0,6.3);x.fill();
       x.fillStyle='#F28C28';x.beginPath();x.moveTo(13,1);x.lineTo(25,4);x.lineTo(13,8);x.fill();x.fillStyle='#FFE88A';x.beginPath();x.ellipse(-6,3+(g&&g.flap>0?-6*g.flap:Math.sin((now||0)/90)*3),9,5,-0.3,0,6.3);x.fill();}
     x.restore();
+    if(g&&!g.started&&!g.over){const a=.65+.35*Math.sin((now||0)/260);x.save();x.globalAlpha=a;x.fillStyle='rgba(0,0,0,.35)';const tw=Math.min(W-40,320);x.beginPath();x.roundRect?x.roundRect(W/2-tw/2,170,tw,74,14):x.rect(W/2-tw/2,170,tw,74);x.fill();
+      x.fillStyle='#fff';x.textAlign='center';x.font='800 24px system-ui,sans-serif';x.fillText('¡Pulsa para volar!',W/2,202);x.font='500 15px system-ui,sans-serif';x.fillText('Espacio, ↑ o clic',W/2,228);x.restore();}
     if(g&&g.started){x.fillStyle='#fff';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=5;x.font='800 46px system-ui,sans-serif';x.textAlign='center';x.strokeText(g.sc,W/2,80);x.fillText(g.sc,W/2,80);}
     x.setTransform(1,0,0,1,0,0);}
 });
