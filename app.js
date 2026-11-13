@@ -348,6 +348,7 @@ const App={
     Sync.hook();Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();setInterval(()=>this.actTick(),1000);
     window.api.onCloseRequest(()=>this.onCloseRequest());
     // Lo primero de todo: buscar si hay versión nueva (sin esperar a cargar proyectos ni a GitHub)
+    {const vb=document.getElementById('verbadge');if(vb)vb.textContent='v'+VERSION;document.title='Modelado Bases '+VERSION;}
     if(!this.solo)this.checkUpdates(false).catch(()=>{});
     // Y mientras está abierta: se mira cada 5 minutos (y al volver a la ventana), y si sale una versión nueva aparece la pantalla de actualizar
     if(!this.solo){this._updT=Date.now();const chk=()=>{this._updT=Date.now();this.checkUpdates(false).catch(()=>{});};setInterval(chk,5*60*1000);addEventListener('focus',()=>{if(Date.now()-this._updT>2*60*1000)chk();});}
@@ -468,7 +469,7 @@ const App={
   },
   // Al actualizar solo salen las notas de la versión; el resumen del programa, solo la primera vez (o desplegándolo)
   maybeNews(){let seen=null;try{seen=localStorage.getItem('mb:seen');}catch(e){}if(seen!==VERSION){this.showNews(seen==null);try{localStorage.setItem('mb:seen',VERSION);}catch(e){}}},
-  showNews(full){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,mm=VERSION.split('.').slice(0,2).join('.'),mine=n=>VERSION.split('.').length>2?n.startsWith(VERSION+':'):(n.startsWith(mm+':')||n.startsWith(mm+'.')),NOV=en?NOVEDADES_EN.slice(0,NOVEDADES.filter(mine).length):NOVEDADES.filter(mine).map(n=>{const t=n.slice(n.indexOf(':')+2);return t.charAt(0).toUpperCase()+t.slice(1);});
+  showNews(full){const en=LANG()==='en',RES=en?RESUMEN_EN:RESUMEN,mm=VERSION.split('.').slice(0,2).join('.'),mine=n=>/\.0$/.test(VERSION)?(n.startsWith(VERSION+':')||n.startsWith(mm+':')):VERSION.split('.').length>2?n.startsWith(VERSION+':'):(n.startsWith(mm+':')||n.startsWith(mm+'.')),NOV=en?NOVEDADES_EN.slice(0,NOVEDADES.filter(mine).length):NOVEDADES.filter(mine).map(n=>{const t=n.slice(n.indexOf(':')+2);return t.charAt(0).toUpperCase()+t.slice(1);});
     const res=`<ul class="news notr">${RES.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`;
     this.modal(`<h3>${full?'Modelado Bases '+VERSION:'Novedades de la '+VERSION}</h3>${full?`<p>Programa para hacer el E-R, el relacional, el DED y el SQL de tus ejercicios de bases de datos.</p><p class="news-h">Qué puedes hacer</p>${res}<p class="news-h">Novedades de la ${VERSION}</p>`:''}<ul class="news notr">${NOV.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${full?'':`<details class="older"><summary>Qué puede hacer el programa</summary>${res}</details>`}${en?'':`<details class="older"><summary>Cambios anteriores</summary><ul class="news">${NOVEDADES.filter(n=>!mine(n)).map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`}<div class="mrow"><button class="lnk mmeta" data-m="upd-check">Buscar actualizaciones</button><button class="ebtn" data-m="controls">Ver controles</button><button class="ebtn pri" data-m="close">Empezar</button></div>`);},
   showSettings(sec){this._sec=sec||this._sec||'general';this.settingsOpen=true;
