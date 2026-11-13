@@ -86,12 +86,12 @@ const FX={
 const Warp={
   play(res){return new Promise(done=>{
     if(reduceMotion()||!res||!res.length){done();return;}
-    const order='crelm',best=res.reduce((b,o)=>order.indexOf(o.it.r)>order.indexOf(b)?o.it.r:b,'c'),col=RCOL[best]==='#9AA6B2'?'#4FA3FF':RCOL[best];
-    const ov=document.createElement('div');ov.id='warp';ov.className='wp-'+best;ov.innerHTML=`<canvas></canvas><div class="wp-stage" aria-live="polite"></div><button class="wp-skip" type="button">Saltar ›</button><p class="wp-hint">Haz clic para seguir</p>`;
+    const order='crelm',best=res.reduce((b,o)=>order.indexOf(o.it.r)>order.indexOf(b)?o.it.r:b,'c'),WC={c:['#4FA3FF','80,163,255','#0d1d4a'],r:['#4FA3FF','80,163,255','#0d1d4a'],e:['#B66DFF','190,120,255','#2a0f4d'],l:['#FFC94A','255,205,90','#3d2c05'],m:['#FF3D7F','255,255,255','#1a0f30']}[best],col=WC[0];
+    const ov=document.createElement('div');ov.id='warp';ov.className='wp-'+best;ov.innerHTML=`<canvas></canvas><div class="wp-stage" aria-live="polite"></div><button class="wp-skip" type="button">⏭ Saltar animación</button><p class="wp-hint">Haz clic para seguir</p>`;
     document.body.appendChild(ov);const cv=ov.querySelector('canvas'),g=cv.getContext('2d'),stage=ov.querySelector('.wp-stage');
     const rs=()=>{cv.width=innerWidth;cv.height=innerHeight;};rs();addEventListener('resize',rs);
     const R=Math.random,W=()=>cv.width,H=()=>cv.height,N=420,S=[];for(let i=0;i<N;i++)S.push({x:(R()-.5)*2,y:(R()-.5)*2,z:R()});
-    const hue=best==='m',big='lm'.includes(best),T_COMET=1100,T_FLASH=big?2700:2300,T_CARDS=T_FLASH+(big?650:350);
+    const hue=best==='m',big='lm'.includes(best),T_COMET=hue?1500:1100,T_FLASH=hue?3700:big?2700:2300,T_CARDS=T_FLASH+(hue?900:big?650:350);
     let t0=performance.now(),raf=0,phase='warp',idx=-1,shake=0,rings=[],sparks=[],closed=false;
     const close=()=>{if(closed)return;closed=true;cancelAnimationFrame(raf);removeEventListener('resize',rs);removeEventListener('keydown',key,true);ov.classList.add('out');setTimeout(()=>{ov.remove();done();},260);};
     const stars=n=>'★'.repeat(n);
@@ -105,26 +105,32 @@ const Warp={
     ov.addEventListener('click',e=>{if(e.target.closest('.wp-skip')){close();return;}next();});addEventListener('keydown',key,true);
     const frame=now=>{raf=requestAnimationFrame(frame);const t=now-t0,w=W(),h=H(),cx=w/2,cy=h/2;
       // fondo
-      const bg=g.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h)*.7);bg.addColorStop(0,'#141a3a');bg.addColorStop(1,'#03040c');g.fillStyle=bg;g.fillRect(0,0,w,h);
+      const bg=g.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h)*.7);if(hue){const hh=(now/12)%360;bg.addColorStop(0,`hsl(${hh},70%,${t<T_FLASH?14+Math.min(10,t/T_FLASH*10):12}%)`);bg.addColorStop(.6,`hsl(${(hh+120)%360},60%,6%)`);bg.addColorStop(1,'#03040c');}else{bg.addColorStop(0,WC[2]);bg.addColorStop(1,'#03040c');}g.fillStyle=bg;g.fillRect(0,0,w,h);
       let ox=0,oy=0;if(shake>0){ox=(R()-.5)*22*shake;oy=(R()-.5)*22*shake;shake=Math.max(0,shake-.025);}g.save();g.translate(ox,oy);
       // túnel de estrellas: acelera hasta el cometa y luego se calma
       const sp=phase==='cards'?.004:t<T_COMET?.006+Math.pow(t/T_COMET,2)*.06:Math.max(.008,.066-(t-T_COMET)/1600*.06);
       g.lineCap='round';
-      S.forEach(s=>{const pz=s.z;s.z-=sp;if(s.z<=.02){s.x=(R()-.5)*2;s.y=(R()-.5)*2;s.z=1;return;}const k=Math.max(w,h)*.55,x1=cx+s.x/pz*k*.5,y1=cy+s.y/pz*k*.5,x2=cx+s.x/s.z*k*.5,y2=cy+s.y/s.z*k*.5;
-        const a=Math.min(1,(1-s.z)*1.4);g.strokeStyle=hue?`hsla(${(s.x*180+now/8)%360},90%,75%,${a})`:`rgba(${phase==='cards'?'200,210,255':'210,225,255'},${a})`;g.lineWidth=(1-s.z)*2.6+.3;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();});
+      const rot=hue&&phase!=='cards'?Math.min(.035,t/T_FLASH*.035):0,cr=Math.cos(rot),sr=Math.sin(rot);
+      S.forEach(s=>{if(rot){const nx=s.x*cr-s.y*sr;s.y=s.x*sr+s.y*cr;s.x=nx;}const pz=s.z;s.z-=sp;if(s.z<=.02){s.x=(R()-.5)*2;s.y=(R()-.5)*2;s.z=1;return;}const k=Math.max(w,h)*.55,x1=cx+s.x/pz*k*.5,y1=cy+s.y/pz*k*.5,x2=cx+s.x/s.z*k*.5,y2=cy+s.y/s.z*k*.5;
+        const a=Math.min(1,(1-s.z)*1.4);g.strokeStyle=hue?`hsla(${(s.x*180+now/8)%360},90%,75%,${a})`:`rgba(${WC[1]},${a})`;g.lineWidth=(1-s.z)*2.6+.3;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();});
       // cometa
-      if(t>T_COMET*.55&&t<T_FLASH){const k=Math.min(1,(t-T_COMET*.55)/(T_FLASH-T_COMET*.55)),e=1-Math.pow(1-k,3),hx=w*1.05-(w*1.05-cx)*e,hy=-h*.1+(cy+h*.1)*e,len=big?320:220;
-        const c=hue?`hsl(${(now/3)%360},100%,65%)`:col;for(let j=0;j<3;j++)sparks.push({x:hx,y:hy,vx:(R()-.2)*2,vy:-(R())*1.5,life:.8,h:hue?R()*360:null,c:col});
-        const gr=g.createLinearGradient(hx,hy,hx+len*.8,hy-len*.6);gr.addColorStop(0,'#FFFFFF');gr.addColorStop(.15,c);gr.addColorStop(1,'rgba(0,0,0,0)');g.strokeStyle=gr;g.lineWidth=big?16:10;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+len*.8,hy-len*.6);g.stroke();
-        const rg=g.createRadialGradient(hx,hy,0,hx,hy,big?60:40);rg.addColorStop(0,'rgba(255,255,255,1)');rg.addColorStop(.3,c);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(hx,hy,big?60:40,0,6.3);g.fill();}
+      const comet=(ang,c,size,k)=>{const e=1-Math.pow(1-k,3),r0=Math.hypot(w,h)*.62,hx=cx+Math.cos(ang)*r0*(1-e),hy=cy+Math.sin(ang)*r0*(1-e),len=size*5.5,tx=hx+Math.cos(ang)*len,ty=hy+Math.sin(ang)*len;
+        for(let j=0;j<3;j++)sparks.push({x:hx,y:hy,vx:(R()-.5)*2+Math.cos(ang)*1.5,vy:(R()-.5)*2+Math.sin(ang)*1.5,life:.8,h:hue?R()*360:null,c});
+        const gr=g.createLinearGradient(hx,hy,tx,ty);gr.addColorStop(0,'#FFFFFF');gr.addColorStop(.15,c);gr.addColorStop(1,'rgba(0,0,0,0)');g.strokeStyle=gr;g.lineWidth=size*.27;g.beginPath();g.moveTo(hx,hy);g.lineTo(tx,ty);g.stroke();
+        const rg=g.createRadialGradient(hx,hy,0,hx,hy,size);rg.addColorStop(0,'rgba(255,255,255,1)');rg.addColorStop(.3,c);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(hx,hy,size,0,6.3);g.fill();};
+      if(t>T_COMET*.55&&t<T_FLASH){const k=Math.min(1,(t-T_COMET*.55)/(T_FLASH-T_COMET*.55));
+        if(hue){// mítica: tres cometas arcoíris que giran en espiral hasta el centro y un remolino de anillos
+          for(let i=0;i<3;i++)comet(-Math.PI/2+i*2.094+k*2.4,`hsl(${(now/3+i*120)%360},100%,65%)`,70,k);
+          g.save();g.globalCompositeOperation='lighter';for(let i=0;i<7;i++){const rr=(1-k)*Math.min(w,h)*.5*(1+i*.12)+20;g.strokeStyle=`hsla(${(i*51+now/4)%360},100%,60%,${.25+.35*k})`;g.lineWidth=6+k*6;g.beginPath();g.arc(cx,cy,rr,now/400+i,now/400+i+2.2+k*3);g.stroke();}g.restore();}
+        else comet(-0.62,col,big?60:44,k);}
       // chispas y ondas
       g.save();g.globalCompositeOperation='lighter';sparks.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=.97;p.vy*=.97;p.life-=.016;g.fillStyle=p.h!=null?`hsla(${p.h},100%,65%,${Math.max(0,p.life)})`:p.c;g.globalAlpha=Math.max(0,p.life);g.beginPath();g.arc(p.x,p.y,2.2,0,6.3);g.fill();});g.restore();g.globalAlpha=1;
       sparks=sparks.filter(p=>p.life>0);if(sparks.length>900)sparks.splice(0,sparks.length-900);
-      rings.forEach(r=>{r.r+=18;r.a-=.018;g.lineWidth=r.m?10:6;g.strokeStyle=r.m?`hsla(${(r.r/2+now/5)%360},100%,65%,${Math.max(0,r.a)})`:`rgba(255,215,110,${Math.max(0,r.a)})`;g.beginPath();g.arc(cx,cy,r.r,0,6.3);g.stroke();});rings=rings.filter(r=>r.a>0);
+      rings.forEach(r=>{r.r+=18;r.a-=.018;g.lineWidth=r.m?10:6;g.strokeStyle=r.m?`hsla(${(r.r/2+now/5)%360},100%,65%,${Math.max(0,r.a)})`:`rgba(${r.c||'255,215,110'},${Math.max(0,r.a)})`;g.beginPath();g.arc(cx,cy,r.r,0,6.3);g.stroke();});rings=rings.filter(r=>r.a>0);
       g.restore();
       // destello
       if(t>=T_FLASH&&t<T_CARDS+200){const k=(t-T_FLASH)/(T_CARDS+200-T_FLASH);g.fillStyle=hue?`hsla(${(now/4)%360},100%,92%,${1-k})`:`rgba(255,255,255,${1-k})`;g.fillRect(0,0,w,h);
-        if(!ov.dataset.flash){ov.dataset.flash='1';if(big){rings.push({r:0,a:1,m:hue});burst(cx,cy,hue?260:140,best);shake=hue?1.2:.5;}}}
+        if(!ov.dataset.flash){ov.dataset.flash='1';if(big){rings.push({r:0,a:1,m:hue});if(hue){setTimeout(()=>rings.push({r:0,a:1,m:true}),180);setTimeout(()=>rings.push({r:0,a:1,m:true}),360);}burst(cx,cy,hue?420:140,best);shake=hue?1.4:.5;}else rings.push({r:0,a:.7,c:WC[1]});}}
       if(phase==='warp'&&t>=T_CARDS){phase='cards';ov.classList.add('cards');next();}};
     raf=requestAnimationFrame(frame);});}
 };

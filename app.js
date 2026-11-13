@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.6.2: la animación de tirada cambia de color según lo mejor que salga: azul (común o rara), morada (épica), amarilla (legendaria) y una especial en arcoíris para la mítica, con tres cometas, remolino y ondas. «Saltar animación» está arriba a la izquierda y más grande.',
   '2.6.1: en el Perfil hay un apartado «¿Tienes un código?» para canjear códigos.',
   '2.6: tiradas con 100 premios nuevos (200 en total) y una calidad nueva, Mítica (1 %, asegurada a las 60 tiradas): fondos animados, estelas del ratón y títulos míticos. También cursores, marcos y títulos animados nuevos.',
   '2.6: las tiradas tienen animación de «salto» entre estrellas con un cometa del color de lo mejor que te ha tocado, y cada premio se enseña en su carta. Puedes saltarla.',

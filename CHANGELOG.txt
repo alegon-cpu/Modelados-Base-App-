@@ -41,6 +41,12 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.6.2  (13/11/2026)
+--------------------
+- Animacion de tirada por color: azul, morada (epica), amarilla
+  (legendaria) y arcoiris especial para la mitica.
+- Boton "Saltar animacion" arriba a la izquierda y mas grande.
+
 v2.6.1  (13/11/2026)
 --------------------
 - Perfil: apartado para canjear codigos.

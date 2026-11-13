@@ -998,7 +998,7 @@ html.cur-pen body,html.cur-pen .ed-cv,html.cur-pen .ed-cv svg{cursor:url("data:i
 #warp{position:fixed;inset:0;z-index:100001;background:#03040c;cursor:pointer;animation:wpin .3s ease both;overflow:hidden;color:#fff}
 #warp.out{animation:wpout .26s ease both}
 #warp canvas{position:absolute;inset:0;width:100%;height:100%}
-.wp-skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:16px;z-index:3;font:600 14px var(--f-ui);color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 16px;cursor:pointer}
+.wp-skip{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:max(18px,env(safe-area-inset-left,0px));z-index:3;font:700 18px var(--f-ui);color:#fff;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.55);border-radius:999px;padding:12px 26px;cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 4px 18px rgba(0,0,0,.35)}
 .wp-skip:hover{background:rgba(255,255,255,.22)}
 .wp-hint{position:absolute;bottom:18px;left:0;right:0;text-align:center;margin:0;font:500 13px var(--f-ui);opacity:0;transition:opacity .4s;color:rgba(255,255,255,.7)}
 #warp.cards .wp-hint{opacity:1}
