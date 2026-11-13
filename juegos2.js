@@ -161,7 +161,9 @@ Object.assign(Juegos,{
       pg(0,p.top-22,p.top-22);pg(p.top+p.gap+22,600-60-(p.top+p.gap+22),p.top+p.gap);});
     x.fillStyle='#DEC27A';x.fillRect(0,540,W,60);x.fillStyle='#7BC043';x.fillRect(0,540,W,12);x.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<W/24+2;i++){const sx=i*24-(dist%24);x.fillRect(sx,552,12,48);}
     const by=g?g.y:280,ang=g?Math.max(-0.5,Math.min(1.2,g.vy*0.07)):0,pet=(RWBY[this.st().eq.pet]||{}).e;x.save();x.translate(90,by);x.rotate(ang);
-    if(pet){x.font='34px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.scale(-1,1);x.fillText(pet,0,2);}
+    if(pet){// en Windows el emoji coge la transparencia del último color usado: se pinta con un color opaco y con sombra para que destaque
+      x.globalAlpha=1;x.fillStyle='rgba(255,255,255,.55)';x.beginPath();x.arc(0,1,21,0,6.3);x.fill();
+      x.font='38px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.scale(-1,1);x.shadowColor='rgba(0,0,0,.35)';x.shadowBlur=4;x.shadowOffsetY=2;x.fillStyle='#000';x.fillText(pet,0,3);}
     else{x.fillStyle='#FFD23F';x.beginPath();x.ellipse(0,0,18,15,0,0,6.3);x.fill();x.strokeStyle='#C99A1E';x.lineWidth=2;x.stroke();x.fillStyle='#FFF';x.beginPath();x.arc(7,-5,6,0,6.3);x.fill();x.fillStyle='#222';x.beginPath();x.arc(9,-5,2.6,0,6.3);x.fill();
       x.fillStyle='#F28C28';x.beginPath();x.moveTo(13,1);x.lineTo(25,4);x.lineTo(13,8);x.fill();x.fillStyle='#FFE88A';x.beginPath();x.ellipse(-6,3+(g&&g.flap>0?-6*g.flap:Math.sin((now||0)/90)*3),9,5,-0.3,0,6.3);x.fill();}
     x.restore();

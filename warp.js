@@ -66,7 +66,7 @@ const FX={
     if(kind==='halloween'){g.textAlign='center';g.textBaseline='middle';P.forEach(p=>{if(!p.fix){p.x+=p.vx*f;if(p.x>W+40){p.x=-40;p.y=Math.random()*H*.7;}}
       const y=p.fix?p.y+Math.sin(t*1.5+p.ph)*3:p.y+Math.sin(t*3+p.ph)*14;g.font=`${p.s}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;g.globalAlpha=p.fix?.9:.75;
       if(p.fix){const gr=g.createRadialGradient(p.x,y,0,p.x,y,p.s*1.4);gr.addColorStop(0,'rgba(255,150,30,.35)');gr.addColorStop(1,'rgba(255,150,30,0)');g.fillStyle=gr;g.fillRect(p.x-p.s*1.4,y-p.s*1.4,p.s*2.8,p.s*2.8);}
-      g.save();g.translate(p.x,y);if(!p.fix)g.scale(1,.8+.2*Math.sin(t*12+p.ph));g.fillText(p.e,0,0);g.restore();});g.globalAlpha=1;}
+      g.save();g.translate(p.x,y);if(!p.fix)g.scale(1,.8+.2*Math.sin(t*12+p.ph));g.fillStyle='#000';g.fillText(p.e,0,0);g.restore();});g.globalAlpha=1;}
     if(kind==='corazones')P.forEach(p=>{p.y+=p.vy*f;p.x+=Math.sin(t+p.ph)*.4*f;if(p.y<-20){p.y=H+20;p.x=Math.random()*W;}const z=p.s*(1+.08*Math.sin(t*4+p.ph));g.save();g.translate(p.x,p.y);g.fillStyle=p.c;g.globalAlpha=.7;
       g.beginPath();g.moveTo(0,z*.35);g.bezierCurveTo(-z,-z*.3,-z*.4,-z,0,-z*.45);g.bezierCurveTo(z*.4,-z,z,-z*.3,0,z*.35);g.fill();g.restore();});
     if(kind==='verano'){const sx=W*.88,sy=H*.12,gr=g.createRadialGradient(sx,sy,0,sx,sy,Math.max(W,H)*.45);gr.addColorStop(0,'rgba(255,214,90,.45)');gr.addColorStop(1,'rgba(255,214,90,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);
