@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.6.2';
+const VERSION = '2.7.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -286,7 +286,14 @@ h('base:choose', async () => {
     message: T('Se moverá la carpeta ') + DATA_NAME + T(' con todos tus proyectos a:'), detail: dir });
   if (ok.response !== 0) return null;
   if (!fs.existsSync(dir)) moveDir(cur, dir);
-  else { bringProjects(cur, dir); try { fs.rmdirSync(cur); } catch (e) {} }
+  else {
+    bringProjects(cur, dir);
+    // el progreso y la conexión con GitHub van con los proyectos
+    for (const n of [PROG_NAME, '.git', '.gitignore']) { const src = path.join(cur, n), dst = path.join(dir, n);
+      if (!fs.existsSync(src) || fs.existsSync(dst)) continue;
+      try { fs.renameSync(src, dst); } catch (e) { try { fs.cpSync(src, dst, { recursive: true }); fs.rmSync(src, { recursive: true, force: true }); } catch (e2) {} } }
+    try { fs.rmdirSync(cur); } catch (e) {}
+  }
   cfg.dataDir = dir; saveCfg();
   return dir;
 });

@@ -41,6 +41,19 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.7.0  (13/11/2026)
+--------------------
+- Juegos nuevos: Tetris, Flappy, Buscaminas y Ruleta diaria.
+- Pase de temporada (hasta el 15/12): 20 niveles, 1 nivel cada 100
+  fragmentos, premios exclusivos.
+- Pieles de serpiente y mascotas (en las tiradas y en el pase).
+- Conjuntos de decoracion en el Perfil.
+- Crear actividad pide el enunciado directamente.
+- Ajustes: cambiar la carpeta de proyectos y progreso (se lleva tambien
+  el progreso y la conexion con GitHub).
+- El marco del avatar ya no tapa la foto.
+- Aviso de actualizacion tambien con la app abierta (cada 5 minutos).
+
 v2.6.2  (13/11/2026)
 --------------------
 - Animacion de tirada por color: azul, morada (epica), amarilla

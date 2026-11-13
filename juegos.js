@@ -98,6 +98,28 @@ const RW_MYTH=[
   {id:'m-tt1',kind:'title',n:'Glitch en el Sistema',anim:'glitch',d:'Título mítico: se «rompe» como una pantalla.'},
   {id:'m-tt2',kind:'title',n:'Holograma Relacional',anim:'holo',d:'Título mítico: brillo de holograma.'},
   {id:'m-tt3',kind:'title',n:'Arquitecto del Cosmos',anim:'cosmos',d:'Título mítico: galaxia dentro de las letras.'}];
+// ---------- 2.7: pieles de serpiente, mascotas y premios del pase de temporada ----------
+// Pieles: sk = {t: tipo de dibujo, c: colores}
+const RW_SKIN=[
+  {id:'r-sk0',r:'r',n:'Piel menta',sk:{t:'grad',c:['#3DD6A0','#1E8C6E']}},{id:'r-sk1',r:'r',n:'Piel cielo',sk:{t:'grad',c:['#7CC8FF','#2F6BD6']}},{id:'r-sk2',r:'r',n:'Piel chicle',sk:{t:'grad',c:['#FF9AD5','#C2329E']}},
+  {id:'e-sk0',r:'e',n:'Piel coral',sk:{t:'stripes',c:['#E5484D','#1F1F1F','#F2C94C','#1F1F1F']}},{id:'e-sk1',r:'e',n:'Piel tigre',sk:{t:'stripes',c:['#FF9A1F','#FF9A1F','#2A1A0A']}},{id:'e-sk2',r:'e',n:'Piel cebra',sk:{t:'stripes',c:['#F5F5F5','#1B1B1B']}},
+  {id:'l-sk0',r:'l',n:'Piel neón',sk:{t:'neon',c:['#00F0FF','#B44CFF']}},{id:'l-sk1',r:'l',n:'Piel lava',sk:{t:'fire',c:['#FFE14A','#FF7A1F','#C21807']}},{id:'l-sk2',r:'l',n:'Piel robot',sk:{t:'robot',c:['#9AA6B2','#4A5560']}},{id:'l-sk3',r:'l',n:'Piel dragón',sk:{t:'dragon',c:['#2FA84F','#145C2A','#F2C94C']}},
+  {id:'m-sk0',r:'m',n:'Piel arcoíris',sk:{t:'rainbow'}},{id:'m-sk1',r:'m',n:'Piel galaxia',sk:{t:'galaxy',c:['#2B1B6B','#7B3FE4','#2D7BFF']}},{id:'m-sk2',r:'m',n:'Piel dorada divina',sk:{t:'gold',c:['#FFF2B3','#E0A21A','#9A6B00']}}];
+// Mascotas: e = emoji; quedan abajo a la derecha (clic = caricia)
+const RW_PET=[['c','Pollito','🐥'],['c','Ratón','🐭'],['c','Caracol','🐌'],['r','Gato','🐱'],['r','Perro','🐶'],['r','Rana','🐸'],['r','Conejo','🐰'],['e','Zorro','🦊'],['e','Panda','🐼'],['e','Pingüino','🐧'],['e','Koala','🐨'],
+  ['l','Dragón','🐉'],['l','Unicornio','🦄'],['l','León','🦁'],['m','Gato cósmico','🐈'],['m','Dragón arcoíris','🐲'],['m','Pulpo de las profundidades','🐙']].map(([r,n,e],i)=>({id:r+'-pet'+i,r,kind:'pet',n:'Mascota '+n.toLowerCase(),e}));
+// Pase de temporada (exclusivos: no salen en las tiradas)
+const RW_PASE=[
+  {id:'x-tt0',kind:'title',n:'Explorador de la Temporada 1',d:'Del pase de temporada.'},
+  {id:'x-pet0',kind:'pet',n:'Mascota muñeco de nieve',e:'⛄',d:'Del pase de temporada.'},
+  {id:'x-fr0',kind:'frame',n:'Marco de acebo',fx:'acebo',d:'Marco animado del pase de temporada.'},
+  {id:'x-sk0',kind:'snake',n:'Piel bastón de caramelo',sk:{t:'stripes',c:['#E5484D','#FFFFFF']},d:'Del pase de temporada.'},
+  {id:'x-bg0',kind:'bg',n:'Fondo luces de Navidad',fx:'navidad',d:'Fondo animado del pase de temporada.'},
+  {id:'x-tt1',kind:'title',n:'Leyenda de la Temporada 1',anim:'navidad',d:'Título animado del pase de temporada.'},
+  {id:'x-cur0',kind:'cursor',n:'Cursor bastón de caramelo',d:'Del pase de temporada.'},
+  {id:'x-sk1',kind:'snake',n:'Piel de hielo',sk:{t:'ice',c:['#E8FBFF','#7FD6FF','#2A86BF']},d:'Del pase de temporada.'},
+  {id:'x-tr0',kind:'trail',n:'Estela de copos',fx:'copos',d:'Del pase de temporada.'},
+  {id:'x-pet1',kind:'pet',n:'Mascota reno navideño',e:'🦌',d:'La mascota final del pase de temporada.'}].map(x=>({...x,r:'x'}));
 const REWARDS=[
   ...RW_ACC.map(([n,c],i)=>({id:'c-acc'+i,r:'c',kind:'acc',n:'Color '+n,c})),
   ...RW_ICO.map(([n,e],i)=>({id:'c-ico'+i,r:'c',kind:'icon',n:'Icono '+n,e})),
@@ -111,14 +133,16 @@ const REWARDS=[
   ...RW_THEME2.map((t,i)=>({id:'e-th'+(15+i),r:'e',kind:'theme',n:'Tema '+t[0],t})),
   ...RW_CUR.map(([id,n,r,d])=>({id,r,kind:'cursor',n,d})),
   ...RW_LEG2.map(x=>({...x,r:'l'})),
-  ...RW_MYTH.map(x=>({...x,r:'m'}))];
+  ...RW_MYTH.map(x=>({...x,r:'m'})),
+  ...RW_SKIN.map(x=>({...x,kind:'snake'})),...RW_PET,...RW_PASE];
+const GACHA=REWARDS.filter(x=>x.r!=='x');
 const RWBY=Object.fromEntries(REWARDS.map(x=>[x.id,x]));
 
 const Juegos={
   /* ---------- estado ---------- */
   st(){if(this._s)return this._s;let s={};try{s=JSON.parse(localStorage.getItem('mb:juego')||'{}')||{};}catch(e){}
     s.tokens=s.tokens|0;s.frags=s.frags|0;s.pity=s.pity|0;s.pityM=s.pityM|0;s.pulls=s.pulls|0;s.owned=s.owned||{};s.eq=s.eq||{};s.nick=s.nick||'';s.snake=s.snake||{wins:0,best:0,speed:'normal',size:'m'};
-    s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
+    s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.pase=s.pase||{id:'',f:0,lv:0};s.presets=Array.isArray(s.presets)?s.presets:[];s.tetris=s.tetris||{best:0,lines:0};s.flappy=s.flappy||{best:0,games:0};s.mines=s.mines||{wins:0,diff:'f'};s.ruleta=s.ruleta||{last:'',spins:0};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
   save(){try{localStorage.setItem('mb:juego',JSON.stringify(this.st()));}catch(e){}},
   give(n,why){const s=this.st();s.tokens+=n;s.earned+=n;this.save();this.badge();toast(`+${n} token${n>1?'s':''}${why?' · '+why:''}. Ya tienes ${s.tokens}.`);this.celebrate(true);},
   badge(){const s=this.st();document.querySelectorAll('.jg-tok').forEach(el=>{const b=el.querySelector('b');if(b)b.textContent=s.tokens;el.lastChild.textContent=' token'+(s.tokens===1?'':'s');});document.querySelectorAll('.jg-frag').forEach(el=>el.textContent='◆ '+s.frags);},
@@ -138,9 +162,9 @@ const Juegos={
     let el=document.getElementById('mbskin');if(!el){el=document.createElement('style');el.id='mbskin';document.head.appendChild(el);}el.textContent=css;
     ['l-pizarra','l-neon','l-matrix','l-terminal'].forEach(k=>R.classList.toggle('sk-'+k.slice(2),s.eq.theme===k));
     R.classList.toggle('nt-posit',s.eq.note==='l-posit');R.classList.toggle('nt-cinta',s.eq.note==='l-cinta');R.classList.remove('cur-pen');const cu=s.eq.cursor&&typeof FX!=='undefined'?FX.cursorCss(s.eq.cursor):'';if(cu){R.setAttribute('data-cur','1');el.textContent+=cu;}else R.removeAttribute('data-cur');
-    try{const b=RWBY[s.eq.bg],tr=RWBY[s.eq.trail];if(typeof FX!=='undefined'){FX.bg(b?b.fx:null);FX.trail(tr?tr.fx:null);}}catch(e){}
+    try{const b=RWBY[s.eq.bg],tr=RWBY[s.eq.trail];if(typeof FX!=='undefined'){FX.bg(b?b.fx:null);FX.trail(tr?tr.fx:null);}if(typeof Pet!=='undefined')Pet.set(RWBY[s.eq.pet]||null);}catch(e){}
     if(typeof Theme!=='undefined')Theme.apply(Theme.get());if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();this.rain();},
-  equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx',bg:'bg',trail:'trail'}[x.kind];if(!slot)return;
+  equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx',bg:'bg',trail:'trail',snake:'snake',pet:'pet'}[x.kind];if(!slot)return;
     s.eq[slot]=s.eq[slot]===id?null:id;this.save();this.apply();},
   /* ---------- código de creador (solo se guarda su huella SHA-256, no el código) ---------- */
   CREATOR:'9da102814cd1688cf410f64548c93a23c7b3391c83b6cfbaffae82aa6095481f',
@@ -157,7 +181,7 @@ const Juegos={
   pull(n){const s=this.st();if(s.tokens<n){toast(`Te faltan tokens: necesitas ${n} y tienes ${s.tokens}. Gánalos en los minijuegos.`,'warn');return null;}
     s.tokens-=n;const out=[];for(let i=0;i<n;i++)out.push(this.roll(false));
     if(n===10&&!out.some(o=>'elm'.includes(o.it.r))){const last=out.pop(),sv=s;sv.owned[last.it.id]--;if(!sv.owned[last.it.id])delete sv.owned[last.it.id];if(last.dup)sv.frags-=RAR[last.it.r].frag;sv.pity=Math.max(0,sv.pity-1);sv.pityM=Math.max(0,sv.pityM-1);sv.pulls--;out.push(this.roll(true));}
-    this.save();return out;},
+    const fr=out.filter(o=>o.dup).reduce((a,o)=>a+RAR[o.it.r].frag,0);if(fr)this.paseAdd(fr);this.save();return out;},
   /* ---------- efectos al acertar ---------- */
   celebrate(big,at){const fx=this.st().eq.fx;if(!fx)return;try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
     const cv=document.createElement('canvas');cv.className='mbfx';cv.width=innerWidth;cv.height=innerHeight;document.body.appendChild(cv);const g=cv.getContext('2d');
@@ -182,7 +206,7 @@ const Juegos={
   /* ---------- pantallas ---------- */
   sub:'menu',
   go(k){this.stopAll();this.sub=k;if(k==='quiz')this._qz=null;if(k==='bdq')this._bdq=null;App.renderMain();document.getElementById('mainv').scrollTop=0;},
-  stopAll(){if(this._snk){clearInterval(this._snk.iv);cancelAnimationFrame(this._snk.raf);this._snk=null;}},
+  stopAll(){if(this._snk){clearInterval(this._snk.iv);cancelAnimationFrame(this._snk.raf);this._snk=null;}if(this._gm){try{this._gm.stop();}catch(e){}this._gm=null;}},
   head(t,back){const s=this.st();return `<header class="ph"><span class="pname static">${t}</span><div class="ph-acts"><span class="jg-tok" title="Tokens para tiradas">${GL.tok||'🎟️'} <b>${s.tokens}</b> token${s.tokens===1?'':'s'}</span><span class="jg-frag" title="Fragmentos (de premios repetidos): ${FRAG_TOKEN} = 1 token">◆ ${s.frags}</span>${back?`<button class="ebtn" data-jg="menu">← Juegos</button>`:''}<button class="ebtn" data-act="home">← Inicio</button></div></header>`;},
   avatar(big){const s=this.st(),p=this.profile(),ini=(p.nick||'?').trim().slice(0,2).toUpperCase()||'?',img=typeof s.avatar==='string'&&s.avatar.startsWith('data:image/')?s.avatar:'';
     const fr=RWBY[s.eq.frame],frc=!fr?'':fr.id==='l-marco'?' fr-gold':fr.fx?' fr-fx fr-'+fr.fx:fr.c?' fr-c':'',st=[img?`background-image:url('${img}')`:'',fr&&fr.c?'--fr:'+fr.c:''].filter(Boolean).join(';');
@@ -196,19 +220,21 @@ const Juegos={
   profileCard(){const p=this.profile();return `<button class="jg-pcard" data-act="games-profile" title="Tu perfil">${this.avatar(false)}<span class="jg-pc-t"><b>${esc(p.nick||'Sin nombre')}</b><small>${p.title?this.titleHTML():'Sin título: consíguelos en las tiradas'}</small></span></button>`;},
   render(mv){const k=this.sub;
     if(k==='snake')return this.snakeView(mv);if(k==='quiz')return this.quizView(mv);if(k==='bdq')return this.bdqView(mv);
-    if(k==='gacha')return this.gachaView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
-    const s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity,myt=PITY_M-s.pityM;
+    if(k==='gacha')return this.gachaView(mv);if(k==='tetris')return this.tetrisView(mv);if(k==='flappy')return this.flappyView(mv);if(k==='mines')return this.minesView(mv);if(k==='ruleta')return this.ruletaView(mv);if(k==='pase')return this.paseView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
+    const X=this.menuExtra(),s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity,myt=PITY_M-s.pityM;
     mv.innerHTML=this.head('No cliques esto')+`<div class="view jg"><div class="jg-in">
       <section class="jg-hero"><div><h2>Vale, has clicado.</h2><p>Ya que estás: juega, gana <b>tokens</b> y haz <b>tiradas</b> para conseguir temas, colores, títulos e iconos.</p></div>${this.profileCard()}</section>
       <button class="jg-feat" data-jg="gacha"><span class="jg-feat-bg" aria-hidden="true"></span><span class="jg-feat-ic">🎰</span>
-        <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>${REWARDS.length} premios: temas, colores, títulos animados, cursores, marcos, estelas y fondos animados. Legendaria asegurada en <b>${leg}</b> y <b>mítica</b> en <b>${myt}</b> tirada${myt===1?'':'s'}; en las de ×10, épica asegurada.</span>
+        <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>${GACHA.length} premios: temas, colores, títulos animados, cursores, marcos, estelas y fondos animados. Legendaria asegurada en <b>${leg}</b> y <b>mítica</b> en <b>${myt}</b> tirada${myt===1?'':'s'}; en las de ×10, épica asegurada.</span>
           <span class="jg-feat-rates">${Object.entries(RAR).map(([k,r])=>`<i class="r-${k}">${r.n} ${r.p} %</i>`).join('')}</span></span>
         <span class="jg-feat-cta"><span class="jg-feat-tok">${s.tokens}<small>token${s.tokens===1?'':'s'}</small></span><span class="jg-feat-go">Tirar →</span></span></button>
+      ${X.pase}
       <h3 class="jg-h">Gana tokens</h3>
       <div class="jg-grid">
         <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Al llenarlo, de 1 a 5 tokens según el mapa y la velocidad; y cada 5 frutas, 1 fragmento ◆.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
         <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Rondas de 10: si aciertas al menos la mitad, 1 token.</small><em>Rondas con token: ${s.quiz.perfect}</em></button>
         <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Rondas de 5: si aciertas al menos 3, 1 token.</small><em>Rondas con token: ${s.bdq.perfect}</em></button>
+        ${X.cards}
       </div>
       <h3 class="jg-h">Lo tuyo</h3>
       <div class="jg-grid two">
@@ -222,10 +248,12 @@ const Juegos={
     if(x.kind==='theme'){const t=x.t;return `<span class="rw-th th" style="background:${t[2]}"><i style="background:${t[4]};border-color:${t[7]}"></i><i style="background:${t[10]}"></i><i style="background:${t[5]}"></i></span>`;}
     if(x.kind==='frame'&&x.id!=='l-marco')return `<span class="rw-th fr"><span class="jg-av${x.fx?' fr-fx fr-'+x.fx:' fr-c'}"${x.c?` style="--fr:${x.c}"`:''}><span>★</span></span></span>`;
     if(x.kind==='cursor'&&typeof FX!=='undefined'&&FX.cursorImg(x.id))return `<span class="rw-th cur"><img src="${FX.cursorImg(x.id)}" alt=""></span>`;
+    if(x.kind==='snake')return `<span class="rw-th skp">${this.skinSwatch(x.sk)}</span>`;
+    if(x.kind==='pet')return `<span class="rw-th emo pet r-${x.r}"><span class="pet-e">${x.e}</span></span>`;
     if(x.kind==='bg')return `<span class="rw-th bgp bgp-${x.fx}"></span>`;
     if(x.kind==='trail')return `<span class="rw-th emo trp trp-${x.fx}">${{estrellas:'⭐',arcoiris:'🌈',fuego:'🔥',magia:'🔮'}[x.fx]||'✨'}</span>`;
     return `<span class="rw-th emo">${{note:'🗒️',cursor:'✏️',frame:'🖼️',fx:x.id==='l-confeti'?'🎊':'✨'}[x.kind]||'★'}</span>`;},
-  kindName:{acc:'Color de acento',icon:'Icono de proyecto',title:'Título',theme:'Tema',note:'Estilo de nota',cursor:'Cursor',frame:'Marco de avatar',fx:'Efecto al acertar',bg:'Fondo animado',trail:'Estela del ratón'},
+  kindName:{acc:'Color de acento',icon:'Icono de proyecto',title:'Título',theme:'Tema',note:'Estilo de nota',cursor:'Cursor',frame:'Marco de avatar',fx:'Efecto al acertar',bg:'Fondo animado',trail:'Estela del ratón',snake:'Piel de serpiente',pet:'Mascota'},
   gachaView(mv,res){const s=this.st();
     mv.innerHTML=this.head('Tiradas',true)+`<div class="view jg"><div class="jg-in">
       <section class="jg-gacha"><div class="jg-machine"><div class="jg-orb">🎰</div><div class="jg-btns">
@@ -242,7 +270,8 @@ const Juegos={
   albumView(mv){const s=this.st();
     mv.innerHTML=this.head('Álbum',true)+`<div class="view jg"><div class="jg-in"><p class="tnote">Pulsa un premio que tengas para usarlo (o dejar de usarlo). Los iconos se ponen a cada proyecto con el botón derecho › «Icono del proyecto…».</p>
       ${Object.entries(RAR).map(([k,r])=>{const L=REWARDS.filter(x=>x.r===k);return `<section class="jg-alb"><h3 class="r-${k}">${r.n} <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · ${r.p} %</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
-        return `<button class="rw r-${k}${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Aún no lo tienes'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}${o&&s.owned[x.id]>1?' · ×'+s.owned[x.id]:''}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;}).join('')}</div></div>`;},
+        return `<button class="rw r-${k}${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Aún no lo tienes'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}${o&&s.owned[x.id]>1?' · ×'+s.owned[x.id]:''}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;}).join('')}${(()=>{const L=REWARDS.filter(x=>x.r==='x');return `<section class="jg-alb"><h3 class="r-x">Pase de temporada <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · exclusivos</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
+        return `<button class="rw r-x${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Se consigue en el pase de temporada'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;})()}</div></div>`;},
   perfilView(mv){const s=this.st(),own=k=>REWARDS.filter(x=>x.kind===k&&s.owned[x.id]),sel=(slot,k,none)=>`<select data-jg-slot="${slot}"><option value="">${none}</option>${(Array.isArray(k)?k.flatMap(own):own(k)).map(x=>`<option value="${x.id}" ${s.eq[slot]===x.id?'selected':''}>${esc(x.n)}</option>`).join('')}</select>`;
     mv.innerHTML=this.head('Perfil',true)+`<div class="view jg"><div class="jg-in narrow"><section class="jg-prof">${this.avatar(true)}<div class="jg-prof-f">
       <div class="jg-avbtns"><label class="ebtn">Subir imagen…<input type="file" id="jgimg" accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>${s.avatar?'<button class="ebtn" id="jgimgx">Quitar imagen</button>':''}</div>
@@ -251,7 +280,9 @@ const Juegos={
         <label><b>Título</b>${sel('title','title','Sin título')}</label><label><b>Tema</b>${sel('theme','theme','El normal de la app')}</label>
         <label><b>Color de acento</b>${sel('acc','acc','El del tema')}</label><label><b>Notas</b>${sel('note','note','Normales')}</label>
         <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label>
-        <label><b>Fondo animado</b>${sel('bg','bg','Ninguno')}</label><label><b>Estela del ratón</b>${sel('trail','trail','Ninguna')}</label></div>
+        <label><b>Fondo animado</b>${sel('bg','bg','Ninguno')}</label><label><b>Estela del ratón</b>${sel('trail','trail','Ninguna')}</label>
+        <label><b>Piel de la serpiente</b>${sel('snake','snake','La normal')}</label><label><b>Mascota</b>${sel('pet','pet','Sin mascota')}</label></div>
+      ${this.presetsHTML()}
       <p class="tnote">Tu nombre y tu título salen en Inicio y en los proyectos que compartes con «Exportar código». Mientras uses un tema, los botones Claro/Oscuro no cambian nada.</p>
       <details class="jg-code"><summary>¿Tienes un código?</summary><div class="row"><input id="jgcode" maxlength="40" placeholder="Escribe el código" autocomplete="off" spellcheck="false"><button class="ebtn" id="jgcodego">Canjear</button></div></details>
       <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz con token: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
@@ -260,6 +291,7 @@ const Juegos={
     const cgo=document.getElementById('jgcodego'),cin=document.getElementById('jgcode'),red=async()=>{if(await this.redeem(cin.value)){toast('Código de creador: tienes todos los premios y +1000 tokens.');this.perfilView(mv);}else{toast('Ese código no es válido.','warn');cin.select();}};
     cgo.addEventListener('click',red);cin.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();red();}});
     const n=document.getElementById('jgnick');n.addEventListener('input',()=>{s.nick=n.value.trim().slice(0,24);this.save();const av=mv.querySelector('.jg-av:not(.img) span');if(av)av.textContent=(s.nick||'?').slice(0,2).toUpperCase();});
+    this.presetsWire(mv);
     mv.querySelectorAll('[data-jg-slot]').forEach(el=>el.addEventListener('change',()=>{s.eq[el.dataset.jgSlot]=el.value||null;this.save();this.apply();this.go('perfil');}));},
   onClick(e){const b=e.target.closest('[data-jg],[data-jg-pull],[data-jg-swap],[data-jg-eq]');if(!b)return false;
     if(b.dataset.jg){this.go(b.dataset.jg);return true;}
@@ -314,7 +346,7 @@ Object.assign(Juegos,{
     const grow=!!g.food&&n[0]===g.food[0]&&n[1]===g.food[1];
     if(n[0]<0||n[1]<0||n[0]>=g.N||n[1]>=g.N||g.body.slice(grow?0:1).some(b=>b[0]===n[0]&&b[1]===n[1])){g.over=true;g.prev=null;g.fade=0;this.snkEnd(false);return;}
     g.prev=g.body.map(b=>[b[0],b[1]]);g.grew=grow;g.body.push(n);if(!grow)g.body.shift();
-    if(grow){g.pop=1;g.eaten=(g.eaten||0)+1;if(g.eaten%SNK_FRAG===0){const st=this.st();st.frags++;this.save();this.badge();g.fragAt=performance.now();this.snkMsg(`+1 ◆ fragmento (${g.eaten} frutas)`);}this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
+    if(grow){g.pop=1;g.eaten=(g.eaten||0)+1;if(g.eaten%SNK_FRAG===0){this.addFrags(1);g.fragAt=performance.now();this.snkMsg(`+1 ◆ fragmento (${g.eaten} frutas)`);}this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
   snkEnd(win){const s=this.st(),S=s.snake,g=this._snk;S.best=Math.max(S.best||0,g?g.body.length:0);
     if(win){S.wins++;this.save();this.give(SNK_PRIZE(S.size,S.speed),'mapa de la serpiente lleno');}
     else{this.save();this.snkMsg(`Has chocado con ${g?g.body.length:0} de largo. Pulsa «Jugar» para otra.`);}
@@ -342,10 +374,10 @@ Object.assign(Juegos,{
     const lw=c*0.72,path=(dx,dy)=>{x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0]+dx,p[1]+dy):x.moveTo(p[0]+dx,p[1]+dy));if(pts.length===1)x.lineTo(pts[0][0]+dx+0.01,pts[0][1]+dy);};
     x.save();x.lineCap='round';x.lineJoin='round';
     x.strokeStyle='rgba(0,0,0,.14)';x.lineWidth=lw;path(0,c*0.08);x.stroke(); // sombra barata (sin desenfoque)
-    x.strokeStyle=acc;x.lineWidth=lw;path(0,0);x.stroke();x.strokeStyle='rgba(255,255,255,.18)';x.lineWidth=lw*0.28;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0]-lw*0.12,p[1]-lw*0.12):x.moveTo(p[0]-lw*0.12,p[1]-lw*0.12));x.stroke();x.restore();
+    const SK=(RWBY[this.st().eq.snake]||{}).sk;if(SK)this.snkSkin(x,pts,lw,SK,now||0,c);else{x.strokeStyle=acc;x.lineWidth=lw;path(0,0);x.stroke();}x.strokeStyle='rgba(255,255,255,.18)';x.lineWidth=lw*0.28;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0]-lw*0.12,p[1]-lw*0.12):x.moveTo(p[0]-lw*0.12,p[1]-lw*0.12));x.stroke();x.restore();
     // cabeza con ojos mirando hacia donde va
     const h=pts[pts.length-1],d=g.dir,hr=c*0.42*(1+0.12*(g.pop||0));g.pop=Math.max(0,(g.pop||0)-(g._dt||16)/200);
-    x.fillStyle=acc;x.beginPath();x.arc(h[0],h[1],hr,0,Math.PI*2);x.fill();
+    x.fillStyle=SK?this.skinHead(SK,now||0):acc;x.beginPath();x.arc(h[0],h[1],hr,0,Math.PI*2);x.fill();if(SK&&SK.t==='neon'){x.strokeStyle=SK.c[0];x.lineWidth=c*0.06;x.stroke();}
     [[-1],[1]].forEach(([s])=>{const ex=h[0]+d[0]*c*0.14-d[1]*c*0.17*s,ey=h[1]+d[1]*c*0.14+d[0]*c*0.17*s;x.fillStyle='#fff';x.beginPath();x.arc(ex,ey,c*0.12,0,Math.PI*2);x.fill();
       x.fillStyle='#1B1B1B';x.beginPath();x.arc(ex+d[0]*c*0.04,ey+d[1]*c*0.04,c*0.06,0,Math.PI*2);x.fill();});
     if(g.fragAt&&now){const k2=(now-g.fragAt)/900;if(k2<1){x.save();x.globalAlpha=1-k2;x.fillStyle='#6C4CF0';x.font=`800 ${Math.round(c*0.62)}px ${B.font}`;x.textAlign='center';x.textBaseline='middle';x.fillText('+1 ◆',h[0],h[1]-c*(0.8+k2*1.2));x.restore();}}

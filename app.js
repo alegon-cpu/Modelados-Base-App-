@@ -223,6 +223,12 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.7: juegos nuevos: Tetris (1 ◆ por línea y 1 tirada cada 10 líneas), Flappy, Buscaminas y Ruleta diaria con 12 premios.',
+  '2.7: Pase de temporada hasta el 15/12: cada 100 fragmentos ◆ subes de nivel (20 niveles) y consigues premios exclusivos de invierno.',
+  '2.7: pieles para la serpiente y mascotas de todas las calidades, que se quedan abajo a la derecha (haz clic para acariciarlas). Salen en las tiradas.',
+  '2.7: conjuntos en el Perfil: guarda lo que llevas puesto con un nombre y cámbialo de un clic.',
+  '2.7: Crear actividad ahora te pide el enunciado directamente. Ajustes › General tiene «Cambiar carpeta…» para elegir dónde se guardan tus proyectos y tu progreso.',
+  '2.7: el marco del avatar ya no tapa tu foto, y la app avisa de una actualización aunque ya esté abierta (mira cada 5 minutos).',
   '2.6.2: la animación de tirada cambia de color según lo mejor que salga: azul (común o rara), morada (épica), amarilla (legendaria) y una especial en arcoíris para la mítica, con tres cometas, remolino y ondas. «Saltar animación» está arriba a la izquierda y más grande.',
   '2.6.1: en el Perfil hay un apartado «¿Tienes un código?» para canjear códigos.',
   '2.6: tiradas con 100 premios nuevos (200 en total) y una calidad nueva, Mítica (1 %, asegurada a las 60 tiradas): fondos animados, estelas del ratón y títulos míticos. También cursores, marcos y títulos animados nuevos.',
@@ -343,6 +349,8 @@ const App={
     window.api.onCloseRequest(()=>this.onCloseRequest());
     // Lo primero de todo: buscar si hay versión nueva (sin esperar a cargar proyectos ni a GitHub)
     if(!this.solo)this.checkUpdates(false).catch(()=>{});
+    // Y mientras está abierta: se mira cada 5 minutos (y al volver a la ventana), y si sale una versión nueva aparece la pantalla de actualizar
+    if(!this.solo){this._updT=Date.now();const chk=()=>{this._updT=Date.now();this.checkUpdates(false).catch(()=>{});};setInterval(chk,5*60*1000);addEventListener('focus',()=>{if(Date.now()-this._updT>2*60*1000)chk();});}
     window.api.onWindows(l=>{this.locked=new Set(l);this.renderTree();if(this.cur&&this.view)this.renderMain();});
     window.api.onWindowClosed(f=>this.afterWindow(f));
     try{this.base=await window.api.baseGet();}catch(e){}
@@ -476,7 +484,7 @@ const App={
     if(sec==='general'){h=H('General')+seg('startScreen','Al abrir la app','Inicio: últimos proyectos y teoría. Último proyecto: entra directo donde lo dejaste.',[['home','Inicio'],['last','Último proyecto']])+
         seg('openTab','Pestaña al abrir un proyecto','Desde Inicio o desde la lista de la izquierda.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']])+
         seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
-        (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guarda tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes van en <code>progreso-modelado.json</code>, dentro de tu carpeta de proyectos (<code>${esc(P.dir||'—')}</code>), junto a tus archivos. Si tienes GitHub conectado, se sube con ellos.</small></div><div class="row"><button class="ebtn" data-act="prog-reveal">Abrir</button></div></div>`;})()+
+        (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guardan tus proyectos y tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes van en <code>progreso-modelado.json</code>, dentro de tu carpeta de proyectos (<code>${esc(P.dir||'—')}</code>), junto a tus archivos. Si tienes GitHub conectado, se sube con ellos.</small></div><div class="row"><button class="ebtn" data-act="prog-reveal">Abrir</button><button class="ebtn pri" data-act="prog-move">Cambiar carpeta…</button></div></div>`;})()+
         tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
         tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.');}
     else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+
@@ -727,17 +735,18 @@ const App={
     this.go(p,(p.act.parts||[])[0]||'enun');toast(`¡Empieza! Tenéis ${p.act.mins} minutos.`);},
   exitActivity(p){if(!p||!p.act)return;const run=p.act.state==='run';
     this.confirm('Salir del modo estudiante',run?'La actividad todavía no ha terminado. Si sales, el tiempo se para y podrás usar todo otra vez (Pasar desde mi E-R, teoría…).':'El proyecto vuelve a ser normal: puedes editarlo y usar todas las pestañas.','Salir',()=>{delete p.act;this.touch(p);this.saveNow();this.renderMain();toast('Has salido del modo estudiante.');});},
-  showMakeActivity(q){const p=q||this.cur;if(!p)return;this._actP=p;const T=[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']];
-    this.modal(`<h3>Crear una actividad</h3><p>Se genera un código con el enunciado de este proyecto. Cada compañero lo pega en «Importar código» y hace su versión a la vez, con el tiempo contado. Sin pasar nada automáticamente ni mirar la teoría.</p>
-      ${(p.enun||'').trim()?'':'<p class="in-p warn">Este proyecto no tiene enunciado: escríbelo antes en la pestaña Enunciado.</p>'}
-      <label class="fld">Título<input type="text" id="acttitle" value="${escA(p.name)}" spellcheck="false"></label>
+  showMakeActivity(q){const nw=!q;const p=q||{name:'',enun:''};this._actP=nw?null:p;const T=[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']];
+    this.modal(`<h3>Crear una actividad</h3><p>Escribe el enunciado y se genera un código. Cada compañero lo pega en «Importar código» y hace su versión a la vez, con el tiempo contado. Sin pasar nada automáticamente ni mirar la teoría.</p>
+      <label class="fld">Título<input type="text" id="acttitle" value="${escA(p.name)}" placeholder="Por ejemplo: Biblioteca municipal" spellcheck="false"></label>
+      ${nw?`<label class="fld">Enunciado<textarea id="actenun" rows="8" placeholder="Pega o escribe aquí el enunciado del ejercicio…"></textarea></label>`:(p.enun||'').trim()?'':'<p class="in-p warn">Este proyecto no tiene enunciado: escríbelo antes en la pestaña Enunciado.</p>'}
       <div class="in-sub">Qué hay que hacer</div><div class="cmp-parts">${T.map(([v,l])=>`<label class="tg"><input type="checkbox" data-actp="${v}" ${['er','rel','ded'].includes(v)?'checked':''}><span>${l}</span></label>`).join('')}</div>
       <label class="fld">Tiempo (minutos)<input type="number" id="actmins" value="45" min="1" max="600" step="1"></label>
-      <label class="chk"><input type="checkbox" id="actref"><span class="chk-t">Dar hecho lo de las otras pestañas<small>Por ejemplo, el E-R ya hecho para que hagan las tablas. Se ve pero no se puede cambiar.</small></span><span class="sw"></span></label>
+      ${nw?'':`<label class="chk"><input type="checkbox" id="actref"><span class="chk-t">Dar hecho lo de las otras pestañas<small>Por ejemplo, el E-R ya hecho para que hagan las tablas. Se ve pero no se puede cambiar.</small></span><span class="sw"></span></label>`}
       <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="act-code">Crear código</button></div>`);},
-  async makeActivityCode(){const p=this._actP||this.cur,parts=[...document.querySelectorAll('[data-actp]:checked')].map(x=>x.dataset.actp),mins=Math.round(+document.getElementById('actmins').value||0);
+  async makeActivityCode(){const ta=document.getElementById('actenun'),p=ta?{name:'',enun:ta.value}:(this._actP||this.cur),parts=[...document.querySelectorAll('[data-actp]:checked')].map(x=>x.dataset.actp),mins=Math.round(+document.getElementById('actmins').value||0);
     if(!parts.length){toast('Elige al menos una cosa que hacer.','warn');return;}if(!(mins>0)){toast('Pon los minutos.','warn');return;}
-    const ref=document.getElementById('actref').checked,title=document.getElementById('acttitle').value.trim()||p.name,q=plainProject(p);
+    if(ta&&!ta.value.trim()){toast('Escribe el enunciado.','warn');ta.focus();return;}
+    const rf=document.getElementById('actref'),ref=!!(rf&&rf.checked),title=document.getElementById('acttitle').value.trim()||p.name||'Actividad',q=ta?{enun:ta.value.trim()}:plainProject(p);
     const pr={name:title,enun:q.enun};if(ref)['bo','er','rel','ded'].forEach(k=>{if(!parts.includes(k))pr[k]=q[k];});if(ref&&!parts.includes('sql'))pr.sql=q.sql;
     const json=JSON.stringify({app:'modelado-bases',v:1,act:{title,mins,parts,ref},proyectos:[pr]});
     const code='MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
@@ -774,7 +783,7 @@ const App={
     mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Home':'Inicio'}</span></header><div class="view home">
       <section class="home-top deco">${HOME_ART}<div class="ht-txt"><p class="ht-k">Modelado Bases</p><h2>${(()=>{const h=new Date().getHours(),n=(Juegos.profile().nick||'').trim();return (h<6?'Buenas noches':h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches')+(n?', '+esc(n):'');})()}</h2><p>E-R, relacional, DED y SQL de tus ejercicios de bases de datos.</p></div>${Juegos.profileCard()}
         <div class="row"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import" title="También para unirte a una actividad: pega el código que te han pasado">Importar código o actividad</button><button class="ebtn" data-act="controls">Controles</button><button class="ebtn" data-act="settings">Ajustes</button></div></section>
-      ${(()=>{const ps=this.projects.filter(x=>!x.act);return `<section class="home-act"><span class="ha-ic" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="18" r="12" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M17 11v7l4.5 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 3.5h8M17 3.5v2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div class="ha-t"><h3>Crear actividad</h3><p>Elige un ejercicio y se genera un código para que tus compañeros lo hagáis a la vez, con tiempo.</p></div>${ps.length?`<div class="ha-f"><select id="ha-proj" aria-label="Ejercicio para la actividad">${ps.map(x=>`<option value="${x._id}">${esc(x.name)}</option>`).join('')}</select><button class="ebtn pri" data-act="mkact-home">Crear actividad</button></div>`:'<p class="tnote">Crea primero un proyecto con su enunciado.</p>'}</section>`;})()}
+      <section class="home-act"><span class="ha-ic" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="18" r="12" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M17 11v7l4.5 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 3.5h8M17 3.5v2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div class="ha-t"><h3>Crear actividad</h3><p>Escribe un enunciado y se genera un código para que tus compañeros lo hagáis a la vez, con tiempo.</p></div><div class="ha-f"><button class="ebtn pri" data-act="mkact-home">Crear actividad</button></div></section>
       <section><h3>Últimos proyectos abiertos</h3>${list.length?`<div class="rc-grid">${list.map(({p,t})=>{const c=this.counts(p);return `<button class="rc" data-pid="${p._id}"><span class="rc-th">${this.thumb(p)||'<span class="rc-empty">Vacío</span>'}</span><b class="rc-n">${esc(p.name)}</b><small>${t?ago(t):'Sin abrir todavía'}${[c.er,c.ded||c.rel].filter(Boolean).map(x=>' · '+x).join('')}${p.act?' · Actividad':''}</small></button>`;}).join('')}</div>`:'<p class="tnote">Todavía no tienes proyectos. Pulsa «Nuevo proyecto».</p>'}</section>
       <section><h3>Teoría</h3><div class="thc-grid">${TH_CH.map(c=>`<button class="thc" data-thc="${c.id}">${ICO[c.ico]||''}<b>${esc(en?c.te:c.t)}</b><small>${thSections(c).slice(0,5).map(s=>esc(s.t)).join(' · ')}${thSections(c).length>5?' …':''}</small></button>`).join('')}</div></section></div>`;},
   renderMain(){
@@ -866,7 +875,7 @@ const App={
     if(a==='settings'){this.showSettings();return;}
     if(a==='theory'){if(this.cur&&this.cur.act&&!this.home){toast('Durante la actividad no se puede mirar la teoría.','warn');return;}this.showHome('teoria');return;}
     if(a==='mkact'){this.showMakeActivity();return;}
-    if(a==='mkact-home'){const sel=document.getElementById('ha-proj'),q=sel&&this.byId(sel.value);if(q)this.showMakeActivity(q);return;}
+    if(a==='mkact-home'){this.showMakeActivity(null);return;}
     if(a==='act-start'){this.startActivity(this.cur);return;}
     if(a==='act-exit'){this.exitActivity(this.cur);return;}
     if(a==='gh-sync'){GH.sync(true);return;}
@@ -876,6 +885,7 @@ const App={
     if(a==='prog-choose'){const r=await this.run(()=>window.api.progChoose());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();toast('He cargado el progreso que había en esa carpeta.');this.renderSettings();return;}Sync.save(true);toast('Tu progreso se guarda ahora en '+r.dir);this.renderSettings();return;}
     if(a==='prog-reset'){const r=await this.run(()=>window.api.progReset());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();this.renderSettings();return;}Sync.save(true);this.renderSettings();return;}
     if(a==='prog-reveal'){this.run(()=>window.api.progReveal());return;}
+    if(a==='prog-move'){this.closeModal();await this.action({dataset:{act:'basechoose'}});return;}
     if(a==='news'){this.showNews();return;}
     if(a==='save'){this.saveNow();return;}
     if(a==='upd-retry'){if(this._upd)this.prepareSilently(this._upd);return;}
