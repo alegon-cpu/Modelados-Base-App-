@@ -120,6 +120,10 @@ const RW_PASE=[
   {id:'x-sk1',kind:'snake',n:'Piel de hielo',sk:{t:'ice',c:['#E8FBFF','#7FD6FF','#2A86BF']},d:'Del pase de temporada.'},
   {id:'x-tr0',kind:'trail',n:'Estela de copos',fx:'copos',d:'Del pase de temporada.'},
   {id:'x-pet1',kind:'pet',n:'Mascota reno navideño',e:'🦌',d:'La mascota final del pase de temporada.'}].map(x=>({...x,r:'x'}));
+// Recompensas de nivel de jugador (cada 10 niveles; no salen en las tiradas)
+const RW_NIVEL=[{id:'v-fr10',lvl:10,kind:'frame',n:'Marco Nivel 10',fx:'plata',d:'Por llegar al nivel 10.'},{id:'v-tt20',lvl:20,kind:'title',n:'Veterano de Nivel 20',anim:'oro',d:'Por llegar al nivel 20.'},
+  {id:'v-pet30',lvl:30,kind:'pet',n:'Mascota búho sabio',e:'🦉',d:'Por llegar al nivel 30.'},{id:'v-sk40',lvl:40,kind:'snake',n:'Piel de leyenda',sk:{t:'gold',c:['#F3DDFF','#B44CFF','#4A1580']},d:'Por llegar al nivel 40.'},
+  {id:'v-bg50',lvl:50,kind:'bg',n:'Fondo Galaxia de nivel 50',fx:'galaxia',d:'Por llegar al nivel 50.'}].map(x=>({...x,r:'v'}));
 const REWARDS=[
   ...RW_ACC.map(([n,c],i)=>({id:'c-acc'+i,r:'c',kind:'acc',n:'Color '+n,c})),
   ...RW_ICO.map(([n,e],i)=>({id:'c-ico'+i,r:'c',kind:'icon',n:'Icono '+n,e})),
@@ -134,15 +138,15 @@ const REWARDS=[
   ...RW_CUR.map(([id,n,r,d])=>({id,r,kind:'cursor',n,d})),
   ...RW_LEG2.map(x=>({...x,r:'l'})),
   ...RW_MYTH.map(x=>({...x,r:'m'})),
-  ...RW_SKIN.map(x=>({...x,kind:'snake'})),...RW_PET,...RW_PASE];
-const GACHA=REWARDS.filter(x=>x.r!=='x');
+  ...RW_SKIN.map(x=>({...x,kind:'snake'})),...RW_PET,...RW_PASE,...RW_NIVEL];
+const GACHA=REWARDS.filter(x=>x.r!=='x'&&x.r!=='v');
 const RWBY=Object.fromEntries(REWARDS.map(x=>[x.id,x]));
 
 const Juegos={
   /* ---------- estado ---------- */
   st(){if(this._s)return this._s;let s={};try{s=JSON.parse(localStorage.getItem('mb:juego')||'{}')||{};}catch(e){}
     s.tokens=s.tokens|0;s.frags=s.frags|0;s.pity=s.pity|0;s.pityM=s.pityM|0;s.pulls=s.pulls|0;s.owned=s.owned||{};s.eq=s.eq||{};s.nick=s.nick||'';s.snake=s.snake||{wins:0,best:0,speed:'normal',size:'m'};
-    s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.pase=s.pase||{id:'',f:0,lv:0};s.presets=Array.isArray(s.presets)?s.presets:[];s.tetris=s.tetris||{best:0,lines:0};s.flappy=s.flappy||{best:0,games:0};s.mines=s.mines||{wins:0,diff:'f'};s.ruleta=s.ruleta||{last:'',spins:0};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
+    s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.pase=s.pase||{id:'',f:0,lv:0};s.presets=Array.isArray(s.presets)?s.presets:[];s.tetris=s.tetris||{best:0,lines:0};s.flappy=s.flappy||{best:0,games:0};s.mines=s.mines||{wins:0,diff:'f'};s.ruleta=s.ruleta||{last:'',spins:0};s.xp=s.xp|0;s.lvl=s.lvl||1;s.streak=s.streak||{n:0,best:0,last:''};s.card=s.card||{rounds:0,perfect:0,best:0};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
   save(){try{localStorage.setItem('mb:juego',JSON.stringify(this.st()));}catch(e){}},
   give(n,why){const s=this.st();s.tokens+=n;s.earned+=n;this.save();this.badge();toast(`+${n} token${n>1?'s':''}${why?' · '+why:''}. Ya tienes ${s.tokens}.`);this.celebrate(true);},
   badge(){const s=this.st();document.querySelectorAll('.jg-tok').forEach(el=>{const b=el.querySelector('b');if(b)b.textContent=s.tokens;el.lastChild.textContent=' token'+(s.tokens===1?'':'s');});document.querySelectorAll('.jg-frag').forEach(el=>el.textContent='◆ '+s.frags);},
@@ -162,7 +166,7 @@ const Juegos={
     let el=document.getElementById('mbskin');if(!el){el=document.createElement('style');el.id='mbskin';document.head.appendChild(el);}el.textContent=css;
     ['l-pizarra','l-neon','l-matrix','l-terminal'].forEach(k=>R.classList.toggle('sk-'+k.slice(2),s.eq.theme===k));
     R.classList.toggle('nt-posit',s.eq.note==='l-posit');R.classList.toggle('nt-cinta',s.eq.note==='l-cinta');R.classList.remove('cur-pen');const cu=s.eq.cursor&&typeof FX!=='undefined'?FX.cursorCss(s.eq.cursor):'';if(cu){R.setAttribute('data-cur','1');el.textContent+=cu;}else R.removeAttribute('data-cur');
-    try{const b=RWBY[s.eq.bg],tr=RWBY[s.eq.trail];if(typeof FX!=='undefined'){FX.bg(b?b.fx:null);FX.trail(tr?tr.fx:null);}if(typeof Pet!=='undefined')Pet.set(RWBY[s.eq.pet]||null);}catch(e){}
+    try{const b=RWBY[s.eq.bg],tr=RWBY[s.eq.trail],se=!b&&typeof seasonNow!=='undefined'&&Settings.get().season!==false?seasonNow():null;if(typeof FX!=='undefined'){FX.bg(b?b.fx:se?se.fx:null,!b&&!!se);FX.trail(tr?tr.fx:null);}if(typeof Pet!=='undefined')Pet.set(RWBY[s.eq.pet]||null);}catch(e){}
     if(typeof Theme!=='undefined')Theme.apply(Theme.get());if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();this.rain();},
   equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx',bg:'bg',trail:'trail',snake:'snake',pet:'pet'}[x.kind];if(!slot)return;
     s.eq[slot]=s.eq[slot]===id?null:id;this.save();this.apply();},
@@ -181,7 +185,7 @@ const Juegos={
   pull(n){const s=this.st();if(s.tokens<n){toast(`Te faltan tokens: necesitas ${n} y tienes ${s.tokens}. Gánalos en los minijuegos.`,'warn');return null;}
     s.tokens-=n;const out=[];for(let i=0;i<n;i++)out.push(this.roll(false));
     if(n===10&&!out.some(o=>'elm'.includes(o.it.r))){const last=out.pop(),sv=s;sv.owned[last.it.id]--;if(!sv.owned[last.it.id])delete sv.owned[last.it.id];if(last.dup)sv.frags-=RAR[last.it.r].frag;sv.pity=Math.max(0,sv.pity-1);sv.pityM=Math.max(0,sv.pityM-1);sv.pulls--;out.push(this.roll(true));}
-    const fr=out.filter(o=>o.dup).reduce((a,o)=>a+RAR[o.it.r].frag,0);if(fr)this.paseAdd(fr);this.save();return out;},
+    this.addXp(3*n,true);const fr=out.filter(o=>o.dup).reduce((a,o)=>a+RAR[o.it.r].frag,0);if(fr)this.paseAdd(fr);this.save();return out;},
   /* ---------- efectos al acertar ---------- */
   celebrate(big,at){const fx=this.st().eq.fx;if(!fx)return;try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
     const cv=document.createElement('canvas');cv.className='mbfx';cv.width=innerWidth;cv.height=innerHeight;document.body.appendChild(cv);const g=cv.getContext('2d');
@@ -220,26 +224,31 @@ const Juegos={
   profileCard(){const p=this.profile();return `<button class="jg-pcard" data-act="games-profile" title="Tu perfil">${this.avatar(false)}<span class="jg-pc-t"><b>${esc(p.nick||'Sin nombre')}</b><small>${p.title?this.titleHTML():'Sin título: consíguelos en las tiradas'}</small></span></button>`;},
   render(mv){const k=this.sub;
     if(k==='snake')return this.snakeView(mv);if(k==='quiz')return this.quizView(mv);if(k==='bdq')return this.bdqView(mv);
-    if(k==='gacha')return this.gachaView(mv);if(k==='tetris')return this.tetrisView(mv);if(k==='flappy')return this.flappyView(mv);if(k==='mines')return this.minesView(mv);if(k==='ruleta')return this.ruletaView(mv);if(k==='pase')return this.paseView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
+    if(k==='gacha')return this.gachaView(mv);if(k==='tetris')return this.tetrisView(mv);if(k==='flappy')return this.flappyView(mv);if(k==='mines')return this.minesView(mv);if(k==='ruleta')return this.ruletaView(mv);if(k==='pase')return this.paseView(mv);if(k==='card')return this.cardView(mv);if(k==='rank')return this.rankView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
     const X=this.menuExtra(),s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity,myt=PITY_M-s.pityM;
     mv.innerHTML=this.head('No cliques esto')+`<div class="view jg"><div class="jg-in">
-      <section class="jg-hero"><div><h2>Vale, has clicado.</h2><p>Ya que estás: juega, gana <b>tokens</b> y haz <b>tiradas</b> para conseguir temas, colores, títulos e iconos.</p></div>${this.profileCard()}</section>
+      <section class="jg-hero"><div><h2>Vale, has clicado.</h2><p>Ya que estás: juega, gana <b>tokens</b> y haz <b>tiradas</b> para conseguir temas, colores, títulos e iconos.</p>${this.lvlBar()}</div>${this.profileCard()}</section>
       <button class="jg-feat" data-jg="gacha"><span class="jg-feat-bg" aria-hidden="true"></span><span class="jg-feat-ic">🎰</span>
         <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>${GACHA.length} premios: temas, colores, títulos animados, cursores, marcos, estelas y fondos animados. Legendaria asegurada en <b>${leg}</b> y <b>mítica</b> en <b>${myt}</b> tirada${myt===1?'':'s'}; en las de ×10, épica asegurada.</span>
           <span class="jg-feat-rates">${Object.entries(RAR).map(([k,r])=>`<i class="r-${k}">${r.n} ${r.p} %</i>`).join('')}</span></span>
         <span class="jg-feat-cta"><span class="jg-feat-tok">${s.tokens}<small>token${s.tokens===1?'':'s'}</small></span><span class="jg-feat-go">Tirar →</span></span></button>
       ${X.pase}
-      <h3 class="jg-h">Gana tokens</h3>
+      <h3 class="jg-h">Juegos de BDD <small>aprendes mientras ganas tokens</small></h3>
       <div class="jg-grid">
-        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Al llenarlo, de 1 a 5 tokens según el mapa y la velocidad; y cada 5 frutas, 1 fragmento ◆.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
         <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Rondas de 10: si aciertas al menos la mitad, 1 token.</small><em>Rondas con token: ${s.quiz.perfect}</em></button>
         <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Rondas de 5: si aciertas al menos 3, 1 token.</small><em>Rondas con token: ${s.bdq.perfect}</em></button>
+        ${X.card}
+      </div>
+      <h3 class="jg-h">Juegos wapos <small>para desconectar</small></h3>
+      <div class="jg-grid">
+        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Al llenarlo, de 1 a 5 tokens según el mapa y la velocidad; y cada 5 frutas, 1 fragmento ◆.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
         ${X.cards}
       </div>
       <h3 class="jg-h">Lo tuyo</h3>
-      <div class="jg-grid two">
+      <div class="jg-grid three">
         <button class="jg-card row" data-jg="album"><span class="jg-ic">📒</span><span><b>Álbum</b><small>Tu colección: ${own} de ${REWARDS.length}.</small><span class="jg-prog"><i style="width:${own/REWARDS.length*100}%"></i></span></span></button>
         <button class="jg-card row" data-jg="perfil"><span class="jg-ic">🪪</span><span><b>Perfil</b><small>Foto, nombre, título y tema. Salen en Inicio y en lo que compartes.</small></span></button>
+        <button class="jg-card row" data-jg="rank"><span class="jg-ic">🏆</span><span><b>Clasificación de la clase</b><small>Compara tu nivel, racha y récords con tus compañeros.</small></span></button>
       </div></div></div>`;},
   rewardThumb(x,owned){if(!owned)return `<span class="rw-th lock">?</span>`;
     if(x.kind==='acc')return `<span class="rw-th" style="background:${x.c}"></span>`;if(x.kind==='icon')return `<span class="rw-th emo">${x.e}</span>`;
@@ -271,7 +280,8 @@ const Juegos={
     mv.innerHTML=this.head('Álbum',true)+`<div class="view jg"><div class="jg-in"><p class="tnote">Pulsa un premio que tengas para usarlo (o dejar de usarlo). Los iconos se ponen a cada proyecto con el botón derecho › «Icono del proyecto…».</p>
       ${Object.entries(RAR).map(([k,r])=>{const L=REWARDS.filter(x=>x.r===k);return `<section class="jg-alb"><h3 class="r-${k}">${r.n} <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · ${r.p} %</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
         return `<button class="rw r-${k}${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Aún no lo tienes'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}${o&&s.owned[x.id]>1?' · ×'+s.owned[x.id]:''}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;}).join('')}${(()=>{const L=REWARDS.filter(x=>x.r==='x');return `<section class="jg-alb"><h3 class="r-x">Pase de temporada <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · exclusivos</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
-        return `<button class="rw r-x${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Se consigue en el pase de temporada'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;})()}</div></div>`;},
+        return `<button class="rw r-x${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n+(x.d?' — '+x.d:'')):'Se consigue en el pase de temporada'}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'???'}</b><small>${this.kindName[x.kind]}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;})()}${(()=>{const L=REWARDS.filter(x=>x.r==='v');return `<section class="jg-alb"><h3 class="r-v">Recompensas de nivel <small>${L.filter(x=>s.owned[x.id]).length}/${L.length} · cada 10 niveles</small></h3><div class="rw-grid">${L.map(x=>{const o=!!s.owned[x.id],on=Object.values(s.eq).includes(x.id);
+        return `<button class="rw r-v${o?'':' locked'}${on?' on':''}" ${o?`data-jg-eq="${x.id}"`:'disabled'} title="${o?escA(x.n):'Llega al nivel '+x.lvl}">${this.rewardThumb(x,o)}<b>${o?esc(x.n):'Nivel '+x.lvl}</b><small>${this.kindName[x.kind]}</small>${on?'<em class="new">En uso</em>':''}</button>`;}).join('')}</div></section>`;})()}</div></div>`;},
   perfilView(mv){const s=this.st(),own=k=>REWARDS.filter(x=>x.kind===k&&s.owned[x.id]),sel=(slot,k,none)=>`<select data-jg-slot="${slot}"><option value="">${none}</option>${(Array.isArray(k)?k.flatMap(own):own(k)).map(x=>`<option value="${x.id}" ${s.eq[slot]===x.id?'selected':''}>${esc(x.n)}</option>`).join('')}</select>`;
     mv.innerHTML=this.head('Perfil',true)+`<div class="view jg"><div class="jg-in narrow"><section class="jg-prof">${this.avatar(true)}<div class="jg-prof-f">
       <div class="jg-avbtns"><label class="ebtn">Subir imagen…<input type="file" id="jgimg" accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>${s.avatar?'<button class="ebtn" id="jgimgx">Quitar imagen</button>':''}</div>
@@ -346,9 +356,9 @@ Object.assign(Juegos,{
     const grow=!!g.food&&n[0]===g.food[0]&&n[1]===g.food[1];
     if(n[0]<0||n[1]<0||n[0]>=g.N||n[1]>=g.N||g.body.slice(grow?0:1).some(b=>b[0]===n[0]&&b[1]===n[1])){g.over=true;g.prev=null;g.fade=0;this.snkEnd(false);return;}
     g.prev=g.body.map(b=>[b[0],b[1]]);g.grew=grow;g.body.push(n);if(!grow)g.body.shift();
-    if(grow){g.pop=1;g.eaten=(g.eaten||0)+1;if(g.eaten%SNK_FRAG===0){this.addFrags(1);g.fragAt=performance.now();this.snkMsg(`+1 ◆ fragmento (${g.eaten} frutas)`);}this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
+    if(grow){g.pop=1;g.eaten=(g.eaten||0)+1;this.addXp(1,true);if(g.eaten%SNK_FRAG===0){this.addFrags(1);g.fragAt=performance.now();this.snkMsg(`+1 ◆ fragmento (${g.eaten} frutas)`);}this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
   snkEnd(win){const s=this.st(),S=s.snake,g=this._snk;S.best=Math.max(S.best||0,g?g.body.length:0);
-    if(win){S.wins++;this.save();this.give(SNK_PRIZE(S.size,S.speed),'mapa de la serpiente lleno');}
+    if(win){S.wins++;this.save();this.give(SNK_PRIZE(S.size,S.speed),'mapa de la serpiente lleno');this.addXp(50);}
     else{this.save();this.snkMsg(`Has chocado con ${g?g.body.length:0} de largo. Pulsa «Jugar» para otra.`);}
     const mv=document.getElementById('mainv');const tok=mv&&mv.querySelector('.snk-tok');if(tok)tok.innerHTML=`<b>${SNK_PRIZE(S.size,S.speed)} token${SNK_PRIZE(S.size,S.speed)>1?'s':''} si llenas este mapa</b><small>De 1 a 5: más grande y más rápido, más tokens. Y cada ${SNK_FRAG} frutas, 1 fragmento ◆ (${FRAG_TOKEN} ◆ = 1 token). Mapas llenos: ${S.wins} · récord: ${S.best} de largo</small>`;
     if(win)this.snkMsg('¡Has llenado el mapa! Pulsa «Jugar» para otra.');},
@@ -415,5 +425,5 @@ Object.assign(Juegos,{
   qzStart(){const s=this.st(),all=QZ_ALL(),seen=new Set(s.quiz.seen||[]);let pool=all.map((q,i)=>i).filter(i=>!seen.has(i));if(pool.length<10){s.quiz.seen=[];pool=all.map((q,i)=>i);}
     const pick=shuffle(pool).slice(0,10);s.quiz.seen=[...(s.quiz.seen||[]),...pick].slice(-Math.max(10,all.length-20));this.save();
     const list=pick.map(i=>all[i]);this._qz={list,i:0,ans:[],pick:null,opts:shuffle([list[0].a,...list[0].w.slice(0,3)])};this.quizView(document.getElementById('mainv'));},
-  qzFinish(){const s=this.st(),Q=this._qz,ok=Q.ans.filter(Boolean).length;s.quiz.rounds++;if(ok*2>=Q.list.length){s.quiz.perfect++;this.save();this.give(1,`${ok} de ${Q.list.length} en el quiz`);}else this.save();}
+  qzFinish(){const s=this.st(),Q=this._qz,ok=Q.ans.filter(Boolean).length;s.quiz.rounds++;this.addXp(10+ok*2);if(ok*2>=Q.list.length){s.quiz.perfect++;this.save();this.give(1,`${ok} de ${Q.list.length} en el quiz`);}else this.save();}
 });

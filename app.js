@@ -223,6 +223,12 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8: nivel de jugador: ganas experiencia jugando, con las tiradas y la ruleta y entrando cada día. Cada nivel da 2 tokens y cada 10 niveles un premio exclusivo.',
+  '2.8: racha diaria: cuenta los días seguidos que abres la app; a los 3, 7, 14, 30, 60 y 100 días hay tokens de premio.',
+  '2.8: los juegos se dividen en «Juegos de BDD» (Quiz, ¿Está bien el diagrama? y la nueva Cardinalidad rápida: 10 segundos por frase) y «Juegos wapos».',
+  '2.8: nombre de jugador fijo y Clasificación de la clase con un repositorio de GitHub compartido: nivel, racha y récords de todos.',
+  '2.8: fondos de temporada automáticos (otoño, Halloween, Navidad, invierno, San Valentín, primavera y verano) y pantalla de carga con un consejo. Se pueden quitar en Ajustes › Apariencia.',
+  '2.8: arreglado: arriba salía una versión antigua y las novedades de la 2.7.0 salían vacías.',
   '2.7: juegos nuevos: Tetris (1 ◆ por línea y 1 tirada cada 10 líneas), Flappy, Buscaminas y Ruleta diaria con 12 premios.',
   '2.7: Pase de temporada hasta el 15/12: cada 100 fragmentos ◆ subes de nivel (20 niveles) y consigues premios exclusivos de invierno.',
   '2.7: pieles para la serpiente y mascotas de todas las calidades, que se quedan abajo a la derecha (haz clic para acariciarlas). Salen en las tiradas.',
@@ -358,7 +364,7 @@ const App={
     if(this.base&&!this.solo){const fresh=await Sync.load();Sync._ready=true;if(fresh)this.afterSync(true);}else Sync._ready=!this.solo;
     Juegos._s=null;
     try{this._prog=await window.api.progInfo();}catch(e){}
-    Juegos.apply();
+    Juegos.apply();if(!this.solo&&this.base){try{Juegos.daily();}catch(e){}}
     this.renderFoot();
     if(this.solo){await this.startSolo();return;}
     setTimeout(()=>this.archiveWarn(),900);
@@ -508,7 +514,7 @@ const App={
         tog('contrast','Alto contraste','Bordes y textos más marcados.')+tog('thick','Líneas más gruesas en los diagramas','Entidades, relaciones, tablas y flechas se ven mejor.')+
         tog('cb','Colores para daltonismo','Cambia los colores de los diagramas por otros que se distinguen con cualquier tipo de daltonismo.')+
         tog('projector','Modo proyector','Para enseñarlo en clase: tema claro, alto contraste, líneas gruesas y todo más grande. Atajo: '+(keyLabel('projector')||'—')+'.')+
-        tog('focusAll','Marcar siempre el elemento activo','Un borde de color en el botón o campo donde estás, también con el ratón.')+tog('reduceMotion','Reducir animaciones','Quita transiciones y movimientos.');}
+        tog('focusAll','Marcar siempre el elemento activo','Un borde de color en el botón o campo donde estás, también con el ratón.')+tog('reduceMotion','Reducir animaciones','Quita transiciones y movimientos.')+tog('season','Fondos de temporada','Fondo animado según la época del año (otoño, Halloween, Navidad, invierno, San Valentín, primavera, verano) en Inicio y en los juegos. Si te pones un fondo de las tiradas, manda ese.')+tog('loader','Pantalla de carga','Al abrir la app sale el logo, un diagrama que se dibuja y un consejo.');}
     else if(sec==='github'){const g=GH.info||{},on=GH.on(),opt=(k,v,l)=>`<button class="segb" data-gho="${k}" data-v="${v}" aria-pressed="${String((g[k]===undefined?{push:'save',onClose:true,lock:true}[k]:g[k]))===String(v)}">${l}</button>`;
       h=H('GitHub','Guarda tus proyectos y tu progreso en un repositorio tuyo de GitHub para tenerlos en todos tus ordenadores.')+
         (on?`<div class="gh-ok">${ico('<path d="M3.5 9.5 7 13l7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')}<div><b>Conectado</b><small>${esc(g.url)} · ${esc(g.name||'')} · en este ordenador: ${esc(g.pc||'')}${g.last?' · última vez: '+esc(new Date(g.last).toLocaleString('es-ES')):''}</small></div><button class="ebtn pri" data-ghact="sync">Sincronizar ahora</button></div>`:
@@ -1098,4 +1104,11 @@ const App={
       else if(got)toast('No se ha encontrado ningún proyecto ahí.');}
   }
 };
-App.start();
+// Pantalla de carga: un consejo al azar y se quita cuando la app está lista (mínimo 1 s, máximo 7 s)
+const LD_TIPS=['La clave primaria va subrayada en el relacional.','En una relación N:M sale una tabla nueva con las dos claves.','La FK va en la tabla del lado N.','Una entidad débil depende de otra para identificarse.',
+  'Cardinalidad mínima 0 = opcional; 1 = obligatoria.','3FN: nada depende de algo que no sea la clave.','En el DED, línea discontinua = relación no identificadora.','Pon verbos a las relaciones: «cursa», «imparte», «pertenece».',
+  'Ctrl+Z deshace casi todo en los diagramas.','Los atributos multivaluados se convierten en una tabla aparte.','Una relación 1:1 se puede resolver poniendo la FK en cualquiera de las dos tablas.','Prueba el modo fácil para pasar las relaciones del E-R al relacional.'];
+const Loader={t0:performance.now(),done(){const el=document.getElementById('loader');if(!el||el.dataset.out)return;el.dataset.out='1';const wait=Math.max(0,1000-(performance.now()-this.t0));setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),400);},wait);}};
+(()=>{const el=document.getElementById('loader');if(!el)return;let on=true;try{const v=JSON.parse(localStorage.getItem('mb:set')||'{}');on=v.loader!==false&&!v.reduceMotion;}catch(e){}
+  if(!on||new URLSearchParams(location.search).has('solo')){el.remove();return;}const tp=document.getElementById('ldtip');if(tp)tp.textContent='💡 '+LD_TIPS[Math.floor(Math.random()*LD_TIPS.length)];setTimeout(()=>Loader.done(),7000);})();
+App.start().finally(()=>Loader.done());

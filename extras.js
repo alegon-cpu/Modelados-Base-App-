@@ -2,7 +2,7 @@
 const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
-  boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true};
+  boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:true,loader:true};
 const Settings={
   _c:null,
   get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}
@@ -10,6 +10,7 @@ const Settings={
     const old=(k,key,on)=>{if(v[k]==null){try{const x=localStorage.getItem(key);if(x!=null)v[k]=x===on;}catch(e){}}};old('pinInsp','mb:pin','1');old('easy','mb:easy','1');if(v.showEnun==null){try{const x=localStorage.getItem('mb:showEnun');if(x!=null)v.showEnun=x!=='0';}catch(e){}}
     return this._c={...SET_DEF,...v};},
   set(k,val){const c={...this.get(),[k]:val};this._c=c;try{localStorage.setItem('mb:set',JSON.stringify(c));}catch(e){}this.apply();
+    if(k==='season'){try{Juegos.apply();}catch(e){}}
     if(k==='winStart'||k==='onTop'){try{window.api.winPref({start:c.winStart,onTop:c.onTop}).catch(()=>{});}catch(e){}}},
   reset(){this._c={...SET_DEF};try{localStorage.setItem('mb:set',JSON.stringify(this._c));}catch(e){}this.apply();try{window.api.winPref({start:SET_DEF.winStart,onTop:SET_DEF.onTop}).catch(()=>{});}catch(e){}},
   apply(){const c=this.get(),r=document.documentElement;

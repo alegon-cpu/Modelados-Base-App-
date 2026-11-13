@@ -41,6 +41,16 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.0  (13/11/2026)
+--------------------
+- Nivel de jugador (XP por jugar, tiradas, ruleta y entrar cada dia):
+  2 tokens por nivel y un premio exclusivo cada 10 niveles.
+- Racha diaria al abrir la app, con premios a los 3/7/14/30/60/100 dias.
+- Menu dividido: Juegos de BDD (con Cardinalidad rapida) y Juegos wapos.
+- Nombre de jugador fijo y Clasificacion de la clase (repo de GitHub).
+- Fondos de temporada automaticos y pantalla de carga.
+- Arreglo: version de la barra de arriba y novedades vacias.
+
 v2.7.0  (13/11/2026)
 --------------------
 - Juegos nuevos: Tetris, Flappy, Buscaminas y Ruleta diaria.

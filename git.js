@@ -227,3 +227,4 @@ module.exports = function makeGit(getBase, getCfg, saveCfg) {
   };
   return api;
 };
+module.exports.git = git;

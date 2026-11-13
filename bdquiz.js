@@ -113,5 +113,5 @@ Object.assign(Juegos,{
   bqStart(){const s=this.st(),all=BDQ.bank(),seen=new Set(s.bdq.seen||[]);let pool=all.map(q=>q.id).filter(i=>!seen.has(i));if(pool.length<5){s.bdq.seen=[];pool=all.map(q=>q.id);}
     const pick=shuffle(pool).slice(0,5);s.bdq.seen=[...(s.bdq.seen||[]),...pick].slice(-90);this.save();
     this._bdq={list:pick.map(i=>all.find(q=>q.id===i)),i:0,res:[],marks:new Set()};this.bdqView(document.getElementById('mainv'));},
-  bqFinish(){const s=this.st(),B=this._bdq,ok=B.res.filter(Boolean).length;s.bdq.rounds++;if(ok*2>=B.list.length){s.bdq.perfect++;this.save();this.give(1,`${ok} de ${B.list.length} diagramas`);}else this.save();}
+  bqFinish(){const s=this.st(),B=this._bdq,ok=B.res.filter(Boolean).length;s.bdq.rounds++;this.addXp(10+ok*3);if(ok*2>=B.list.length){s.bdq.perfect++;this.save();this.give(1,`${ok} de ${B.list.length} diagramas`);}else this.save();}
 });
