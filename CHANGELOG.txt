@@ -41,6 +41,20 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.6.0  (13/11/2026)
+--------------------
+- Tiradas: 100 premios nuevos (200 en total) y calidad Mitica (1 %,
+  asegurada a las 60): fondos animados, estelas del raton y titulos
+  miticos. Mas cursores, marcos y titulos animados.
+- Animacion de tirada: salto entre estrellas, cometa del color de la
+  mejor rareza y carta para cada premio (se puede saltar).
+- Serpiente: de 1 a 5 tokens al llenar el mapa segun tamano y velocidad,
+  y 1 fragmento cada 5 frutas.
+- El progreso va siempre en la carpeta de proyectos y se sube a GitHub.
+- GitHub: al abrir manda lo de GitHub; al cerrar se sube todo lo de aqui.
+  Lo que no estaba subido queda en una rama de respaldo.
+- Arreglo: la cabecera de Inicio ya no se aplasta en ventanas bajas.
+
 v2.5.3  (12/11/2026)
 --------------------
 - Serpiente mas fluida: va a velocidad constante y se dibuja mas rapido.

@@ -134,6 +134,7 @@ const GH={info:null,busy:false,_t:null,_iv:null,dirty:false,
     try{r=await window.api.gitOpen();}catch(e){r={error:e.message};}finally{this.cover(null);}
     if(r&&r.error){this.paint(r.offline?'warn':'bad',r.offline?'GitHub · sin conexión':'GitHub · error');toast((r.offline?'':'GitHub: ')+r.error,'warn');}
     else this.paint('ok','GitHub · al día '+this.ago(Date.now()));
+    if(r&&r.changed)toast(r.backup?'He traído lo de GitHub. Lo que había aquí distinto se ha guardado en un respaldo (rama «'+r.backup+'» de la carpeta).':'He traído lo último de GitHub.');
     if(r&&r.conflicts&&r.conflicts.length)this.showConflicts(app,r.conflicts);
     if(r&&r.other){app.modal(`<h3>La app está abierta en otro ordenador</h3><p>Según GitHub, Modelado Bases está abierta en <b>${esc(r.other.pc)}</b> (desde ${esc(new Date(r.other.t).toLocaleString('es-ES'))}).</p><p>Si trabajas aquí a la vez, al juntar los cambios puede haber dos versiones del mismo proyecto. Lo mejor es cerrarla allí primero.</p><p class="tnote">Si allí ya está cerrada (por ejemplo, se apagó sin internet), puedes seguir aquí sin problema.</p><div class="mrow"><button class="ebtn" data-m="gh-quit">Cerrar la app</button><button class="ebtn pri" data-m="gh-claim">Seguir aquí</button></div>`);}
     else window.api.gitClaim().catch(()=>{});
@@ -222,6 +223,11 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.6: tiradas con 100 premios nuevos (200 en total) y una calidad nueva, Mítica (1 %, asegurada a las 60 tiradas): fondos animados, estelas del ratón y títulos míticos. También cursores, marcos y títulos animados nuevos.',
+  '2.6: las tiradas tienen animación de «salto» entre estrellas con un cometa del color de lo mejor que te ha tocado, y cada premio se enseña en su carta. Puedes saltarla.',
+  '2.6: la serpiente da de 1 a 5 tokens al llenar el mapa (según tamaño y velocidad) y 1 fragmento ◆ cada 5 frutas.',
+  '2.6: tu progreso se guarda siempre en la carpeta de proyectos, junto a tus archivos, y se sube con ellos a GitHub.',
+  '2.6: GitHub: al abrir la app se trae lo que haya en GitHub (sustituye lo del ordenador) y al cerrar se sube todo lo del ordenador encima. Si había algo distinto sin subir, queda en un respaldo.',
   '2.5.3: la serpiente se mueve mucho más fluida: avanza a velocidad constante (antes frenaba en cada casilla) y se dibuja más rápido.',
   '2.5.2: en cada pestaña hay botones para ir hacia delante y hacia atrás: Boceto → E-R; el E-R actualiza el boceto o pasa al relacional; el relacional actualiza el E-R (ingeniería inversa) o pasa al DED; el DED actualiza el relacional o pasa al SQL; y el SQL actualiza el DED.',
   '2.5.2: MySQL Workbench y phpMyAdmin tienen su propio bloque, bien visible, en la pestaña SQL. ERDPlus está ahora en la barra del E-R y del relacional.',
@@ -347,7 +353,7 @@ const App={
     setTimeout(()=>this.archiveWarn(),900);
     if(!this.base){this.showSetup();this.maybeNews();return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
-    try{if(await GH.start(this)){if(await Sync.load())this.afterSync(true);}}catch(e){}
+    try{if(await GH.start(this)){if(await Sync.load(true))this.afterSync(true);}}catch(e){}
     let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
     await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}
     else if(back&&back.home){this.home=back.home;this.renderMain();}
@@ -468,7 +474,7 @@ const App={
     if(sec==='general'){h=H('General')+seg('startScreen','Al abrir la app','Inicio: últimos proyectos y teoría. Último proyecto: entra directo donde lo dejaste.',[['home','Inicio'],['last','Último proyecto']])+
         seg('openTab','Pestaña al abrir un proyecto','Desde Inicio o desde la lista de la izquierda.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']])+
         seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
-        (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guarda tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes, en <code>progreso-modelado.json</code>. Ahora: <code>${esc(P.dir||'—')}</code>${P.custom?'':' (la carpeta de proyectos)'}. Si eliges una carpeta que ya tiene un progreso más nuevo, se carga ese.</small></div><div class="row"><button class="ebtn" data-act="prog-choose">Cambiar…</button><button class="ebtn" data-act="prog-reveal">Abrir</button>${P.custom?'<button class="ebtn" data-act="prog-reset">Usar la de proyectos</button>':''}</div></div>`;})()+
+        (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guarda tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes van en <code>progreso-modelado.json</code>, dentro de tu carpeta de proyectos (<code>${esc(P.dir||'—')}</code>), junto a tus archivos. Si tienes GitHub conectado, se sube con ellos.</small></div><div class="row"><button class="ebtn" data-act="prog-reveal">Abrir</button></div></div>`;})()+
         tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
         tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.');}
     else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+

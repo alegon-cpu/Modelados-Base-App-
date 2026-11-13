@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.5.3';
+const VERSION = '2.6.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -224,20 +224,19 @@ h('git:sync', o => GitSync.sync(o || {}));
 h('git:pending', () => GitSync.pending());
 // Progreso (tokens, premios, ajustes): un archivo en la carpeta que elija el usuario (por defecto, la de proyectos)
 const PROG_NAME = 'progreso-modelado.json';
-const progDir = () => (cfg.progDir && fs.existsSync(cfg.progDir)) ? cfg.progDir : base();
-const progInfo = () => { let dir = null; try { dir = progDir(); } catch (e) {} return { dir, custom: !!cfg.progDir, file: dir ? path.join(dir, PROG_NAME) : null }; };
+// Desde la 2.6 el progreso va siempre en la carpeta de proyectos, junto a tus archivos (y se sube a GitHub con ellos)
+const progDir = () => base();
+const progInfo = () => { let dir = null; try { dir = progDir(); } catch (e) {} return { dir, custom: false, file: dir ? path.join(dir, PROG_NAME) : null }; };
 h('prog:info', () => progInfo());
-// Con GitHub activado se guarda también una copia en la carpeta de proyectos, que es la que se sincroniza; al leer manda la más nueva
-const gitOn = () => !!(cfg.git && cfg.git.enabled && cfg.git.url);
 const readProg = f => { try { return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; } catch (e) { return null; } };
-h('prog:read', () => { const a = readProg(path.join(progDir(), PROG_NAME)); if (!gitOn()) return a; const b = readProg(path.join(base(), PROG_NAME)); return (b && (!a || (+b.updated || 0) > (+a.updated || 0))) ? b : a; });
-h('prog:write', d => { const dir = progDir(); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, PROG_NAME), tmp = f + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(d, null, 1)); fs.renameSync(tmp, f);
-  if (gitOn() && path.resolve(dir) !== path.resolve(base())) { const g = path.join(base(), PROG_NAME); fs.writeFileSync(g + '.tmp', JSON.stringify(d, null, 1)); fs.renameSync(g + '.tmp', g); }
-  return true; });
-h('prog:choose', async (e) => { const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Elige la carpeta donde guardar tu progreso'), defaultPath: progInfo().dir || undefined, properties: ['openDirectory', 'createDirectory'] });
-  if (r.canceled || !r.filePaths[0]) return null; cfg.progDir = r.filePaths[0]; saveCfg(); return progInfo(); });
-h('prog:reset', () => { delete cfg.progDir; saveCfg(); return progInfo(); });
+const writeProg = (dir, d) => { fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, PROG_NAME), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(d, null, 1)); fs.renameSync(tmp, f); };
+h('prog:read', () => { const dir = progDir(); let a = readProg(path.join(dir, PROG_NAME));
+  // Si antes estaba en otra carpeta, se trae a la de proyectos (si es más nuevo) y se deja de usar la otra
+  if (cfg.progDir) { const old = path.resolve(cfg.progDir) !== path.resolve(dir) ? readProg(path.join(cfg.progDir, PROG_NAME)) : null;
+    if (old && (!a || (+old.updated || 0) > (+a.updated || 0))) { try { writeProg(dir, old); a = old; } catch (e) {} }
+    delete cfg.progDir; saveCfg(); }
+  return a; });
+h('prog:write', d => { writeProg(progDir(), d); return true; });
 h('prog:reveal', () => { const i = progInfo(); if (i.file && fs.existsSync(i.file)) shell.showItemInFolder(i.file); else if (i.dir) shell.openPath(i.dir); });
 h('base:reveal', () => shell.openPath(base()));
 function dataDirIn(parent) { return path.basename(parent) === DATA_NAME ? parent : path.join(parent, DATA_NAME); }

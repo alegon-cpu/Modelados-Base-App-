@@ -1,5 +1,7 @@
 // Sincronizar la carpeta de proyectos con un repositorio de GitHub (usa el Git instalado en el ordenador).
-// Todas las operaciones van en cola, una detrás de otra, y nunca se borra nada: en un conflicto se guardan las dos versiones.
+// Todas las operaciones van en cola, una detrás de otra.
+// Desde la 2.6: al ABRIR manda lo que hay en GitHub (lo de aquí se sustituye; si había algo distinto se guarda un respaldo local)
+// y al GUARDAR/CERRAR manda lo de este ordenador (se sube encima de lo que haya en GitHub).
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -128,6 +130,37 @@ module.exports = function makeGit(getBase, getCfg, saveCfg) {
     else if (rem.out.trim() !== c.url) await must(['remote', 'set-url', 'origin', c.url], dir);
     const gi = path.join(dir, '.gitignore'); if (!fs.existsSync(gi)) fs.writeFileSync(gi, IGNORE);
   }
+  // Al abrir: lo de aquí se sustituye por lo de GitHub. Si aquí había cambios que GitHub no tiene, quedan en una rama de respaldo local.
+  async function takeRemote(dir) {
+    const br = await branchOf(dir);
+    await commitAll(dir, 'Modelado Bases: cambios de ' + PC() + ' (' + stamp() + ')');
+    await must(['fetch', '-q', 'origin'], dir, 90000);
+    if (!(await hasRemoteBranch(dir, br))) return { changed: false, conflicts: [] };
+    const head = (await git(['rev-parse', 'HEAD'], dir)).out.trim(), rem = (await git(['rev-parse', 'origin/' + br], dir)).out.trim();
+    if (!head || head === rem) return { changed: false, conflicts: [] };
+    // GitHub no tiene nada nuevo (solo lo de aquí está por subir): no se toca nada
+    if ((await git(['merge-base', '--is-ancestor', 'origin/' + br, 'HEAD'], dir)).code === 0) return { changed: false, conflicts: [] };
+    let backup = null;
+    if ((await git(['merge-base', '--is-ancestor', 'HEAD', 'origin/' + br], dir)).code !== 0) {
+      const d = new Date(), z = n => String(n).padStart(2, '0');
+      backup = 'respaldo-' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '-' + z(d.getHours()) + z(d.getMinutes()) + z(d.getSeconds());
+      await git(['branch', '-f', backup, 'HEAD'], dir);
+      // solo se guardan los 5 respaldos más nuevos
+      const l = await git(['for-each-ref', '--sort=-refname', '--format=%(refname:short)', 'refs/heads/respaldo-*'], dir);
+      for (const b of l.out.split('\n').map(x => x.trim()).filter(Boolean).slice(5)) await git(['branch', '-D', b], dir);
+    }
+    await must(['reset', '-q', '--hard', 'origin/' + br], dir);
+    return { changed: true, conflicts: [], backup };
+  }
+  // Al subir: lo de este ordenador manda. Si GitHub tenía algo distinto, se junta quedándose con lo de aquí.
+  async function keepLocal(dir) {
+    const br = await branchOf(dir);
+    await commitAll(dir, 'Modelado Bases: cambios de ' + PC() + ' (' + stamp() + ')');
+    await must(['fetch', '-q', 'origin'], dir, 90000);
+    if (!(await hasRemoteBranch(dir, br))) return;
+    if ((await git(['merge-base', '--is-ancestor', 'origin/' + br, 'HEAD'], dir)).code === 0) return;
+    await must(['merge', '-q', '--no-edit', '--allow-unrelated-histories', '-s', 'ours', '-m', 'Modelado Bases: se sube lo de ' + PC() + ' (' + stamp() + ')', 'origin/' + br], dir);
+  }
   async function pullIn(dir, first) {
     const br = await branchOf(dir);
     await commitAll(dir, 'Modelado Bases: cambios de ' + PC() + ' (' + stamp() + ')');
@@ -140,7 +173,7 @@ module.exports = function makeGit(getBase, getCfg, saveCfg) {
     for (let i = 0; i < 2; i++) {
       const r = await git(['push', '-q', '-u', 'origin', br], dir, 120000);
       if (r.code === 0) return true;
-      if (/rejected|fetch first|non-fast-forward/i.test(r.err)) { await pullIn(dir); continue; }
+      if (/rejected|fetch first|non-fast-forward/i.test(r.err)) { await keepLocal(dir); continue; }
       throw new Error(explain(r.err || r.out));
     }
     throw new Error('GitHub tiene cambios nuevos que no se han podido juntar. Pulsa «Sincronizar ahora».');
@@ -164,12 +197,12 @@ module.exports = function makeGit(getBase, getCfg, saveCfg) {
     }),
     setOpts: (o) => { const cfg = getCfg(); cfg.git = { ...(cfg.git || {}) }; ['push', 'onClose', 'lock'].forEach(k => { if (o[k] !== undefined) cfg.git[k] = o[k]; }); saveCfg(); return api.info(); },
     disconnect: () => { const cfg = getCfg(); if (cfg.git) cfg.git.enabled = false; saveCfg(); return api.info(); },
-    // Al abrir: traer lo último y avisar si está abierta en otro ordenador
+    // Al abrir: lo de aquí se sustituye por lo de GitHub, y se avisa si está abierta en otro ordenador
     open: () => queue(async () => {
       if (!on()) return { off: true };
       const dir = getBase(), c = C(); await ensureRepo(dir, c);
       let r = { changed: false, conflicts: [] }, err = null;
-      try { r = await pullIn(dir); } catch (e) { err = e.message; }
+      try { r = await takeRemote(dir); } catch (e) { err = e.message; }
       const lk = readLock(dir), other = c.lock !== false && lk && lk.pc && lk.pc !== PC() && (Date.now() - (lk.t || 0)) < 12 * 3600 * 1000 ? lk : null;
       return { ...r, error: err, offline: err ? offline({ message: err }) : false, other };
     }),
@@ -180,14 +213,14 @@ module.exports = function makeGit(getBase, getCfg, saveCfg) {
       try { await commitAll(dir, 'Modelado Bases: abierta en ' + PC()); await pushOut(dir); } catch (e) {}
       return true;
     }),
-    // Subir lo de aquí (y traer lo de GitHub antes, para que no choque)
+    // Subir lo de aquí: lo de este ordenador se pone encima de lo que haya en GitHub
     sync: (o = {}) => queue(async () => {
       if (!on()) return { off: true };
       const dir = getBase();
       if (o.release) { const lk = readLock(dir); if (lk && lk.pc === PC()) { try { fs.unlinkSync(path.join(dir, LOCK)); } catch (e) {} } }
-      const r = await pullIn(dir); await pushOut(dir);
+      await keepLocal(dir); await pushOut(dir);
       const cfg = getCfg(); cfg.git.last = Date.now(); saveCfg();
-      return { ...r, last: cfg.git.last };
+      return { changed: false, conflicts: [], last: cfg.git.last };
     }),
     // ¿Hay cambios sin subir?
     pending: async () => { if (!on()) return false; const dir = getBase(); const s = await git(['status', '--porcelain'], dir); if (s.out.trim()) return true; const a = await git(['rev-list', '--count', '@{u}..HEAD'], dir); return a.code === 0 && +a.out.trim() > 0; }

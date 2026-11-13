@@ -16,8 +16,8 @@ const Sync={_t:null,
 
 /* ===================== «No cliques esto»: minijuegos, tokens y tiradas ===================== */
 // Todo se guarda en este ordenador (localStorage «mb:juego»). No hay dinero de por medio: los tokens solo se ganan jugando.
-const RAR={c:{n:'Común',p:60,frag:1,col:'#7C8A96'},r:{n:'Rara',p:28,frag:3,col:'#2F86D6'},e:{n:'Épica',p:10,frag:8,col:'#9B4FD6'},l:{n:'Legendaria',p:2,frag:20,col:'#E0A21A'}};
-const PITY=40,FRAG_TOKEN=10;
+const RAR={c:{n:'Común',p:59,frag:1,col:'#7C8A96',st:3},r:{n:'Rara',p:28,frag:3,col:'#2F86D6',st:4},e:{n:'Épica',p:10,frag:8,col:'#9B4FD6',st:5},l:{n:'Legendaria',p:2,frag:20,col:'#E0A21A',st:6},m:{n:'Mítica',p:1,frag:40,col:'#FF3D7F',st:7}};
+const PITY=40,PITY_M=60,FRAG_TOKEN=10; // legendaria (o mejor) asegurada a las 40; mítica asegurada a las 60
 // ---------- Catálogo de premios (50 comunes, 25 raros, 15 épicos, 10 legendarios) ----------
 const RW_ACC=[['Esmeralda','#1E8E5A'],['Turquesa','#138A8A'],['Cielo','#2B7BC0'],['Cobalto','#2F55C8'],['Índigo','#4B48B8'],['Violeta','#7A45C2'],['Orquídea','#A2479F'],['Frambuesa','#C2366B'],['Coral','#D9573E'],['Mandarina','#C9690F'],
   ['Ámbar','#AE7E0B'],['Oliva','#6B7A1F'],['Lima','#4F8A16'],['Pino','#2E6B3F'],['Pizarra azul','#4F6475'],['Chocolate','#7A4A2A'],['Burdeos','#8C2639'],['Lavanda','#7E66C2'],['Salmón','#C9605A'],['Grafito','#4A4A4A']];
@@ -56,23 +56,75 @@ const RW_LEG=[
   {id:'l-marco',n:'Marco dorado',kind:'frame',d:'Marco dorado y brillante para tu avatar del perfil.'},
   {id:'l-confeti',n:'Confeti',kind:'fx',d:'Lluvia de confeti cada vez que aciertas o ganas.'},
   {id:'l-chispas',n:'Chispas',kind:'fx',d:'Chispas de colores cada vez que aciertas o ganas.'}];
+// ---------- 2.6: 100 premios más ----------
+const RW_ACC2=[['Rubí','#B81D3A'],['Azafrán','#C7801A'],['Jade','#0F8B6E'],['Zafiro','#1F4FA8'],['Amatista','#8248B8'],['Magenta','#B2297F'],['Petróleo','#14606E'],['Musgo','#5A6B2A'],['Terracota','#B5562E'],['Cobre','#A35A2A'],['Ciruela','#6E2D6B'],['Acero','#4A6278'],['Caramelo','#A8692A'],['Celeste','#2A86BF'],['Granate','#7A1F2B']];
+const RW_ICO2=[['Búho','🦉'],['Pulpo','🐙'],['Tortuga','🐢'],['Pingüino','🐧'],['Hamburguesa','🍔'],['Sushi','🍣'],['Helado','🍦'],['Café','☕'],['Cámara','📷'],['Auriculares','🎧'],['Ordenador','💻'],['Robot','🤖'],['Fantasma','👻'],['Alien','👽'],['Corona','👑']];
+const RW_TIT2=['Detective de Dependencias','Maestro de la Clave Candidata','Domador de Subconsultas','Barón del ALTER TABLE','Centinela del NOT NULL','Archimago del ORDER BY','Duque de la Agregación','Coleccionista de Tablas','Profeta del LEFT JOIN','Escudero de la 1FN',
+  'Paladín de la 2FN','Bardo del Boceto','Capitán Cardinalidad','Vigía de la Integridad','Forjador de Esquemas','Explorador del DED','Monje del Modelo E-R','Juglar del INSERT','Hechicero del HAVING','Embajador de las Vistas'];
+const RW_FRAME=[['Plata','#C0C7CF'],['Bronce','#B07A4A'],['Cielo','#5AB0F0'],['Menta','#4FD1A5'],['Rosa','#F06BA8'],['Lima','#A5D63F'],['Naranja','#FF9A3D'],['Lila','#A98BFF'],['Rojo','#E5484D'],['Noche','#3B4A8C']];
+const RW_THEME2=[['Sakura',0,'#FDF2F5','#FEF7F9','#FFFFFF','#3D2430','#8E6A79','#F5DDE5','#EBC3D1','#FAE8EE','#C9466F','#FFFFFF','#FADCE6','#7A1F42','#F7E6EC','#C24D74'],
+  ['Abismo',1,'#06121A','#0A1923','#0E202D','#DDEFF7','#86A6B6','#17384A','#21495F','#112A38','#2EC4D6','#03202A','#164556','#D2F6FB','#0D2230','#1D7A8C'],
+  ['Uva',1,'#170F1F','#1D1428','#241A32','#EEE4F8','#A994C0','#382A4D','#4A3866','#2B2040','#C08CFF','#1D0B33','#3D2A5C','#F1E5FF','#20172C','#6E44A8'],
+  ['Pistacho',0,'#F2F7EC','#F8FBF4','#FFFFFF','#26331C','#6A7A5B','#DDE8D0','#C5D7B2','#E8F1DE','#527F22','#FFFFFF','#DFEDCD','#2F4A12','#E6EFDB','#557F2C'],
+  ['Carbón',1,'#121212','#181818','#1E1E1E','#ECECEC','#9A9A9A','#2E2E2E','#404040','#252525','#FF9F43','#2A1500','#3A2A1A','#FFE7CF','#1C1C1C','#8A5A2B'],
+  ['Marina',0,'#EFF3F9','#F6F8FC','#FFFFFF','#18263D','#5A6A84','#D8E0EE','#BCC8DE','#E4EAF5','#1F4E9C','#FFFFFF','#D6E2F6','#0E2A5C','#E2E8F3','#2A5194'],
+  ['Chicle',0,'#FDF0FA','#FEF6FC','#FFFFFF','#3A1D34','#8C6584','#F4D9EE','#E8BCDF','#FAE6F6','#C2329E','#FFFFFF','#F8D6F0','#6E1259','#F6E4F2','#B8329A'],
+  ['Desierto nocturno',1,'#1A1510','#211B14','#282018','#F3E7D6','#B9A68C','#3D3224','#544430','#30271C','#F0B35A','#2A1A02','#4A3820','#FFEFD6','#251E16','#9A6A2A'],
+  ['Hierbabuena',1,'#0D1A17','#12221E','#172A25','#DDF3EC','#8BB3A7','#22423A','#2E574C','#1B342D','#5EE0B5','#04241A','#1F4A3E','#D8FFF1','#152822','#2D8A6B'],
+  ['Nube',0,'#F4F6F8','#F9FAFB','#FFFFFF','#22272E','#6B7480','#E1E5EA','#CBD2DA','#EBEEF2','#5B6BF0','#FFFFFF','#E0E4FD','#262F8A','#E9ECF0','#4A58C9']];
+// Cursores: [id, nombre, rareza, descripción] (el dibujo está en warp.js › CURSORS)
+const RW_CUR=[['e-cur0','Cursor flecha neón','e','Una flecha cian que brilla.'],['e-cur1','Cursor pluma','e','Escribe como con pluma de ave.'],['e-cur2','Cursor varita','e','Una varita con estrella en la punta.'],['e-cur3','Cursor pata de gato','e','Una patita para hacer clic.'],['e-cur4','Cursor espada','e','Una espada pequeña de pixel art.'],
+  ['l-cur0','Cursor espada láser','l','Una espada de luz morada.'],['l-cur1','Cursor cohete','l','Un cohete con su llama.'],['l-cur2','Cursor cristal mágico','l','Un cristal que brilla en colores.'],['l-cur3','Cursor llama','l','Una llama de fuego azul y naranja.']];
+const RW_LEG2=[
+  {id:'l-tt0',kind:'title',n:'Leyenda Dorada del SQL',anim:'oro',d:'Título animado: brillo dorado que recorre las letras.'},
+  {id:'l-tt1',kind:'title',n:'Neón del Esquema',anim:'neon',d:'Título animado: neón que parpadea.'},
+  {id:'l-tt2',kind:'title',n:'Llama de la Normalización',anim:'fuego',d:'Título animado: letras de fuego.'},
+  {id:'l-tt3',kind:'title',n:'Guardián Glacial de la PK',anim:'hielo',d:'Título animado: hielo que brilla.'},
+  {id:'l-fr0',kind:'frame',n:'Marco arcoíris',fx:'arcoiris',d:'Marco que gira con todos los colores.'},
+  {id:'l-fr1',kind:'frame',n:'Marco de fuego',fx:'fuego',d:'Marco con llamas que se mueven.'},
+  {id:'l-fr2',kind:'frame',n:'Marco eléctrico',fx:'rayo',d:'Marco con chispazos eléctricos.'},
+  {id:'l-fr3',kind:'frame',n:'Marco galaxia',fx:'galaxia',d:'Marco con estrellas girando.'}];
+const RW_MYTH=[
+  {id:'m-bg0',kind:'bg',n:'Fondo Galaxia',fx:'galaxia',d:'Fondo animado: estrellas, nebulosas y estrellas fugaces.'},
+  {id:'m-bg1',kind:'bg',n:'Fondo Aurora boreal',fx:'aurora',d:'Fondo animado: cortinas de luz que ondean.'},
+  {id:'m-bg2',kind:'bg',n:'Fondo Sakura',fx:'sakura',d:'Fondo animado: pétalos de cerezo que caen.'},
+  {id:'m-bg3',kind:'bg',n:'Fondo Luciérnagas',fx:'luciernagas',d:'Fondo animado: luces que flotan y parpadean.'},
+  {id:'m-bg4',kind:'bg',n:'Fondo Nevada',fx:'nieve',d:'Fondo animado: nieve que cae despacio.'},
+  {id:'m-tr0',kind:'trail',n:'Estela de estrellas',fx:'estrellas',d:'El ratón deja una estela de estrellas.'},
+  {id:'m-tr1',kind:'trail',n:'Estela arcoíris',fx:'arcoiris',d:'El ratón deja una cinta de arcoíris.'},
+  {id:'m-tr2',kind:'trail',n:'Estela de fuego',fx:'fuego',d:'El ratón deja chispas de fuego.'},
+  {id:'m-tr3',kind:'trail',n:'Estela mágica',fx:'magia',d:'El ratón deja burbujas de luz mágica.'},
+  {id:'m-tt0',kind:'title',n:'Dios de las Bases de Datos',anim:'arcoiris',d:'Título mítico: arcoíris en movimiento.'},
+  {id:'m-tt1',kind:'title',n:'Glitch en el Sistema',anim:'glitch',d:'Título mítico: se «rompe» como una pantalla.'},
+  {id:'m-tt2',kind:'title',n:'Holograma Relacional',anim:'holo',d:'Título mítico: brillo de holograma.'},
+  {id:'m-tt3',kind:'title',n:'Arquitecto del Cosmos',anim:'cosmos',d:'Título mítico: galaxia dentro de las letras.'}];
 const REWARDS=[
   ...RW_ACC.map(([n,c],i)=>({id:'c-acc'+i,r:'c',kind:'acc',n:'Color '+n,c})),
   ...RW_ICO.map(([n,e],i)=>({id:'c-ico'+i,r:'c',kind:'icon',n:'Icono '+n,e})),
   ...RW_TIT.map((n,i)=>({id:'r-tit'+i,r:'r',kind:'title',n})),
   ...RW_THEME.map((t,i)=>({id:'e-th'+i,r:'e',kind:'theme',n:'Tema '+t[0],t})),
-  ...RW_LEG.map(x=>({...x,r:'l',n:x.kind==='theme'?'Tema '+x.n:x.n}))];
+  ...RW_LEG.map(x=>({...x,r:'l',n:x.kind==='theme'?'Tema '+x.n:x.n})),
+  ...RW_ACC2.map(([n,c],i)=>({id:'c-acc'+(20+i),r:'c',kind:'acc',n:'Color '+n,c})),
+  ...RW_ICO2.map(([n,e],i)=>({id:'c-ico'+(30+i),r:'c',kind:'icon',n:'Icono '+n,e})),
+  ...RW_TIT2.map((n,i)=>({id:'r-tit'+(25+i),r:'r',kind:'title',n})),
+  ...RW_FRAME.map(([n,c],i)=>({id:'r-fr'+i,r:'r',kind:'frame',n:'Marco '+n.toLowerCase(),c})),
+  ...RW_THEME2.map((t,i)=>({id:'e-th'+(15+i),r:'e',kind:'theme',n:'Tema '+t[0],t})),
+  ...RW_CUR.map(([id,n,r,d])=>({id,r,kind:'cursor',n,d})),
+  ...RW_LEG2.map(x=>({...x,r:'l'})),
+  ...RW_MYTH.map(x=>({...x,r:'m'}))];
 const RWBY=Object.fromEntries(REWARDS.map(x=>[x.id,x]));
 
 const Juegos={
   /* ---------- estado ---------- */
   st(){if(this._s)return this._s;let s={};try{s=JSON.parse(localStorage.getItem('mb:juego')||'{}')||{};}catch(e){}
-    s.tokens=s.tokens|0;s.frags=s.frags|0;s.pity=s.pity|0;s.pulls=s.pulls|0;s.owned=s.owned||{};s.eq=s.eq||{};s.nick=s.nick||'';s.snake=s.snake||{wins:0,best:0,speed:'normal',size:'m'};
+    s.tokens=s.tokens|0;s.frags=s.frags|0;s.pity=s.pity|0;s.pityM=s.pityM|0;s.pulls=s.pulls|0;s.owned=s.owned||{};s.eq=s.eq||{};s.nick=s.nick||'';s.snake=s.snake||{wins:0,best:0,speed:'normal',size:'m'};
     s.quiz=s.quiz||{rounds:0,perfect:0,seen:[]};s.bdq=s.bdq||{rounds:0,perfect:0,ok:0,seen:[]};s.earned=s.earned|0;return this._s=s;},
   save(){try{localStorage.setItem('mb:juego',JSON.stringify(this.st()));}catch(e){}},
   give(n,why){const s=this.st();s.tokens+=n;s.earned+=n;this.save();this.badge();toast(`+${n} token${n>1?'s':''}${why?' · '+why:''}. Ya tienes ${s.tokens}.`);this.celebrate(true);},
   badge(){const s=this.st();document.querySelectorAll('.jg-tok').forEach(el=>{const b=el.querySelector('b');if(b)b.textContent=s.tokens;el.lastChild.textContent=' token'+(s.tokens===1?'':'s');});document.querySelectorAll('.jg-frag').forEach(el=>el.textContent='◆ '+s.frags);},
   profile(){const s=this.st(),t=RWBY[s.eq.title];return{nick:s.nick||'',title:t?t.n:''};},
+  // Título (animado si es legendario o mítico)
+  titleHTML(fallback){const t=RWBY[this.st().eq.title];if(!t)return esc(fallback||'');return t.anim?`<span class="tt tt-${t.anim}" data-t="${escA(t.n)}">${esc(t.n)}</span>`:esc(t.n);},
   /* ---------- aspecto: lo equipado ---------- */
   skinMode(){const s=this.st(),t=RWBY[s.eq.theme];return t?(t.t[1]?'dark':'light'):null;},
   apply(){const s=this.st(),R=document.documentElement,th=RWBY[s.eq.theme],ac=RWBY[s.eq.acc];let css='';
@@ -85,19 +137,21 @@ const Juegos={
     else R.removeAttribute('data-acc');
     let el=document.getElementById('mbskin');if(!el){el=document.createElement('style');el.id='mbskin';document.head.appendChild(el);}el.textContent=css;
     ['l-pizarra','l-neon','l-matrix','l-terminal'].forEach(k=>R.classList.toggle('sk-'+k.slice(2),s.eq.theme===k));
-    R.classList.toggle('nt-posit',s.eq.note==='l-posit');R.classList.toggle('nt-cinta',s.eq.note==='l-cinta');R.classList.toggle('cur-pen',s.eq.cursor==='l-cursor');
+    R.classList.toggle('nt-posit',s.eq.note==='l-posit');R.classList.toggle('nt-cinta',s.eq.note==='l-cinta');R.classList.remove('cur-pen');const cu=s.eq.cursor&&typeof FX!=='undefined'?FX.cursorCss(s.eq.cursor):'';if(cu){R.setAttribute('data-cur','1');el.textContent+=cu;}else R.removeAttribute('data-cur');
+    try{const b=RWBY[s.eq.bg],tr=RWBY[s.eq.trail];if(typeof FX!=='undefined'){FX.bg(b?b.fx:null);FX.trail(tr?tr.fx:null);}}catch(e){}
     if(typeof Theme!=='undefined')Theme.apply(Theme.get());if(typeof App!=='undefined'&&App.ed&&App.ed.p&&App.ed.svg)App.ed.render();this.rain();},
-  equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx'}[x.kind];if(!slot)return;
+  equip(id){const s=this.st(),x=RWBY[id];if(!x||!s.owned[id])return;const slot={acc:'acc',theme:'theme',title:'title',note:'note',cursor:'cursor',frame:'frame',fx:'fx',bg:'bg',trail:'trail'}[x.kind];if(!slot)return;
     s.eq[slot]=s.eq[slot]===id?null:id;this.save();this.apply();},
   /* ---------- tiradas ---------- */
   roll(force){const s=this.st();let r;
-    if(s.pity>=PITY-1)r='l';else{const x=Math.random()*100;r=x<RAR.l.p?'l':x<RAR.l.p+RAR.e.p?'e':x<RAR.l.p+RAR.e.p+RAR.r.p?'r':'c';}
+    if(s.pityM>=PITY_M-1)r='m';else if(s.pity>=PITY-1)r='l';
+    else{const x=Math.random()*100,M=RAR.m.p,L=M+RAR.l.p,E=L+RAR.e.p,Rr=E+RAR.r.p;r=x<M?'m':x<L?'l':x<E?'e':x<Rr?'r':'c';}
     if(force&&(r==='c'||r==='r'))r='e';
-    s.pity=r==='l'?0:s.pity+1;s.pulls++;const pool=REWARDS.filter(x=>x.r===r),it=pool[Math.floor(Math.random()*pool.length)];
+    s.pity=(r==='l'||r==='m')?0:s.pity+1;s.pityM=r==='m'?0:s.pityM+1;s.pulls++;const pool=REWARDS.filter(x=>x.r===r),it=pool[Math.floor(Math.random()*pool.length)];
     const dup=!!s.owned[it.id];if(dup)s.frags+=RAR[r].frag;s.owned[it.id]=(s.owned[it.id]||0)+1;return{it,dup};},
   pull(n){const s=this.st();if(s.tokens<n){toast(`Te faltan tokens: necesitas ${n} y tienes ${s.tokens}. Gánalos en los minijuegos.`,'warn');return null;}
     s.tokens-=n;const out=[];for(let i=0;i<n;i++)out.push(this.roll(false));
-    if(n===10&&!out.some(o=>o.it.r==='e'||o.it.r==='l')){const last=out.pop(),sv=s;sv.owned[last.it.id]--;if(!sv.owned[last.it.id])delete sv.owned[last.it.id];if(last.dup)sv.frags-=RAR[last.it.r].frag;sv.pity=Math.max(0,sv.pity-1);sv.pulls--;out.push(this.roll(true));}
+    if(n===10&&!out.some(o=>'elm'.includes(o.it.r))){const last=out.pop(),sv=s;sv.owned[last.it.id]--;if(!sv.owned[last.it.id])delete sv.owned[last.it.id];if(last.dup)sv.frags-=RAR[last.it.r].frag;sv.pity=Math.max(0,sv.pity-1);sv.pityM=Math.max(0,sv.pityM-1);sv.pulls--;out.push(this.roll(true));}
     this.save();return out;},
   /* ---------- efectos al acertar ---------- */
   celebrate(big,at){const fx=this.st().eq.fx;if(!fx)return;try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
@@ -126,27 +180,28 @@ const Juegos={
   stopAll(){if(this._snk){clearInterval(this._snk.iv);cancelAnimationFrame(this._snk.raf);this._snk=null;}},
   head(t,back){const s=this.st();return `<header class="ph"><span class="pname static">${t}</span><div class="ph-acts"><span class="jg-tok" title="Tokens para tiradas">${GL.tok||'🎟️'} <b>${s.tokens}</b> token${s.tokens===1?'':'s'}</span><span class="jg-frag" title="Fragmentos (de premios repetidos): ${FRAG_TOKEN} = 1 token">◆ ${s.frags}</span>${back?`<button class="ebtn" data-jg="menu">← Juegos</button>`:''}<button class="ebtn" data-act="home">← Inicio</button></div></header>`;},
   avatar(big){const s=this.st(),p=this.profile(),ini=(p.nick||'?').trim().slice(0,2).toUpperCase()||'?',img=typeof s.avatar==='string'&&s.avatar.startsWith('data:image/')?s.avatar:'';
-    return `<span class="jg-av${big?' big':''}${img?' img':''}${s.eq.frame==='l-marco'?' fr-gold':''}"${img?` style="background-image:url('${img}')"`:''}><span>${img?'':esc(ini)}</span></span>`;},
+    const fr=RWBY[s.eq.frame],frc=!fr?'':fr.id==='l-marco'?' fr-gold':fr.fx?' fr-fx fr-'+fr.fx:fr.c?' fr-c':'',st=[img?`background-image:url('${img}')`:'',fr&&fr.c?'--fr:'+fr.c:''].filter(Boolean).join(';');
+    return `<span class="jg-av${big?' big':''}${img?' img':''}${frc}"${st?` style="${st}"`:''}><span>${img?'':esc(ini)}</span></span>`;},
   // Foto propia del avatar: se recorta en cuadrado y se reduce a 160×160 para que ocupe poco
   async setAvatar(file){if(!file||!/^image\//.test(file.type)){toast('Elige una imagen (PNG, JPG, GIF o WebP).','warn');return;}
     const url=URL.createObjectURL(file);try{const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=ko;i.src=url;});
       const S=160,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),m=Math.min(img.naturalWidth,img.naturalHeight);
       g.drawImage(img,(img.naturalWidth-m)/2,(img.naturalHeight-m)/2,m,m,0,0,S,S);this.st().avatar=c.toDataURL('image/jpeg',0.85);this.save();toast('Foto del perfil puesta.');}
     catch(e){toast('No se pudo leer esa imagen.','warn');}finally{URL.revokeObjectURL(url);}},
-  profileCard(){const p=this.profile();return `<button class="jg-pcard" data-act="games-profile" title="Tu perfil">${this.avatar(false)}<span class="jg-pc-t"><b>${esc(p.nick||'Sin nombre')}</b><small>${esc(p.title||'Sin título: consíguelos en las tiradas')}</small></span></button>`;},
+  profileCard(){const p=this.profile();return `<button class="jg-pcard" data-act="games-profile" title="Tu perfil">${this.avatar(false)}<span class="jg-pc-t"><b>${esc(p.nick||'Sin nombre')}</b><small>${p.title?this.titleHTML():'Sin título: consíguelos en las tiradas'}</small></span></button>`;},
   render(mv){const k=this.sub;
     if(k==='snake')return this.snakeView(mv);if(k==='quiz')return this.quizView(mv);if(k==='bdq')return this.bdqView(mv);
     if(k==='gacha')return this.gachaView(mv);if(k==='album')return this.albumView(mv);if(k==='perfil')return this.perfilView(mv);
-    const s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity;
+    const s=this.st(),w=s.snake.wins%10,own=Object.keys(s.owned).length,leg=PITY-s.pity,myt=PITY_M-s.pityM;
     mv.innerHTML=this.head('No cliques esto')+`<div class="view jg"><div class="jg-in">
       <section class="jg-hero"><div><h2>Vale, has clicado.</h2><p>Ya que estás: juega, gana <b>tokens</b> y haz <b>tiradas</b> para conseguir temas, colores, títulos e iconos.</p></div>${this.profileCard()}</section>
       <button class="jg-feat" data-jg="gacha"><span class="jg-feat-bg" aria-hidden="true"></span><span class="jg-feat-ic">🎰</span>
-        <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>Temas, colores, títulos, iconos y efectos legendarios. Legendaria asegurada en <b>${leg}</b> tirada${leg===1?'':'s'}; en las de ×10, épica asegurada.</span>
+        <span class="jg-feat-t"><small>Lo mejor de aquí</small><b>Tiradas</b><span>${REWARDS.length} premios: temas, colores, títulos animados, cursores, marcos, estelas y fondos animados. Legendaria asegurada en <b>${leg}</b> y <b>mítica</b> en <b>${myt}</b> tirada${myt===1?'':'s'}; en las de ×10, épica asegurada.</span>
           <span class="jg-feat-rates">${Object.entries(RAR).map(([k,r])=>`<i class="r-${k}">${r.n} ${r.p} %</i>`).join('')}</span></span>
         <span class="jg-feat-cta"><span class="jg-feat-tok">${s.tokens}<small>token${s.tokens===1?'':'s'}</small></span><span class="jg-feat-go">Tirar →</span></span></button>
       <h3 class="jg-h">Gana tokens</h3>
       <div class="jg-grid">
-        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Cada vez que lo consigues, 1 token.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
+        <button class="jg-card" data-jg="snake"><span class="jg-ic">🐍</span><b>Serpiente</b><small>Como la clásica: llena todo el mapa comiendo fruta. Al llenarlo, de 1 a 5 tokens según el mapa y la velocidad; y cada 5 frutas, 1 fragmento ◆.</small><em>Mapas llenos: ${s.snake.wins}</em></button>
         <button class="jg-card" data-jg="quiz"><span class="jg-ic">🧠</span><b>Quiz de cultura</b><small>${QZ_ALL().length} preguntas de curiosidades y de 1º de DAW. Rondas de 10: si aciertas al menos la mitad, 1 token.</small><em>Rondas con token: ${s.quiz.perfect}</em></button>
         <button class="jg-card" data-jg="bdq"><span class="jg-ic">🔎</span><b>¿Está bien el diagrama?</b><small>${BDQ.bank().length} diagramas de E-R, Relacional y DED con fallos escondidos. Rondas de 5: si aciertas al menos 3, 1 token.</small><em>Rondas con token: ${s.bdq.perfect}</em></button>
       </div>
@@ -157,20 +212,26 @@ const Juegos={
       </div></div></div>`;},
   rewardThumb(x,owned){if(!owned)return `<span class="rw-th lock">?</span>`;
     if(x.kind==='acc')return `<span class="rw-th" style="background:${x.c}"></span>`;if(x.kind==='icon')return `<span class="rw-th emo">${x.e}</span>`;
+    if(x.kind==='title'&&x.anim)return `<span class="rw-th tit anim"><span class="tt tt-${x.anim}" data-t="Aa">Aa</span></span>`;
     if(x.kind==='title')return `<span class="rw-th tit">«»</span>`;
     if(x.kind==='theme'){const t=x.t;return `<span class="rw-th th" style="background:${t[2]}"><i style="background:${t[4]};border-color:${t[7]}"></i><i style="background:${t[10]}"></i><i style="background:${t[5]}"></i></span>`;}
+    if(x.kind==='frame'&&x.id!=='l-marco')return `<span class="rw-th fr"><span class="jg-av${x.fx?' fr-fx fr-'+x.fx:' fr-c'}"${x.c?` style="--fr:${x.c}"`:''}><span>★</span></span></span>`;
+    if(x.kind==='cursor'&&typeof FX!=='undefined'&&FX.cursorImg(x.id))return `<span class="rw-th cur"><img src="${FX.cursorImg(x.id)}" alt=""></span>`;
+    if(x.kind==='bg')return `<span class="rw-th bgp bgp-${x.fx}"></span>`;
+    if(x.kind==='trail')return `<span class="rw-th emo trp trp-${x.fx}">${{estrellas:'⭐',arcoiris:'🌈',fuego:'🔥',magia:'🔮'}[x.fx]||'✨'}</span>`;
     return `<span class="rw-th emo">${{note:'🗒️',cursor:'✏️',frame:'🖼️',fx:x.id==='l-confeti'?'🎊':'✨'}[x.kind]||'★'}</span>`;},
-  kindName:{acc:'Color de acento',icon:'Icono de proyecto',title:'Título',theme:'Tema',note:'Estilo de nota',cursor:'Cursor',frame:'Marco de avatar',fx:'Efecto al acertar'},
+  kindName:{acc:'Color de acento',icon:'Icono de proyecto',title:'Título',theme:'Tema',note:'Estilo de nota',cursor:'Cursor',frame:'Marco de avatar',fx:'Efecto al acertar',bg:'Fondo animado',trail:'Estela del ratón'},
   gachaView(mv,res){const s=this.st();
     mv.innerHTML=this.head('Tiradas',true)+`<div class="view jg"><div class="jg-in">
       <section class="jg-gacha"><div class="jg-machine"><div class="jg-orb">🎰</div><div class="jg-btns">
         <button class="ebtn pri big" data-jg-pull="1" ${s.tokens<1?'disabled':''}>Tirar ×1 <small>1 token</small></button>
         <button class="ebtn pri big" data-jg-pull="10" ${s.tokens<10?'disabled':''}>Tirar ×10 <small>10 tokens · épica asegurada</small></button>
         <button class="ebtn" data-jg-swap ${s.frags<FRAG_TOKEN?'disabled':''}>Canjear ${FRAG_TOKEN} ◆ fragmentos por 1 token</button></div>
-        <div class="jg-pity"><span>Legendaria asegurada en <b>${PITY-s.pity}</b> tirada${PITY-s.pity===1?'':'s'}</span><span class="jg-prog"><i style="width:${s.pity/PITY*100}%"></i></span></div></div>
+        <div class="jg-pity"><span>Legendaria asegurada en <b>${PITY-s.pity}</b> tirada${PITY-s.pity===1?'':'s'}</span><span class="jg-prog"><i style="width:${s.pity/PITY*100}%"></i></span></div>
+        <div class="jg-pity myth"><span>Mítica asegurada en <b>${PITY_M-s.pityM}</b> tirada${PITY_M-s.pityM===1?'':'s'}</span><span class="jg-prog"><i style="width:${s.pityM/PITY_M*100}%"></i></span></div></div>
         <div class="jg-rates"><h3>Probabilidades</h3>${Object.entries(RAR).map(([k,r])=>{const tot=REWARDS.filter(x=>x.r===k).length,own=REWARDS.filter(x=>x.r===k&&s.owned[x.id]).length;
-          return `<div class="jg-rate r-${k}"><b>${r.n}</b><span>${r.p} %</span><small>${{c:'Colores de acento e iconos de proyecto',r:'Títulos',e:'Temas completos',l:'Temas especiales, notas, cursor, marco y efectos'}[k]} · tienes ${own}/${tot}</small></div>`;}).join('')}
-          <p class="tnote">Si te sale uno repetido se convierte en fragmentos ◆ (común 1, rara 3, épica 8, legendaria 20). Con ${FRAG_TOKEN} fragmentos canjeas 1 token. Total de tiradas: ${s.pulls}.</p></div></section>
+          return `<div class="jg-rate r-${k}"><b>${r.n}</b><span>${r.p} %</span><small>${{c:'Colores de acento e iconos de proyecto',r:'Títulos y marcos de avatar',e:'Temas completos y cursores',l:'Temas especiales, títulos y marcos animados, cursores, notas y efectos',m:'Fondos animados, estelas del ratón y títulos míticos'}[k]} · tienes ${own}/${tot}</small></div>`;}).join('')}
+          <p class="tnote">Si te sale uno repetido se convierte en fragmentos ◆ (común 1, rara 3, épica 8, legendaria 20, mítica 40). Con ${FRAG_TOKEN} fragmentos canjeas 1 token. Total de tiradas: ${s.pulls}.</p></div></section>
       ${res?`<section class="jg-res${res.length>1?' ten':''}">${res.map((o,i)=>`<div class="rw r-${o.it.r}" style="animation-delay:${i*90}ms">${this.rewardThumb(o.it,true)}<b>${esc(o.it.n)}</b><small>${RAR[o.it.r].n} · ${this.kindName[o.it.kind]}</small>${o.dup?`<em class="dup">Repetido · +${RAR[o.it.r].frag} ◆</em>`:'<em class="new">¡Nuevo!</em>'}</div>`).join('')}</section>`:''}
     </div></div>`;},
   albumView(mv){const s=this.st();
@@ -184,7 +245,8 @@ const Juegos={
       <div class="jg-rows">
         <label><b>Título</b>${sel('title','title','Sin título')}</label><label><b>Tema</b>${sel('theme','theme','El normal de la app')}</label>
         <label><b>Color de acento</b>${sel('acc','acc','El del tema')}</label><label><b>Notas</b>${sel('note','note','Normales')}</label>
-        <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label></div>
+        <label><b>Cursor</b>${sel('cursor','cursor','Normal')}</label><label><b>Marco del avatar</b>${sel('frame','frame','Sin marco')}</label><label><b>Efecto al acertar</b>${sel('fx','fx','Ninguno')}</label>
+        <label><b>Fondo animado</b>${sel('bg','bg','Ninguno')}</label><label><b>Estela del ratón</b>${sel('trail','trail','Ninguna')}</label></div>
       <p class="tnote">Tu nombre y tu título salen en Inicio y en los proyectos que compartes con «Exportar código». Mientras uses un tema, los botones Claro/Oscuro no cambian nada.</p>
       <div class="jg-stats"><span>Tokens ganados: <b>${s.earned}</b></span><span>Tiradas: <b>${s.pulls}</b></span><span>Serpiente: <b>${s.snake.wins}</b> superadas · récord ${s.snake.best}</span><span>Quiz con token: <b>${s.quiz.perfect}</b>/${s.quiz.rounds} perfectas</span><span>Diagramas: <b>${s.bdq.perfect}</b>/${s.bdq.rounds} perfectas</span></div></div></section></div></div>`;
     const fi=document.getElementById('jgimg');fi.addEventListener('change',async()=>{await this.setAvatar(fi.files[0]);this.perfilView(mv);});
@@ -193,7 +255,9 @@ const Juegos={
     mv.querySelectorAll('[data-jg-slot]').forEach(el=>el.addEventListener('change',()=>{s.eq[el.dataset.jgSlot]=el.value||null;this.save();this.apply();this.go('perfil');}));},
   onClick(e){const b=e.target.closest('[data-jg],[data-jg-pull],[data-jg-swap],[data-jg-eq]');if(!b)return false;
     if(b.dataset.jg){this.go(b.dataset.jg);return true;}
-    if(b.dataset.jgPull){const r=this.pull(+b.dataset.jgPull);if(!r)return true;this.gachaView(document.getElementById('mainv'),r);const best=r.some(o=>o.it.r==='l')?'l':r.some(o=>o.it.r==='e')?'e':'';if(best)this.celebrate(best==='l');return true;}
+    if(b.dataset.jgPull){const r=this.pull(+b.dataset.jgPull);if(!r)return true;
+      const show=()=>{this.gachaView(document.getElementById('mainv'),r);const best=r.some(o=>'lm'.includes(o.it.r))?'l':r.some(o=>o.it.r==='e')?'e':'';if(best)this.celebrate(best==='l');};
+      if(typeof Warp!=='undefined')Warp.play(r).then(show,show);else show();return true;}
     if(b.hasAttribute('data-jg-swap')){const s=this.st();if(s.frags>=FRAG_TOKEN){s.frags-=FRAG_TOKEN;s.tokens++;this.save();toast('Canjeado: +1 token.');}this.gachaView(document.getElementById('mainv'));return true;}
     if(b.dataset.jgEq){const x=RWBY[b.dataset.jgEq];if(x.kind==='icon'){toast('Los iconos se ponen a cada proyecto: botón derecho sobre el proyecto › «Icono del proyecto…».');return true;}this.equip(x.id);this.albumView(document.getElementById('mainv'));return true;}
     return false;}
@@ -203,6 +267,9 @@ const Juegos={
 // Como la clásica: se supera llenando todo el mapa. Se mueve fluida: la lógica va por casillas y el dibujo se desliza entre ellas.
 const SNK_SPEED={lenta:['Lenta',190],normal:['Normal',135],rapida:['Rápida',95],extrema:['Extrema',65]};
 const SNK_SIZE={xs:['Mini',6],s:['Pequeño',10],m:['Mediano',14],l:['Grande',20]}; // [nombre, casillas por lado]
+// Tokens por llenar el mapa: de 1 a 5 según el tamaño y la velocidad
+const SNK_FRAG=5; // cada 5 frutas, 1 fragmento ◆
+const SNK_PRIZE=(size,speed)=>Math.max(1,Math.min(5,({xs:1,s:2,m:3,l:4}[size]||1)+({lenta:-1,normal:0,rapida:1,extrema:1}[speed]||0)));
 Object.assign(Juegos,{
   snakeView(mv){const s=this.st(),S=s.snake;if(!SNK_SIZE[S.size])S.size='s';if(!SNK_SPEED[S.speed])S.speed='normal';const N=SNK_SIZE[S.size][1];
     mv.innerHTML=this.head('Serpiente',true)+`<div class="view jg"><div class="jg-in"><section class="snk-wrap">
@@ -210,7 +277,7 @@ Object.assign(Juegos,{
         <div class="snk-opt"><b>Velocidad</b><div class="seg wide">${Object.entries(SNK_SPEED).map(([k,v])=>`<button class="segb" data-snk-speed="${k}" aria-pressed="${S.speed===k}">${v[0]}</button>`).join('')}</div></div>
         <div class="snk-opt"><b>Tamaño del mapa</b><div class="seg wide">${Object.entries(SNK_SIZE).map(([k,v])=>`<button class="segb" data-snk-size="${k}" aria-pressed="${S.size===k}">${v[0]} <small>${v[1]}×${v[1]}</small></button>`).join('')}</div></div>
         <p class="tnote">Como la clásica: para superarla tienes que <b>llenar todo el mapa</b> (${N*N} casillas) comiendo fruta, sin chocar con las paredes ni contigo. Flechas o WASD para moverte, espacio para pausar.</p>
-        <div class="snk-tok"><b>1 token cada vez que llenes el mapa</b><small>Mapas llenos: ${S.wins} · récord: ${S.best||0} de largo</small></div>
+        <div class="snk-tok"><b>${SNK_PRIZE(S.size,S.speed)} token${SNK_PRIZE(S.size,S.speed)>1?'s':''} si llenas este mapa</b><small>De 1 a 5: más grande y más rápido, más tokens. Y cada ${SNK_FRAG} frutas, 1 fragmento ◆ (${FRAG_TOKEN} ◆ = 1 token). Mapas llenos: ${S.wins} · récord: ${S.best||0} de largo</small></div>
         <button class="ebtn pri big" id="snkgo">${GL.play||'▶'} Jugar</button></div>
       <div class="snk-board"><canvas id="snk" tabindex="0" aria-label="Tablero de la serpiente"></canvas><div class="snk-hud"><span id="snkscore">Largo 3 / ${N*N}</span><span id="snkmsg">Pulsa «Jugar»</span></div><span class="jg-prog snk-fill"><i id="snkfill" style="width:${3/(N*N)*100}%"></i></span></div>
     </section></div></div>`;
@@ -239,11 +306,11 @@ Object.assign(Juegos,{
     const grow=!!g.food&&n[0]===g.food[0]&&n[1]===g.food[1];
     if(n[0]<0||n[1]<0||n[0]>=g.N||n[1]>=g.N||g.body.slice(grow?0:1).some(b=>b[0]===n[0]&&b[1]===n[1])){g.over=true;g.prev=null;g.fade=0;this.snkEnd(false);return;}
     g.prev=g.body.map(b=>[b[0],b[1]]);g.grew=grow;g.body.push(n);if(!grow)g.body.shift();
-    if(grow){g.pop=1;this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
+    if(grow){g.pop=1;g.eaten=(g.eaten||0)+1;if(g.eaten%SNK_FRAG===0){const st=this.st();st.frags++;this.save();this.badge();g.fragAt=performance.now();this.snkMsg(`+1 ◆ fragmento (${g.eaten} frutas)`);}this.snkHud(g);g.food=this.snkFood(g);if(!g.food||g.body.length>=g.N*g.N){g.over=true;g.win=true;g.fade=0;this.snkEnd(true);}}},
   snkEnd(win){const s=this.st(),S=s.snake,g=this._snk;S.best=Math.max(S.best||0,g?g.body.length:0);
-    if(win){S.wins++;this.save();this.give(1,'mapa de la serpiente lleno');}
+    if(win){S.wins++;this.save();this.give(SNK_PRIZE(S.size,S.speed),'mapa de la serpiente lleno');}
     else{this.save();this.snkMsg(`Has chocado con ${g?g.body.length:0} de largo. Pulsa «Jugar» para otra.`);}
-    const mv=document.getElementById('mainv');const tok=mv&&mv.querySelector('.snk-tok');if(tok)tok.innerHTML=`<b>1 token cada vez que llenes el mapa</b><small>Mapas llenos: ${S.wins} · récord: ${S.best} de largo</small>`;
+    const mv=document.getElementById('mainv');const tok=mv&&mv.querySelector('.snk-tok');if(tok)tok.innerHTML=`<b>${SNK_PRIZE(S.size,S.speed)} token${SNK_PRIZE(S.size,S.speed)>1?'s':''} si llenas este mapa</b><small>De 1 a 5: más grande y más rápido, más tokens. Y cada ${SNK_FRAG} frutas, 1 fragmento ◆ (${FRAG_TOKEN} ◆ = 1 token). Mapas llenos: ${S.wins} · récord: ${S.best} de largo</small>`;
     if(win)this.snkMsg('¡Has llenado el mapa! Pulsa «Jugar» para otra.');},
   // Dibujo: tablero, fruta que late y la serpiente como un trazo continuo que avanza «t» (0..1) entre casilla y casilla
   // Colores y tablero de fondo se preparan una vez (antes se recalculaban en cada fotograma y daba tirones)
@@ -273,6 +340,7 @@ Object.assign(Juegos,{
     x.fillStyle=acc;x.beginPath();x.arc(h[0],h[1],hr,0,Math.PI*2);x.fill();
     [[-1],[1]].forEach(([s])=>{const ex=h[0]+d[0]*c*0.14-d[1]*c*0.17*s,ey=h[1]+d[1]*c*0.14+d[0]*c*0.17*s;x.fillStyle='#fff';x.beginPath();x.arc(ex,ey,c*0.12,0,Math.PI*2);x.fill();
       x.fillStyle='#1B1B1B';x.beginPath();x.arc(ex+d[0]*c*0.04,ey+d[1]*c*0.04,c*0.06,0,Math.PI*2);x.fill();});
+    if(g.fragAt&&now){const k2=(now-g.fragAt)/900;if(k2<1){x.save();x.globalAlpha=1-k2;x.fillStyle='#6C4CF0';x.font=`800 ${Math.round(c*0.62)}px ${B.font}`;x.textAlign='center';x.textBaseline='middle';x.fillText('+1 ◆',h[0],h[1]-c*(0.8+k2*1.2));x.restore();}}
     if(g.over){g.fade=Math.min(1,(g.fade||0)+(g._dt||16)/280);x.fillStyle=`rgba(0,0,0,${0.38*g.fade})`;x.fillRect(0,0,W,W);x.globalAlpha=g.fade;x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
       x.font=`700 ${Math.round(W/14)}px ${B.font}`;x.fillText(g.win?'¡Mapa lleno!':'¡Choque!',W/2,W/2-W/30);x.font=`500 ${Math.round(W/30)}px ${B.font}`;x.fillText(`Largo ${g.body.length} de ${g.N*g.N}`,W/2,W/2+W/22);x.globalAlpha=1;}}
 });
