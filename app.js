@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.10: en el DED, al relacionar con N:M puedes elegir «Crearla sola» (la tabla intermedia) o «La hago yo»: no crea nada y te explica cómo hacerla a mano.',
   '2.8.9: al pasar del relacional al DED sin modo fácil ya no se copian las claves ajenas como columnas normales: se quitan (y las tablas intermedias que solo tenían FK). Al «Relacionar» en el DED la FK se crea sola. Con modo fácil se pasa todo con sus FK.',
   '2.8.8: al abrirse, la app ya no se pone por encima de todas las demás ventanas.',
   '2.8.7: Ajustes › General: puedes elegir si las notas se pasan solas al pasar de un diagrama a otro.',

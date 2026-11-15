@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.9';
+const VERSION='2.8.10';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -508,6 +508,7 @@ class Editor{
     if(P.ca){const r=dedPlan(P);if(!r){toast('Faltan cardinalidades: elige máximo y mínimo en las dos preguntas.','warn');return;}Object.assign(P,r);}
     const parent=P.dir==='ab'?A:B,child=P.dir==='ab'?B:A;const pkOf=t=>t.c.filter(c=>parseF(c[2]).pk);
     const uniq=(t,n)=>{let x=n,i=2;while(t.c.some(c=>lc(c[0])===lc(x)))x=n+'_'+i++;return x;};
+    if(P.type==='NM'&&P.nm==='manual'){this.pend=null;this.selIds=new Set();this.render();this.renderInsp();toast(`Haz la tabla intermedia con «Tabla» y únela a «${A.n}» y a «${B.n}» con 1:N y línea continua.`);return;}
     if(P.type==='NM'){
       if(!pkOf(A).length||!pkOf(B).length){toast(`Las dos tablas necesitan clave primaria (PK).`,'warn');return;}
       this.snap();const t={id:uid(),n:this.uniqueName(A.n+'_'+B.n,this.m.t.map(x=>x.n)),x:Math.round((A.x+B.x)/2),y:Math.round(Math.max(A.y,B.y)+160),c:[]};
@@ -985,11 +986,14 @@ class Editor{
       const opt=(k,v,txt,sub)=>`<button class="opt" data-pend="${k}" data-v="${v}" aria-pressed="${P[k]===v}"><b>${txt}</b>${sub?`<small>${sub}</small>`:''}</button>`;
       if(P.ca){const q=(side,from,to)=>{const c=P['c'+side];const sb=(k,v)=>`<button class="segb" data-pendc="${side}" data-k="${k}" data-v="${v}" aria-pressed="${c[k]===v}">${v}</button>`;
           return `<div class="cq"><div class="in-q"><b class="qe">${esc(from)}</b> ¿cuántas/os <b class="qe">${esc(to)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg">${sb('mx','1')}${sb('mx','N')}</div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('mn','0')}${sb('mn','1')}</div></div><div class="cres">junto a «${esc(to)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;};
-        const r=dedPlan(P),res=!r?'':r.type==='NM'?`N:M → se crea una tabla nueva con las dos claves (línea continua).`:`${r.type==='11'?'1:1':'1:N'} → «${esc(r.dir==='ab'?B.n:A.n)}» recibe la clave de «${esc(r.dir==='ab'?A.n:B.n)}»${r.req||r.ident?'':' (puede quedar vacía)'}.`;
+        const r=dedPlan(P),man=P.nm==='manual',res=!r?'':r.type==='NM'?(man?`N:M → no se crea nada: haz tú la tabla intermedia.`:`N:M → se crea una tabla nueva con las dos claves (línea continua).`):`${r.type==='11'?'1:1':'1:N'} → «${esc(r.dir==='ab'?B.n:A.n)}» recibe la clave de «${esc(r.dir==='ab'?A.n:B.n)}»${r.req||r.ident?'':' (puede quedar vacía)'}.`;
         h+=head('Nueva relación')+`<p class="in-p"><b>${esc(A.n)}</b> y <b>${esc(B.n)}</b></p><div class="in-sub">Cardinalidades</div>`+q('b',A.n,B.n)+q('a',B.n,A.n)+
           `<div class="in-sub">Línea</div><div class="seg wide"><button class="segb" data-pend="line" data-v="cont" aria-pressed="${P.line==='cont'}"><svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>Continua</button><button class="segb" data-pend="line" data-v="dash" aria-pressed="${P.line!=='cont'}"><svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Discontinua</button></div>
-          <p class="in-p">${P.line==='cont'?'Identificadora: la FK formará parte de la PK.':'No identificadora: la FK será una columna normal.'}</p>`+(res?`<p class="in-p"><b>${res}</b></p>`:'')+
-          `<div class="in-actions"><button class="ebtn" data-pend="cancel">Cancelar</button><button class="ebtn pri" data-pend="create">Crear relación</button></div>`;}
+          <p class="in-p">${P.line==='cont'?'Identificadora: la FK formará parte de la PK.':'No identificadora: la FK será una columna normal.'}</p>`+
+          (r&&r.type==='NM'?`<div class="in-sub">Tabla intermedia (N:M)</div><div class="seg wide"><button class="segb" data-pend="nm" data-v="auto" aria-pressed="${!man}">Crearla sola</button><button class="segb" data-pend="nm" data-v="manual" aria-pressed="${man}">La hago yo</button></div>`+
+            (man?`<ol class="in-steps"><li>Crea una tabla con «Tabla» (por ejemplo «${esc(A.n)}_${esc(B.n)}») y ponle sus columnas propias si tiene (fecha, nota…).</li><li>Relaciona «${esc(A.n)}» con ella: máximo N junto a la tabla nueva y línea <b>continua</b>.</li><li>Haz lo mismo con «${esc(B.n)}».</li></ol><p class="in-p">Así su PK queda formada por las dos claves ajenas.</p>`:''):'')+
+          (res?`<p class="in-p"><b>${res}</b></p>`:'')+
+          `<div class="in-actions"><button class="ebtn" data-pend="cancel">Cancelar</button><button class="ebtn pri" data-pend="create">${r&&r.type==='NM'&&man?'Entendido':'Crear relación'}</button></div>`;}
       else{h+=head('Nueva relación')+`<p class="in-p"><b>${esc(A.n)}</b> y <b>${esc(B.n)}</b></p>
         ${this.mode==='rel'?'':`<div class="in-sub">Tipo</div>`}<div class="seg wide"${this.mode==='rel'?' hidden':''}>${['1N','11','NM'].map(t=>`<button class="segb" data-pend="type" data-v="${t}" aria-pressed="${P.type===t}">${t==='1N'?'1:N':t==='11'?'1:1':'N:M'}</button>`).join('')}</div>
         ${P.type==='NM'?`<p class="in-p">Se crea una tabla nueva con las dos claves.</p>`:`<div class="in-sub">¿Qué tabla recibe la clave (FK)?</div>${opt('dir','ab',esc(B.n),'recibe la PK de '+esc(A.n))}${opt('dir','ba',esc(A.n),'recibe la PK de '+esc(B.n))}

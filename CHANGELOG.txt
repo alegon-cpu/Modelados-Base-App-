@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.10  (15/11/2026)
+---------------------
+- DED: N:M con tabla intermedia automatica o hecha a mano.
+
 v2.8.9  (15/11/2026)
 --------------------
 - Relacional -> DED sin modo facil: no se pasan las columnas FK ni las
