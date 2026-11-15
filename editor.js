@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.5';
+const VERSION='2.8.6';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -118,7 +118,7 @@ function erToTables(er,easy){
   const uniqueCol=(t,name)=>{let n=name,i=2;while(t.c.some(c=>lc(c[0])===lc(n)))n=name+'_'+i++;return n;};
   const pkCols=t=>t.c.filter(c=>parseF(c[2]).pk);
   const flat=(o,skip)=>{const out=[];const add=a=>{if(a.f.d){skip.d++;return;}if(a.f.m){skip.m.push([o,a]);return;}if(a.f.c){const parts=X.attrsOf(a);if(parts.length){parts.forEach(add);return;}}
-      const fl={pk:(a.f.k||a.f.p)?1:0,nul:a.f.o?1:0};out.push([a.n,guessType(a.n,fl),joinF(fl)]);};X.attrsOf(o).forEach(add);return out;};
+      const fl={pk:(a.f.k||a.f.p)?1:0,nul:a.f.o?1:0,uq:a.f.u&&!(a.f.k||a.f.p)?1:0};out.push([a.n,guessType(a.n,fl),joinF(fl)]);};X.attrsOf(o).forEach(add);return out;};
   const skip={d:0,m:[]};
   er.nodes.filter(isEnt).forEach(e=>{const t={id:uid(),n:e.n,x:0,y:0,c:flat(e,skip),_src:e.id};tables.push(t);byEnt[e.id]=t;});
   isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols);
@@ -231,6 +231,7 @@ const GL={
   link:gsv(22,'<rect x="1" y="5" width="6" height="6" fill="none" stroke="var(--c-ent)" stroke-width="1.3"/><path d="M17 3.5 21 8l-4 4.5L13 8z" fill="none" stroke="var(--c-rel)" stroke-width="1.3"/><path d="M7 8h6" stroke="currentColor" stroke-width="1.4"/>'),
   key:gsv(22,'<ellipse cx="11" cy="7" rx="9.5" ry="5.5" fill="var(--k-fill)" stroke="var(--c-key)" stroke-width="1.2"/><path d="M6 9.2h10" stroke="currentColor" stroke-width="1.6"/>'),
   partial:gsv(22,'<ellipse cx="11" cy="7" rx="9.5" ry="5.5" fill="none" stroke="var(--c-key)" stroke-width="1.2"/><path d="M6 9.2h10" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 1.6"/>'),
+  uq:gsv(22,'<text x="11" y="11.5" text-anchor="middle" font-size="10" font-weight="700" font-family="Consolas,monospace" fill="currentColor">(U)</text>'),
   opt:gsv(22,'<text x="11" y="11.5" text-anchor="middle" font-size="10" font-weight="700" font-family="Consolas,monospace" fill="currentColor">(O)</text>'),
   deriv:gsv(22,'<ellipse cx="11" cy="8" rx="9.5" ry="5.5" fill="none" stroke="var(--c-att)" stroke-width="1.3" stroke-dasharray="2.6 1.8"/>'),
   multi:gsv(22,'<ellipse cx="11" cy="8" rx="10" ry="6.5" fill="none" stroke="var(--c-att)" stroke-width="1.1"/><ellipse cx="11" cy="8" rx="7" ry="3.8" fill="none" stroke="var(--c-att)" stroke-width="1.1"/>'),
@@ -423,10 +424,10 @@ class Editor{
         if(nt==='uml'&&!rows.length){const k=(X||this.X()).ends(n).length;if(k>=3){n.w=Math.max(44,nm);n.h=44;}else{n.w=Math.max(40,nm);n.h=22;}}
         else{n.w=Math.max(70,nm,...rows.map(r=>r.t.length*6.9+24));n.h=rows.length?26+rows.length*17+6:26;}}}
     else if(isIsa(n)){n.w=56;n.h=44;}
-    else {n.lab=(n.f.c?'( '+n.n+' )':n.n)+(n.f.o?' (O)':'');n.rx=rxOf(n.lab);n.w=2*n.rx;n.h=26;}}
+    else {n.lab=(n.f.c?'( '+n.n+' )':n.n)+(n.f.u&&!n.f.k&&!n.f.p?' (U)':'')+(n.f.o?' (O)':'');n.rx=rxOf(n.lab);n.w=2*n.rx;n.h=26;}}
   // Filas de atributos dentro de la caja (pata de gallo y UML)
   rowsOf(o,X){X=X||this.X();const nt=this.not,out=[];
-    const lab=a=>{let s=(a.f.d?'/':'')+a.n;if(a.f.m)s+=nt==='uml'?' [*]':' {M}';if(a.f.o)s+=nt==='uml'?' [0..1]':' (O)';return s;};
+    const lab=a=>{let s=(a.f.d?'/':'')+a.n;if(a.f.m)s+=nt==='uml'?' [*]':' {M}';if(a.f.u&&!a.f.k&&!a.f.p)s+=nt==='uml'?' {unique}':' (U)';if(a.f.o)s+=nt==='uml'?' [0..1]':' (O)';return s;};
     const add=(a,dep)=>{out.push({id:a.id,t:(dep?'  · ':'')+lab(a),k:!!a.f.k,p:!!a.f.p&&!a.f.k,dep});if(a.f.c)X.attrsOf(a).forEach(x=>add(x,dep+1));};
     [...X.attrsOf(o)].sort((a,b)=>((b.f.k||b.f.p)?1:0)-((a.f.k||a.f.p)?1:0)).forEach(a=>add(a,0));return out;}
   uniqueName(base,list){const set=new Set(list.map(lc));if(!set.has(lc(base)))return base;let i=2;while(set.has(lc(base+i)))i++;return base+i;}
@@ -704,7 +705,7 @@ class Editor{
       I('Total',set('tot',true),{check:!!f.tot});I('Parcial',set('tot',false),{check:!f.tot});SEP();I('Exclusiva',set('dis',true),{check:f.dis!==false});I('Solapada',set('dis',false),{check:f.dis===false});SEP();
       I('Añadir subtipo',()=>this.addSubtype(n));lockI();SEP();I('Borrar jerarquía',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(n&&this.isER&&isAtt(n)){const ow=this.X().ownerOf(n);I('Renombrar',()=>this.rename(),{key:K('rename')});SEP();
-      flag('k','Clave primaria');if((ow&&ow.k==='weak')||n.f.p)flag('p','Clave parcial');flag('o','Opcional');flag('m','Multivaluado');flag('d','Derivado');flag('c','Compuesto');
+      flag('k','Clave primaria');if((ow&&ow.k==='weak')||n.f.p)flag('p','Clave parcial');flag('u','Único (UNIQUE)');flag('o','Opcional');flag('m','Multivaluado');flag('d','Derivado');flag('c','Compuesto');
       SEP();if(ow)I(`Añadir otro atributo a «${ow.n}»`,()=>this.addAttr(ow));lockI();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(n){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir columna',()=>{this.rename();this.addColumn();});
       edit();I('Borrar tabla',()=>this.deleteSel(),{danger:true,key:K('del')});}
@@ -1046,7 +1047,7 @@ class Editor{
       if(isEnt(n)){const isub=X.isaOfSub(n);h+=head('Entidad')+nameF('name',n.n,'Nombre')+chk('weak','Entidad débil',n.k==='weak','weak','Doble rectángulo')+(isub&&X.superOf(isub)?`<p class="in-p">Subtipo de <button class="lnk" data-goto="${isub.id}">${esc(X.superOf(isub).n)}</button>: hereda su clave, no necesita PK propia.</p>`:'')+this.attrList(n)+lockChk(n);}
       else if(isRel(n)){const t=X.relType(n),ne=X.ends(n).length;h+=head('Relación'+(t?` <span class="badge">${t}</span>`:''))+nameF('name',n.n,'Nombre')+chk('idrel','Identificadora',n.k==='idrel','idrel','Doble rombo')+chk('as','Entidad asociativa',!!n.f.as,'ent','Rectángulo alrededor del rombo: se puede relacionar con otras entidades')+`<div class="in-sub">Cardinalidades</div>`+this.cardBlock(n)+(ne===2?`<p class="in-p">¿Ternaria? Une una tercera entidad a la relación con Mayús + clic.</p>`:'')+this.attrList(n)+lockChk(n);}
       else{const ow=X.ownerOf(n),f=n.f;h+=head('Atributo')+nameF('name',n.n,'Nombre')+(ow?`<p class="in-p">De <button class="lnk" data-goto="${ow.id}">${esc(ow.n)}</button></p>`:`<p class="in-p warn">No está unido a nada. Usa Mayús + clic en su entidad.</p>`)+
-        `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'')+lockChk(n);}}
+        `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+(f.k||f.p?'':chk('f-u','Único',f.u,'uq','No se puede repetir: UNIQUE en el SQL'))+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'')+lockChk(n);}}
     else if(this.isER&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}
       const a=X.N[l.a],b=X.N[l.b];h+=head('Línea');if(X.cardable(l)){const r=isRel(a)?a:b;h+=this.cardBlock(r,l.id);}else h+=`<p class="in-p">${esc(a.n)} — ${esc(b.n)}</p>`;}
     else if(!this.isER&&one){const t=one,ded=this.mode==='ded',names=this.m.t.map(x=>x.n);tableDups(this.m);
@@ -1267,7 +1268,7 @@ class Editor{
       const addAttr=(o,c,fl)=>{const X=erIdx(er);if(X.attrsOf(o).some(a=>lc(a.n)===lc(c.n)))return;const nn={id:uid(),k:'attr',n:c.n,x:o.x,y:o.y,f:fl};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:o.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(o);if(!wasEmpty)ed2.placeAttr(o,nn);na++;};
       boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk);let e=eBy[lc(t.n)];
         if(!e){e={id:uid(),k:weak?'weak':'ent',n:t.n,x:Math.round(dx+(x-cx)*1.6),y:Math.round(dy+(y-cy)*1.6),f:{}};er.nodes.push(e);eBy[lc(t.n)]=e;ne++;}
-        cs.filter(c=>!c.f.fk).forEach(c=>{const fl={};if(c.f.pk){if(weak)fl.p=1;else fl.k=1;}if(c.f.nul&&!c.f.pk)fl.o=1;addAttr(e,c,fl);});});
+        cs.filter(c=>!c.f.fk).forEach(c=>{const fl={};if(c.f.pk){if(weak)fl.p=1;else fl.k=1;}if(c.f.nul&&!c.f.pk)fl.o=1;if(c.f.uq&&!c.f.pk)fl.u=1;addAttr(e,c,fl);});});
       const relNames=er.nodes.filter(isRel).map(r=>r.n),has=(A,B)=>{const X=erIdx(er);return er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());};
       const lk=(r,e,mn,mx)=>({id:uid(),a:r.id,b:e.id,mn,mx,c:`(${mn},${mx})`});
       const mkRel=(name,ends,k)=>{const r={id:uid(),k:k||'rel',n:this.uniqueName(name,relNames),x:Math.round(ends.reduce((s,x)=>s+x[0].x,0)/ends.length),y:Math.round(ends.reduce((s,x)=>s+x[0].y,0)/ends.length),f:{}};

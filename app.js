@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.6: en el E-R un atributo se puede marcar como Único (sale «(U)» al lado). Al pasarlo al relacional queda como UNIQUE y en el SQL sale la restricción UNIQUE.',
   '2.8.5: dentro de un ejercicio, la mascota se pone justo después del título del proyecto, para no tapar los botones del zoom.',
   '2.8.4: en Flappy tu mascota se ve bien (antes salía casi transparente en Windows), con un círculo detrás para que destaque.',
   '2.8.3: Flappy: antes de empezar ya se ven los tubos y un aviso de «¡Pulsa para volar!». Los fondos animados se esconden mientras juegas.',
