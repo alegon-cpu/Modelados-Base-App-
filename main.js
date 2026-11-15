@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '2.8.7';
+const VERSION = '2.8.8';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -120,9 +120,8 @@ function makeWindow(opts, query) {
     else w.center();
     if (cfg.onTop) w.setAlwaysOnTop(true);
     w.show();
-    // Recién actualizada: al frente, por encima de todo un momento, para que se vea que ha vuelto
-    if (fromUpdate && w === win) { try { w.setAlwaysOnTop(true); w.focus(); w.moveTop(); setTimeout(() => { if (!w.isDestroyed()) w.setAlwaysOnTop(!!cfg.onTop); }, 1500); } catch (e) {} }
-    updLog('ventana mostrada (' + why + ')');
+    // Ya no se pone por encima de las demás apps al abrir (antes, tras actualizar, se forzaba delante de todo)
+    if (fromUpdate && w === win) updLog('ventana mostrada (' + why + ')');
   };
   w.once('ready-to-show', () => showIt('lista'));
   w.webContents.once('did-finish-load', () => showIt('cargada'));
