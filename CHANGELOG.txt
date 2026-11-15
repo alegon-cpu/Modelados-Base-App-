@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.12  (15/11/2026)
+---------------------
+- Panel de al lado: mover y hacer zoom en el diagrama.
+
 v2.8.11  (15/11/2026)
 ---------------------
 - Panel de al lado: elegir enunciado, boceto, E-R, relacional, DED o SQL.

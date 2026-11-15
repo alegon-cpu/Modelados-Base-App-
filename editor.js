@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.11';
+const VERSION='2.8.12';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -984,8 +984,21 @@ class Editor{
     const p=this.p,empty=t=>`<p class="side-empty">${t}</p>`;
     if(cur==='sql'){const q=String(p.sql||'').trim();sv.innerHTML=q?`<pre class="side-sql">${esc(q)}</pre>`:empty('Aún no hay SQL. Genéralo en la pestaña SQL.');return;}
     let parts={};try{parts=svgParts(p,[cur]);}catch(e){parts={};}
-    const part=parts[cur];sv.innerHTML=part?`<div class="side-svg" title="Solo para mirar: para cambiarlo, ve a su pestaña">${standalone(part).replace(/^<\?xml[^>]*>\s*/,'').replace(/ width="\d+" height="\d+">/,' preserveAspectRatio="xMidYMin meet">')}</div><button class="lnk side-go" data-side-go="${cur}">Ir a ${esc(this.sideName())} →</button>`:empty(`Aún no hay nada en ${this.sideName()}.`);
-    const g=sv.querySelector('[data-side-go]');if(g)g.addEventListener('click',()=>this.app.go(p,g.dataset.sideGo));}
+    const part=parts[cur];sv.innerHTML=part?`<div class="side-svg" title="Rueda: zoom · Arrastra: mover · Doble clic: ver entero">${standalone(part).replace(/^<\?xml[^>]*>\s*/,'').replace(/ width="\d+" height="\d+">/,' preserveAspectRatio="xMidYMin meet">')}</div><button class="lnk side-go" data-side-go="${cur}">Ir a ${esc(this.sideName())} →</button>`:empty(`Aún no hay nada en ${this.sideName()}.`);
+    const g=sv.querySelector('[data-side-go]');if(g)g.addEventListener('click',()=>this.app.go(p,g.dataset.sideGo));
+    const box=sv.querySelector('.side-svg');if(box)this.sidePanZoom(box);}
+  // Mover y hacer zoom en el diagrama de al lado: rueda = zoom, arrastrar = mover, botones − + y ajustar
+  sidePanZoom(box){const svg=box.querySelector('svg');if(!svg)return;const b0=svg.getAttribute('viewBox').split(/\s+/).map(Number);let vb=[...b0];
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');const set=()=>svg.setAttribute('viewBox',vb.map(v=>Math.round(v*10)/10).join(' '));
+    const pt=(cx,cy)=>{const r=svg.getBoundingClientRect(),s=Math.max(vb[2]/r.width,vb[3]/r.height),ox=(r.width*s-vb[2])/2,oy=(r.height*s-vb[3])/2;return[vb[0]-ox+(cx-r.left)*s,vb[1]-oy+(cy-r.top)*s,s];};
+    const zoom=(f,cx,cy)=>{const r=svg.getBoundingClientRect();if(cx==null){cx=r.left+r.width/2;cy=r.top+r.height/2;}const [x,y]=pt(cx,cy),nw=Math.min(b0[2]*4,Math.max(b0[2]/12,vb[2]*f)),k=nw/vb[2];vb=[x-(x-vb[0])*k,y-(y-vb[1])*k,vb[2]*k,vb[3]*k];set();};
+    box.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.pow(1.0015,e.deltaY),e.clientX,e.clientY);},{passive:false});
+    let drag=null;box.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;const [,,sc]=pt(e.clientX,e.clientY);drag={x:e.clientX,y:e.clientY,vb:[...vb],sc};box.setPointerCapture(e.pointerId);box.classList.add('drag');});
+    box.addEventListener('pointermove',e=>{if(!drag)return;vb=[drag.vb[0]-(e.clientX-drag.x)*drag.sc,drag.vb[1]-(e.clientY-drag.y)*drag.sc,vb[2],vb[3]];set();});
+    const end=()=>{drag=null;box.classList.remove('drag');};box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
+    box.addEventListener('dblclick',()=>{vb=[...b0];set();});
+    box.insertAdjacentHTML('beforeend','<div class="side-zoom" role="group" aria-label="Zoom"><button type="button" data-z="out" title="Alejar" aria-label="Alejar">−</button><button type="button" data-z="in" title="Acercar" aria-label="Acercar">+</button><button type="button" data-z="fit" title="Ver entero (o doble clic)" aria-label="Ver entero">⤢</button></div>');
+    box.querySelector('.side-zoom').addEventListener('click',e=>{const z=e.target.closest('[data-z]');if(!z)return;if(z.dataset.z==='fit'){vb=[...b0];set();}else zoom(z.dataset.z==='in'?0.75:1.33);});}
   renderInsp(){
     const one=this.single();const any=this.selIds.size>0||this.selLink||this.pend;
     const show=this.pinned||any;this.main.classList.toggle('noinsp',!show);if(!show){this.insp.innerHTML='';return;}

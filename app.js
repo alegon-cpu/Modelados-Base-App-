@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.12: el diagrama del panel de al lado ocupa todo el alto y se puede mover y ampliar: rueda del ratón para zoom, arrastrar para moverlo, botones − + y ⤢ (o doble clic) para verlo entero.',
   '2.8.11: el panel de al lado del diagrama ya no es solo el enunciado: elige arriba qué ver (Enunciado, Boceto, E-R, Relacional, DED o SQL) para tenerlo a la vista mientras trabajas. Por defecto, el enunciado.',
   '2.8.10: en el DED, al relacionar con N:M puedes elegir «Crearla sola» (la tabla intermedia) o «La hago yo»: no crea nada y te explica cómo hacerla a mano.',
   '2.8.9: al pasar del relacional al DED sin modo fácil ya no se copian las claves ajenas como columnas normales: se quitan (y las tablas intermedias que solo tenían FK). Al «Relacionar» en el DED la FK se crea sola. Con modo fácil se pasa todo con sus FK.',

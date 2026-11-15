@@ -1169,7 +1169,8 @@ html.has-pet .toast{right:92px}
 .side-sel{flex:1;min-width:0;height:28px;padding:0 8px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);color:var(--ink);font:600 12.5px var(--f-ui)}
 .en-enun{display:flex;flex-direction:column;min-height:0;flex:1}.en-enun[hidden]{display:none}
 .side-view{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
-.side-svg{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px}.side-svg svg{display:block;width:100%;height:auto}
+.side-svg{position:relative;flex:1;min-height:240px;border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:grab;touch-action:none}.side-svg.drag{cursor:grabbing}.side-svg svg{display:block;width:100%;height:100%;position:absolute;inset:0}
+.side-zoom{position:absolute;right:8px;bottom:8px;display:flex;gap:2px;padding:2px;border-radius:7px;background:rgba(255,255,255,.92);border:1px solid #D5D2CA;box-shadow:0 1px 4px rgba(0,0,0,.12)}.side-zoom button{width:28px;height:26px;border:0;border-radius:5px;background:none;color:#2B2A27;font:700 15px var(--f-ui);cursor:pointer}.side-zoom button:hover{background:#ECEAE4}
 .side-sql{margin:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font:12px/1.5 var(--f-mono,Consolas,monospace);white-space:pre-wrap;word-break:break-word}
 .side-empty{color:var(--muted);font-size:13px;margin:8px 2px}.side-go{align-self:flex-start;font-size:12.5px}
 </style></head><body><div id="loader" role="status" aria-label="Cargando Modelado Bases"><div class="ld-in">
