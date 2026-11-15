@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.8';
+const VERSION='2.8.9';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -1225,8 +1225,13 @@ class Editor{
   copyRel(){
     const src=this.p.rel.t;if(!src.length){toast('Tu relacional está vacío.');return;}
     const easy=this.easy;
-    const doIt=()=>{this.snap();this.p.ded={notes:(this.p.ded.notes||[]),t:src.map(t=>({id:uid(),n:t.n,x:t.x,y:t.y,c:t.c.map(c=>{const f=parseF(c[2]),ty=c[1]&&c[1]!=='INT'?c[1]:guessType(c[0],f);if(!easy){delete f.fk;}return[c[0],ty,easy?c[2]:joinF(f)];})}))};carryNotes(this.p.rel,this.p.ded,true);this.selIds=new Set();this.selLink=null;this.save();this.render();this.renderInsp();this.fit(true);
-      toast(easy?'Tablas copiadas con sus relaciones. Ajusta los tipos de cada columna.':'Tablas copiadas sin relaciones. Únelas con «Relacionar» o marca FK en cada columna (con el modo fácil se copian también las relaciones).');};
+    // Sin modo fácil no se pasan las claves ajenas: ni como FK ni como columnas normales (se crean solas al «Relacionar»).
+    // Las tablas que solo tenían claves ajenas (tablas intermedias N:M sin atributos) tampoco se pasan.
+    const doIt=()=>{this.snap();let nFk=0,nTab=0;
+      const t2=src.map(t=>{const cols=t.c.filter(c=>{if(easy)return true;const fk=!!parseF(c[2]).fk;if(fk)nFk++;return !fk;}).map(c=>{const f=parseF(c[2]),ty=c[1]&&c[1]!=='INT'?c[1]:guessType(c[0],f);return[c[0],ty,c[2]];});
+        if(!easy&&t.c.length&&!cols.length){nTab++;return null;}return{id:uid(),n:t.n,x:t.x,y:t.y,c:cols};}).filter(Boolean);
+      this.p.ded={notes:(this.p.ded.notes||[]),t:t2};carryNotes(this.p.rel,this.p.ded,true);this.selIds=new Set();this.selLink=null;this.save();this.render();this.renderInsp();this.fit(true);
+      toast(easy?'Tablas copiadas con sus relaciones. Ajusta los tipos de cada columna.':`Tablas copiadas sin claves ajenas${nFk?` (${nFk} columna${nFk>1?'s':''} FK`+(nTab?` y ${nTab} tabla${nTab>1?'s':''} intermedia${nTab>1?'s':''}`:'')+' no se han pasado)':''}. Únelas con «Relacionar» y la FK se crea sola (con el modo fácil se copian también las relaciones).`);};
     if(!this.m.t.length){doIt();return;}
     this.app.confirm('Copiar el relacional','Se sustituirán las tablas del DED por las del relacional. Puedes volver atrás con Ctrl+Z.','Sustituir',doIt);
   }
