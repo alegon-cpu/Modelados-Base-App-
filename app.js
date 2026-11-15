@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.7: Ajustes › General: puedes elegir si las notas se pasan solas al pasar de un diagrama a otro.',
   '2.8.6: en el E-R un atributo se puede marcar como Único (sale «(U)» al lado). Al pasarlo al relacional queda como UNIQUE y en el SQL sale la restricción UNIQUE.',
   '2.8.5: dentro de un ejercicio, la mascota se pone justo después del título del proyecto, para no tapar los botones del zoom.',
   '2.8.4: en Flappy tu mascota se ve bien (antes salía casi transparente en Windows), con un círculo detrás para que destaque.',
@@ -499,7 +500,7 @@ const App={
         seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
         (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guardan tus proyectos y tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes van en <code>progreso-modelado.json</code>, dentro de tu carpeta de proyectos (<code>${esc(P.dir||'—')}</code>), junto a tus archivos. Si tienes GitHub conectado, se sube con ellos.</small></div><div class="row"><button class="ebtn" data-act="prog-reveal">Abrir</button><button class="ebtn pri" data-act="prog-move">Cambiar carpeta…</button></div></div>`;})()+
         tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
-        tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.');}
+        tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.')+tog('carryNotes','Pasar las notas al pasar de un diagrama a otro','Al pasar del Boceto al E-R, del E-R al relacional, del relacional al DED, etc., las notas que tengas se copian también. Quítalo si prefieres empezar sin notas.');}
     else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+
         tog('sqlDrop','Empezar borrando la base de datos','El script empieza con DROP DATABASE IF EXISTS: así se puede ejecutar varias veces. Quítalo si no quieres perder una base que ya tengas.')+
         seg('sampleRows','Filas de datos de ejemplo','Cuántas filas por tabla en «Añadir datos de ejemplo» y en la pestaña Probar.',[[3,'3'],[5,'5'],[10,'10'],[20,'20']])+

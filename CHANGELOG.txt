@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.7  (15/11/2026)
+--------------------
+- Ajustes > General: elegir si las notas pasan solas entre diagramas.
+
 v2.8.6  (15/11/2026)
 --------------------
 - E-R: atributo Unico (U), que pasa como UNIQUE al relacional y al SQL.

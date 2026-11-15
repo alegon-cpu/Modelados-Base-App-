@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.6';
+const VERSION='2.8.7';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -191,7 +191,7 @@ function isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols){
   }
 }
 // Copia las notas de un diagrama a otro (al pasar Boceto → E-R → Relacional → DED), sin repetirlas, a la derecha de lo que haya
-function carryNotes(src,dst,tables){const from=(src&&src.notes)||[];if(!from.length)return 0;dst.notes=dst.notes||[];
+function carryNotes(src,dst,tables){if(typeof Settings!=='undefined'&&Settings.get().carryNotes===false)return 0;const from=(src&&src.notes)||[];if(!from.length)return 0;dst.notes=dst.notes||[];
   const have=new Set(dst.notes.map(n=>n.from||'')),txt=new Set(dst.notes.map(n=>lc(String(n.text||'').trim())));
   const add=from.filter(n=>!have.has(n.id)&&!have.has(n.from||'-')&&!txt.has(lc(String(n.text||'').trim())));if(!add.length)return 0;
   const boxes=tables?(dst.t||[]).map(t=>{const s=tableSize(t);return[t.x,t.y,t.x+s.w,t.y+s.h];}):(dst.nodes||[]).map(n=>[n.x-60,n.y-30,n.x+60,n.y+30]);
