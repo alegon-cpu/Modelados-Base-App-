@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.10';
+const VERSION='2.8.11';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -300,7 +300,7 @@ window.addEventListener('blur',closeCtx);window.addEventListener('resize',closeC
 /* ===================== Editor ===================== */
 class Editor{
   constructor(app){this.app=app;this.p=null;this.mode='er';this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;this.hist=[];this.redo=[];this.editing=false;
-    const st=typeof Settings!=='undefined'?Settings.get():{};this.showEnun=st.showEnun!==false;this.pinned=!!st.pinInsp;this.easy=!!st.easy;}
+    const st=typeof Settings!=='undefined'?Settings.get():{};this.showEnun=st.showEnun!==false;this.side=st.sidePane||'enun';this.pinned=!!st.pinInsp;this.easy=!!st.easy;}
   get m(){return this.p[this.mode]}
   get isER(){return this.mode==='er'||this.mode==='bo'}
   get isBo(){return this.mode==='bo'}
@@ -314,12 +314,12 @@ class Editor{
   mount(el){
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
-      <div class="ed-main"><div class="ed-en"><p class="lbl">Enunciado</p>${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div>${sp('en','Ancho del enunciado')}
+      <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
       <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una por línea · entidad: <code>Entidad; atributo1, atributo2…</code> · relación: <code>Entidad1-Entidad2; atributo…</code> (atributos opcionales) · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre&#10;Alumno-Curso; FechaMatricula, Nota&#10;Profesor-Curso"></textarea></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
-    this.cv=el.querySelector('.ed-cv');this.svg=this.cv.querySelector('svg');this.insp=el.querySelector('.ed-in');this.enP=el.querySelector('.ed-en');this.enT=el.querySelector('#sideenun');
+    this.cv=el.querySelector('.ed-cv');this.svg=this.cv.querySelector('svg');this.insp=el.querySelector('.ed-in');this.enP=el.querySelector('.ed-en');this.enT=el.querySelector('#sideenun');this.sideSel=el.querySelector('#sidesel');this.sideSel.addEventListener('change',()=>{this.side=this.sideSel.value;try{Settings.set('sidePane',this.side);}catch(e){}this.renderSide();this.renderTools();});
     el.addEventListener('click',e=>this.onClick(e));
     this.tools.addEventListener('pointerdown',e=>this.toolDrag(e));
     this.svg.addEventListener('pointerdown',e=>this.onDown(e));
@@ -351,7 +351,7 @@ class Editor{
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
     if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
-    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');if(this._hlDraw)this._hlDraw();
+    this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');if(this._hlDraw)this._hlDraw();this.renderSide();
     this.renderTools();this.render();this.renderInsp();
     if(first){if(this.hasContent())this.fit(true);else this.centerView();}else this.applyView();
   }
@@ -373,8 +373,8 @@ class Editor{
     else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+ERDP+CH(CB('er2bo','Actualizar el boceto','Añade al boceto las entidades, atributos y líneas del E-R que le falten (no borra nada)'),CB('er2rel','Pasar al relacional','Va al relacional y crea las tablas a partir de este E-R',1));
     else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Traer de mi E-R','','fromer','Crea aquí las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Traer mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy)+(this.mode==='rel'?ERDP+CH(CB('rel2er','Actualizar el E-R','Crea en el E-R las entidades, atributos y relaciones que falten a partir de estas tablas'),CB('rel2ded','Pasar al DED','Va al DED y copia allí estas tablas',1)):CH(CB('ded2rel','Actualizar el relacional','Copia estas tablas (con sus claves ajenas) al relacional'),CB('ded2sql','Pasar al SQL','Va al SQL y genera el script a partir de este DED',1)));
     const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
-    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
-    if(this.ro)h=`<div class="tgroup"><span class="tnote rotag">${GL.lock} Solo lectura${this.p.act&&this.p.act.state==='over'?': se acabó el tiempo de la actividad':this.p.act&&this.p.act.state==='ready'?': pulsa «Empezar» para comenzar la actividad':': esta parte no hay que hacerla en la actividad'}</span></div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${B('toggleenun','Enunciado','','enun','Mostrar u ocultar el enunciado',this.showEnun)}`;
+    h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun',this.sideName(),'','enun','Mostrar u ocultar el panel de al lado (enunciado u otro diagrama)',this.showEnun)}`;
+    if(this.ro)h=`<div class="tgroup"><span class="tnote rotag">${GL.lock} Solo lectura${this.p.act&&this.p.act.state==='over'?': se acabó el tiempo de la actividad':this.p.act&&this.p.act.state==='ready'?': pulsa «Empezar» para comenzar la actividad':': esta parte no hay que hacerla en la actividad'}</span></div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${B('toggleenun',this.sideName(),'','enun','Mostrar u ocultar el panel de al lado (enunciado u otro diagrama)',this.showEnun)}`;
     this.tools.innerHTML=h;
     if(this.inAct)this.tools.querySelectorAll('[data-act=fromer],[data-act=copyrel],[data-act=easy],[data-act=bo2er]').forEach(b=>b.remove());
     this.tools.querySelectorAll('[data-tsel]').forEach(sel=>sel.addEventListener('change',()=>{Settings.set(sel.dataset.tsel,sel.value);this.renderTools();this.render();this.renderInsp();}));
@@ -974,6 +974,18 @@ class Editor{
   attrList(o){const X=this.X(),dups=erDups(this.m),at=X.attrsOf(o);
     return `<div class="in-sub">${isAtt(o)?'Partes':'Atributos'} <span class="cnt">${at.length}</span></div><div class="alist">${at.map(a=>`<button class="aitem${dups.has(a.id)?' bad':''}" data-goto="${a.id}" title="Editar «${escA(a.n)}»">${attrIcon(a)}<span>${esc(a.n)}</span>${a.f.k?'<em>PK</em>':a.f.p?'<em>parcial</em>':''}</button>`).join('')||'<span class="in-p">Sin atributos todavía.</span>'}</div>
       <button class="ebtn" data-act="${isAtt(o)?'addpart':'addattr'}">${GL.attr}<span>Añadir ${isAtt(o)?'parte':'atributo'}</span></button>`;}
+  /* ---------- panel de al lado: enunciado u otro diagrama (solo para mirar) ---------- */
+  sideOpts(){const p=this.p,act=p&&p.act,all=[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']];
+    return all.filter(([k])=>k!==this.mode&&(!act||k==='enun'||(act.show||[]).includes(k)));}
+  sideCur(){const o=this.sideOpts();return o.some(([k])=>k===this.side)?this.side:'enun';}
+  sideName(){const c=this.sideCur(),o=this.sideOpts().find(([k])=>k===c);return o?o[1]:'Enunciado';}
+  renderSide(){if(!this.sideSel||!this.p)return;const cur=this.sideCur();this.sideSel.innerHTML=this.sideOpts().map(([k,n])=>`<option value="${k}"${k===cur?' selected':''}>${n}</option>`).join('');
+    const en=this.enP.querySelector('.en-enun'),sv=this.enP.querySelector('.side-view');en.hidden=cur!=='enun';sv.hidden=cur==='enun';if(cur==='enun'){if(this._hlDraw)this._hlDraw();return;}
+    const p=this.p,empty=t=>`<p class="side-empty">${t}</p>`;
+    if(cur==='sql'){const q=String(p.sql||'').trim();sv.innerHTML=q?`<pre class="side-sql">${esc(q)}</pre>`:empty('Aún no hay SQL. Genéralo en la pestaña SQL.');return;}
+    let parts={};try{parts=svgParts(p,[cur]);}catch(e){parts={};}
+    const part=parts[cur];sv.innerHTML=part?`<div class="side-svg" title="Solo para mirar: para cambiarlo, ve a su pestaña">${standalone(part).replace(/^<\?xml[^>]*>\s*/,'').replace(/ width="\d+" height="\d+">/,' preserveAspectRatio="xMidYMin meet">')}</div><button class="lnk side-go" data-side-go="${cur}">Ir a ${esc(this.sideName())} →</button>`:empty(`Aún no hay nada en ${this.sideName()}.`);
+    const g=sv.querySelector('[data-side-go]');if(g)g.addEventListener('click',()=>this.app.go(p,g.dataset.sideGo));}
   renderInsp(){
     const one=this.single();const any=this.selIds.size>0||this.selLink||this.pend;
     const show=this.pinned||any;this.main.classList.toggle('noinsp',!show);if(!show){this.insp.innerHTML='';return;}

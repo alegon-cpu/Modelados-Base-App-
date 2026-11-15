@@ -17,16 +17,16 @@ const SVG_RULES=`.ln{stroke:var(--er-stroke);stroke-width:1.2}.mk{stroke:var(--e
 .thx.dup{fill:#FFC2BD}.cx.dup,.rnm.dup,.rcol.dup{fill:var(--bad);text-decoration:underline}
 .note{stroke-width:1.2}.note-fold{stroke-width:1.2}.nc-y{fill:#FFF4C2;stroke:#D2AE36}.nc-b{fill:#DDEBFA;stroke:#7AA3D6}.nc-g{fill:#DFF2E1;stroke:#7DBB87}.nc-p{fill:#FBE1EC;stroke:#D98AAE}.note-fold{filter:brightness(.93)}.note-tx{font:12px var(--f-ui);fill:#2B2A27}`;
 const SVG_CSS=SVG_RULES.replace(/var\(--([\w-]+)\)/g,(_,k)=>LIGHT[k]||'#000');
-function svgParts(p){
-  const ed=new Editor(null);ed.p={er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')};
+function svgParts(p,modes){
+  const ed=new Editor(null);ed.p={bo:cleanModel(p.bo||{nodes:[],links:[],notes:[]},'bo'),er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded')};
   const out={};
-  for(const mode of ['er','rel','ded']){
-    ed.mode=mode;const m=ed.p[mode];
+  for(const mode of modes||['er','rel','ded']){
+    ed.mode=mode;const m=ed.p[mode];if(mode==='bo'){m.nodes=m.nodes||[];m.links=m.links||[];}
     const nts=(m.notes||[]).map(n=>{noteSize(n);return[n.x,n.y,n.x+n.w,n.y+n.h];});
-    if(mode==='er'?!m.nodes.length&&!nts.length:!m.t.length&&!nts.length){out[mode]=null;continue;}
+    if(mode==='er'||mode==='bo'?!m.nodes.length&&!nts.length:!m.t.length&&!nts.length){out[mode]=null;continue;}
     let inner,b;
     let bs;
-    if(mode==='er'){inner=ed.erString(false);bs=m.nodes.map(n=>[n.x-n.w/2,n.y-n.h/2,n.x+n.w/2,n.y+n.h/2]);}
+    if(mode==='er'||mode==='bo'){inner=ed.erString(false);bs=m.nodes.map(n=>[n.x-n.w/2,n.y-n.h/2,n.x+n.w/2,n.y+n.h/2]);}
     else{inner=ed.tablesString(false);bs=m.t.map(t=>mode==='ded'?[t.x,t.y,t.x+t.w,t.y+t.h]:[t.x-26,t.y,t.x+t.rw,t.y+18+t.rh]);}
     bs=[...bs,...nts];b=[Math.min(...bs.map(x=>x[0])),Math.min(...bs.map(x=>x[1])),Math.max(...bs.map(x=>x[2])),Math.max(...bs.map(x=>x[3]))];
     out[mode]={inner,b};
@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.11: el panel de al lado del diagrama ya no es solo el enunciado: elige arriba qué ver (Enunciado, Boceto, E-R, Relacional, DED o SQL) para tenerlo a la vista mientras trabajas. Por defecto, el enunciado.',
   '2.8.10: en el DED, al relacionar con N:M puedes elegir «Crearla sola» (la tabla intermedia) o «La hago yo»: no crea nada y te explica cómo hacerla a mano.',
   '2.8.9: al pasar del relacional al DED sin modo fácil ya no se copian las claves ajenas como columnas normales: se quitan (y las tablas intermedias que solo tenían FK). Al «Relacionar» en el DED la FK se crea sola. Con modo fácil se pasa todo con sus FK.',
   '2.8.8: al abrirse, la app ya no se pone por encima de todas las demás ventanas.',
@@ -502,7 +503,8 @@ const App={
         seg('openTab','Pestaña al abrir un proyecto','Desde Inicio o desde la lista de la izquierda.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']])+
         seg('recentN','Proyectos recientes en Inicio','',[[4,'4'],[8,'8'],[12,'12'],[20,'20']])+
         (()=>{const P=this._prog||{};return `<div class="set-row"><div class="set-lab"><b>Dónde se guardan tus proyectos y tu progreso</b><small>Tokens, premios, temas, ajustes, atajos y recientes van en <code>progreso-modelado.json</code>, dentro de tu carpeta de proyectos (<code>${esc(P.dir||'—')}</code>), junto a tus archivos. Si tienes GitHub conectado, se sube con ellos.</small></div><div class="row"><button class="ebtn" data-act="prog-reveal">Abrir</button><button class="ebtn pri" data-act="prog-move">Cambiar carpeta…</button></div></div>`;})()+
-        tog('showEnun','Enunciado al lado del diagrama','Al abrir un diagrama, el enunciado se ve a la izquierda (también con el botón «Enunciado»).')+
+        tog('showEnun','Panel al lado del diagrama','Al abrir un diagrama se ve un panel a la izquierda (se abre y cierra con su botón de la barra).')+
+        seg('sidePane','Qué se ve en ese panel','También se cambia en el propio panel. Si eliges el diagrama en el que estás, se ve el enunciado.',[['enun','Enunciado'],['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']])+
         tog('pinInsp','Panel de propiedades siempre visible','Si no, se oculta cuando no hay nada seleccionado.')+tog('carryNotes','Pasar las notas al pasar de un diagrama a otro','Al pasar del Boceto al E-R, del E-R al relacional, del relacional al DED, etc., las notas que tengas se copian también. Quítalo si prefieres empezar sin notas.');}
     else if(sec==='sql'){h=H('SQL')+seg('sqlDialect','Gestor por defecto','Para qué se genera el SQL (también se cambia en la pestaña SQL).',[['mysql','MySQL'],['sqlserver','SQL Server'],['oracle','Oracle'],['postgres','PostgreSQL']])+
         tog('sqlDrop','Empezar borrando la base de datos','El script empieza con DROP DATABASE IF EXISTS: así se puede ejecutar varias veces. Quítalo si no quieres perder una base que ya tengas.')+
