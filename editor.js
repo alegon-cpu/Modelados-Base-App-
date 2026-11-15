@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.12';
+const VERSION='2.8.13';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -315,7 +315,7 @@ class Editor{
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una por línea · entidad: <code>Entidad; atributo1, atributo2…</code> · relación: <code>Entidad1-Entidad2; atributo…</code> (atributos opcionales) · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre&#10;Alumno-Curso; FechaMatricula, Nota&#10;Profesor-Curso"></textarea></div>
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una por línea · entidad: <code>Entidad; atributo1, atributo2…</code> · relación: <code>Entidad1-Entidad2; atributo…</code> (o de varias: <code>A-B-C</code>) (atributos opcionales) · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre&#10;Alumno-Curso; FechaMatricula, Nota&#10;Profesor-Curso"></textarea></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -582,6 +582,7 @@ class Editor{
     if(a==='bo2er'){this.boToER();return;}
     if(a==='addsub'){const i=this.single();if(isIsa(i))this.addSubtype(i);return;}
     if(a==='mkrel'){this.relBetween();return;}
+    if(a==='mkjoin'){this.joinTables();return;}
     if(a==='lock'){this.toggleLock();return;}
     if(a==='cleardiff'){this.app.clearDiff();return;}
     if(a==='addattr'){const one=this.single();if(!one)return;const X=this.X();const owner=isAtt(one)&&!one.f.c&&X.ownerOf(one)?X.ownerOf(one):one;this.addAttr(owner);return;}
@@ -686,7 +687,7 @@ class Editor{
     if(multi){
       items.push({row:[['l','Alinear a la izquierda'],['c','Centrar en horizontal'],['r','Alinear a la derecha'],['t','Alinear arriba'],['m','Centrar en vertical'],['b','Alinear abajo'],['dh','Repartir en horizontal'],['dv','Repartir en vertical']].map(([k,t])=>({icon:ALG[k],title:t,fn:()=>this.align(k)}))});
       const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
-      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size){SEP();I(ents.length===2?'Crear una relación entre las dos':`Crear una relación ${ents.length===3?'ternaria ':''}entre las ${ents.length}`,()=>this.relBetween());}
+      if(this.isER&&(!this.isBo||ents.length>=3)&&ents.length>=2&&ents.length===this.selIds.size){SEP();I(ents.length===2?'Crear una relación entre las dos':`Crear una relación ${ents.length===3?'ternaria ':''}entre las ${ents.length}`,()=>this.relBetween());}
       edit();I(`Borrar ${this.selIds.size} elementos`,()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(isNote(n)){I('Editar texto',()=>this.rename(),{key:K('rename')});
       items.push({row:Object.entries(NOTE_COLORS).map(([k,t])=>({swatch:k,title:t,on:(n.c||'y')===k,fn:()=>{this.snap();n.c=k;this.save();this.render();this.renderInsp();}}))});
@@ -733,26 +734,44 @@ class Editor{
     const en=LANG()==='en',e={id:uid(),k:'ent',n:this.uniqueName(en?'subtype':'subtipo',this.m.nodes.filter(isEnt).map(x=>x.n)),x:Math.round(i.x+(subs.length?(subs.length%2?1:-1)*Math.ceil(subs.length/2)*190:0)),y:Math.round(i.y+120),f:{}};
     this.m.nodes.push(e);this.m.links.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null});this.save();this.selIds=new Set([e.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();}
   // Relación nueva (binaria, ternaria…) entre las entidades seleccionadas
-  relBetween(){const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);if(ents.length<2)return;this.snap();
+  relBetween(){const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);if(ents.length<2)return;
+    if(this.isBo){if(ents.length<3){this.connectNodes(ents[0].id,ents[1].id);return;}this.snap();
+      const h={id:uid(),k:'rel',n:'',x:Math.round(ents.reduce((s,e)=>s+e.x,0)/ents.length),y:Math.round(ents.reduce((s,e)=>s+e.y,0)/ents.length),f:{}};
+      this.hubSpot(h);this.m.nodes.push(h);ents.forEach(e=>this.m.links.push({id:uid(),a:h.id,b:e.id,c:null,mn:null,mx:null}));
+      this.save();this.selIds=new Set([h.id]);this.selLink=null;this.boSync();this.render();this.renderInsp();toast(`Relación entre ${ents.length} entidades creada. En el texto sale como «${ents.map(e=>e.n).join('-')}».`);return;}
+    this.snap();
     const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',this.m.nodes.filter(isRel).map(x=>x.n)),x:Math.round(ents.reduce((s,e)=>s+e.x,0)/ents.length),y:Math.round(ents.reduce((s,e)=>s+e.y,0)/ents.length),f:{}};
     if(ents.length===2&&Math.hypot(ents[0].x-ents[1].x,ents[0].y-ents[1].y)<260)r.y+=90;
     this.m.nodes.push(r);ents.forEach(e=>this.m.links.push({id:uid(),a:r.id,b:e.id,c:null,mn:null,mx:null}));
     this.save();this.selIds=new Set([r.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();
     if(ents.length>2)toast(`Relación ternaria creada. En el panel, contesta las ${ents.length} preguntas de cardinalidad.`);}
+  // Relacional/DED: varias tablas seleccionadas → tabla intermedia con la PK de cada una (PK + FK)
+  joinTables(){const ts=[...this.selIds].map(x=>this.node(x)).filter(t=>t&&t.c);if(ts.length<2)return;const pkOf=t=>t.c.filter(c=>parseF(c[2]).pk);
+    const sin=ts.filter(t=>!pkOf(t).length);if(sin.length){toast(`${sin.map(t=>'«'+t.n+'»').join(', ')} no tiene${sin.length>1?'n':''} clave primaria (PK). Márcala primero.`,'warn');return;}
+    this.snap();const uniq=(t,n)=>{let x=n,i=2;while(t.c.some(c=>lc(c[0])===lc(x)))x=n+'_'+i++;return x;};
+    const t={id:uid(),n:this.uniqueName(ts.map(x=>x.n).join('_'),this.m.t.map(x=>x.n)),x:Math.round(ts.reduce((s,x)=>s+x.x,0)/ts.length),y:Math.round(Math.max(...ts.map(x=>x.y))+170),c:[]};
+    ts.forEach(par=>pkOf(par).forEach(c=>{let n=c[0];if(t.c.some(x=>lc(x[0])===lc(n)))n=c[0]+'_'+par.n;t.c.push([uniq(t,n),c[1],joinF({pk:1,fk:par.n})]);}));
+    this.m.t.push(t);this.save();this.selIds=new Set([t.id]);this.render();this.renderInsp();toast(`Tabla «${t.n}» creada con la clave de las ${ts.length}.`);}
   /* ---------- Boceto: zona de texto «Entidad; atributo1, atributo2» ---------- */
   // Lo que muestra el texto: solo eso se puede borrar escribiendo (lo que se añade en el lienzo mientras escribes no se pierde)
-  boSync(){this.boT.value=this.boText();this._boKnown=new Set([...this.m.nodes.filter(isEnt).map(n=>n.id),...this.m.links.map(l=>l.id)]);}
+  boSync(){this.boT.value=this.boText();this._boKnown=new Set([...this.m.nodes.filter(n=>isEnt(n)||isRel(n)).map(n=>n.id),...this.m.links.map(l=>l.id)]);}
   boText(){const N={};this.m.nodes.forEach(n=>N[n.id]=n);
     return [...this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')),
-      ...this.m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>N[l.a].n+'-'+N[l.b].n+((l.at||[]).length?'; '+l.at.join(', '):''))].join('\n');}
+      ...this.m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>N[l.a].n+'-'+N[l.b].n+((l.at||[]).length?'; '+l.at.join(', '):'')),
+      ...this.m.nodes.filter(isRel).map(h=>[h,this.hubEnds(h).map(e=>e.n)]).filter(([h,ns])=>ns.length>=2).map(([h,ns])=>ns.join('-')+((h.f.at||[]).length?'; '+h.f.at.join(', '):''))].join('\n');}
+  hubSpot(h,m=this.m){const N={};m.nodes.forEach(n=>N[n.id]=n);const pts=[...m.nodes.filter(n=>n!==h).map(n=>[n.x,n.y]),...m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>[(N[l.a].x+N[l.b].x)/2,(N[l.a].y+N[l.b].y)/2])];
+    const free=(x,y)=>pts.every(p=>Math.hypot(p[0]-x,p[1]-y)>80);if(free(h.x,h.y))return;
+    for(let r=60;r<400;r+=40)for(let a=0;a<8;a++){const x=h.x+Math.cos(a*Math.PI/4+Math.PI/2)*r,y=h.y+Math.sin(a*Math.PI/4+Math.PI/2)*r;if(free(x,y)){h.x=Math.round(x);h.y=Math.round(y);return;}}}
+  hubEnds(h){const N={};this.m.nodes.forEach(n=>N[n.id]=n);return this.m.links.filter(l=>l.a===h.id||l.b===h.id).map(l=>N[l.a===h.id?l.b:l.a]).filter(isEnt);}
   boParse(txt){return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^([^;:]*)[;:]?(.*)$/);
     return{name:m[1].trim(),at:m[2].split(',').map(x=>x.trim()).filter(Boolean)};}).filter(x=>x.name);}
   boSplit(lines){const ents=[],rels=[];const isRelLine=ln=>{const i=ln.name.indexOf('-');if(i<1)return null;return{a:ln.name.slice(0,i).trim(),b:ln.name.slice(i+1).trim()};};
     const names=new Set(lines.filter(ln=>!isRelLine(ln)).map(ln=>lc(ln.name)));
-    lines.forEach(ln=>{const r=isRelLine(ln);if(r&&names.has(lc(r.a)))rels.push({...r,at:ln.at,ok:names.has(lc(r.b))});else ents.push(ln);});return{ents,rels};}
+    const nary=[];lines.forEach(ln=>{const r=isRelLine(ln);if(!r||!names.has(lc(r.a))){ents.push(ln);return;}const ps=ln.name.split('-').map(x=>x.trim());
+      if(ps.length>=3)nary.push({ns:ps,at:ln.at,ok:ps.every(x=>names.has(lc(x)))});else rels.push({...r,at:ln.at,ok:names.has(lc(r.b))});});return{ents,rels,nary};}
   // El texto manda: crea, renombra o borra entidades para que coincidan con las líneas
   boFromText(txt){if(!this.isBo||!this.p)return;const sp=this.boSplit(this.boParse(txt)),lines=sp.ents,K=this._boKnown,known=x=>!K||K.has(x.id),ents=this.m.nodes.filter(n=>isEnt(n)&&known(n)),idx=new Map(ents.map((e,i)=>[e,i]));
-    const sig=()=>JSON.stringify([this.m.nodes.filter(isEnt).map(e=>[e.n,e.f.at||[]]),this.m.links.map(l=>[l.a,l.b,l.at||[]])]);const before=sig();
+    const sig=()=>JSON.stringify([this.m.nodes.filter(isEnt).map(e=>[e.n,e.f.at||[]]),this.m.nodes.filter(isRel).map(h=>[h.id,h.f.at||[]]),this.m.links.map(l=>[l.a,l.b,l.at||[]])]);const before=sig();
     const used=new Set(),as=new Array(lines.length);
     lines.forEach((ln,i)=>{const e=ents.find(e=>!used.has(e)&&lc(e.n)===lc(ln.name));if(e){used.add(e);as[i]=e;}});
     lines.forEach((ln,i)=>{if(as[i])return;let best=null;ents.forEach(e=>{if(used.has(e))return;const d=Math.abs(idx.get(e)-i);if(!best||d<best.d)best={e,d};});if(best){used.add(best.e);as[i]=best.e;}});
@@ -765,7 +784,13 @@ class Editor{
       const free=L.filter(l=>!used.has(l));sp.rels.forEach((r,i)=>{if(!as2[i]&&free.length){const l=free.shift();used.add(l);as2[i]={keep:l};}});
       return{as2,kill:L.filter(l=>!used.has(l)&&known(l))};};
     const lp=linkPlan(),lchg=lp.kill.length||sp.rels.some((r,i)=>{const x=lp.as2[i];return x&&(x.A||(!x.keep&&JSON.stringify(x.at||[])!==JSON.stringify(r.at)));});
-    if(!changes&&!lchg&&lines.length===ents.length)return;
+    const hubPlan=()=>{ // líneas «A-B-C»: una relación de varias entidades (un rombo unido a cada una)
+      const byN={};this.m.nodes.filter(isEnt).forEach(e=>{byN[lc(e.n)]=byN[lc(e.n)]||e;});const H=this.m.nodes.filter(n=>isRel(n)&&known(n)),key=ids=>[...ids].sort().join('|');
+      const used=new Set(),as3=sp.nary.map(r=>{if(!r.ok)return null;const es=r.ns.map(x=>byN[lc(x)]);if(es.some(e=>!e))return null;const k=key(es.map(e=>e.id));
+        const h=H.find(h=>!used.has(h)&&key(this.hubEnds(h).map(e=>e.id))===k);if(h){used.add(h);return{h,es};}return{es};});
+      return{as3,kill:H.filter(h=>!used.has(h))};};
+    const hp=hubPlan(),hchg=hp.kill.length||sp.nary.some((r,i)=>{const x=hp.as3[i];return x&&(!x.h||JSON.stringify(x.h.f.at||[])!==JSON.stringify(r.at));});
+    if(!changes&&!lchg&&!hchg&&lines.length===ents.length)return;
     if(!this._boEd){this.snap();this._boEd=true;}
     const kill=new Set(gone.map(e=>e.id));this.m.nodes=this.m.nodes.filter(n=>!kill.has(n.id));this.m.links=this.m.links.filter(l=>!kill.has(l.a)&&!kill.has(l.b));
     const order=[];lines.forEach((ln,i)=>{let e=as[i];
@@ -776,6 +801,11 @@ class Editor{
       sp.rels.forEach((r,i)=>{let x=lp2.as2[i];if(!x)return;if(x.keep){if(K)K.add(x.keep.id);return;}if(x.A){const l={id:uid(),a:x.A.id,b:x.B.id,c:null,mn:null,mx:null};this.m.links.push(l);x=l;}
         if(K)K.add(x.id);if(r.at.length)x.at=r.at;else delete x.at;});
       if(K)order.forEach(e=>K.add(e.id)); }
+    { const hp2=hubPlan(),hk=new Set(hp2.kill.map(h=>h.id));this.m.nodes=this.m.nodes.filter(n=>!hk.has(n.id));this.m.links=this.m.links.filter(l=>!hk.has(l.a)&&!hk.has(l.b));
+      sp.nary.forEach((r,i)=>{const x=hp2.as3[i];if(!x)return;let h=x.h;
+        if(!h){h={id:uid(),k:'rel',n:'',x:Math.round(x.es.reduce((s,e)=>s+e.x,0)/x.es.length),y:Math.round(x.es.reduce((s,e)=>s+e.y,0)/x.es.length),f:{}};
+          this.hubSpot(h);this.m.nodes.push(h);x.es.forEach(e=>this.m.links.push({id:uid(),a:h.id,b:e.id,c:null,mn:null,mx:null}));}
+        if(K)K.add(h.id);if(r.at.length)h.f.at=r.at;else delete h.f.at;}); }
     if(sig()!==before||gone.length){this.selIds=new Set([...this.selIds].filter(id=>this.node(id)));this.save();this.render();this.renderInsp();}}
   // Proyectos de la 1.9: el tipo de línea (1:N…) pasa a marcas en cada extremo
   boFix(){const bo=this.p.bo;if(!bo)return;(bo.links||[]).forEach(l=>{if(!l.t)return;const m={'11':['?1','?1'],'1N':['?1','?N'],'N1':['?N','?1'],'NM':['?N','?N']}[l.t];if(m&&!l.ea&&!l.eb){l.ea=m[0];l.eb=m[1];}delete l.t;});}
@@ -798,6 +828,12 @@ class Editor{
       if(A===B){r.x+=170;r.y-=100;}
       const ca=card(l.ea),cb=card(l.eb),lk=(e,c)=>({id:uid(),a:r.id,b:e.id,mn:c.mn,mx:c.mx,c:c.mn!=null&&c.mx!=null?`(${c.mn},${c.mx})`:null});
       er.nodes.push(r);er.links.push(lk(A,ca),lk(B,cb));nr++;relAt(r,l.at);});
+    bo.nodes.filter(isRel).forEach(h=>{const ids=new Set(),es=[];bo.links.forEach(l=>{const o=l.a===h.id?l.b:l.b===h.id?l.a:null;const t=o&&map[o];if(t&&!ids.has(t.id)){ids.add(t.id);es.push(t);}});if(es.length<2)return;
+      const key=[...ids].sort().join('|'),old=er.nodes.find(r=>isRel(r)&&[...new Set(X.ends(r).map(x=>x.e.id))].sort().join('|')===key&&X.ends(r).length===es.length);
+      if(old){relAt(old,h.f&&h.f.at);return;}
+      const r={id:uid(),k:'rel',n:h.n&&h.n.trim()?h.n.trim():this.uniqueName(LANG()==='en'?'relationship':'relacion',relNames),x:Math.round(es.reduce((s,e)=>s+e.x,0)/es.length),y:Math.round(es.reduce((s,e)=>s+e.y,0)/es.length),f:{}};relNames.push(r.n);
+      if(er.nodes.some(n=>Math.hypot(n.x-r.x,n.y-r.y)<60))r.y+=110;
+      er.nodes.push(r);es.forEach(e=>er.links.push({id:uid(),a:r.id,b:e.id,c:null,mn:null,mx:null}));nr++;relAt(r,h.f&&h.f.at);});
     ents.forEach(e=>{const t=map[e.id],have=new Set(erIdx(er).attrsOf(t).map(a=>lc(a.n)));
       (e.f.at||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
         const nn={id:uid(),k:'attr',n,x:t.x,y:t.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;});});
@@ -916,7 +952,7 @@ class Editor{
         else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?4:0}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+3)}" y="${f1(y0+3)}" width="${f1(n.w-6)}" height="${n.h-6}" rx="${nt==='crow'?3:0}" class="ent in${dup}"/>`;
           g+=`<path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
           g+=n.rows.length?rows(n.rows,y0+30,nt==='crow'):`<text x="${f1(x0+10)}" y="${f1(y0+44)}" class="tx cardq">${LANG()==='en'?'no attributes':'sin atributos'}</text>`;}}
-      else if(isRel(n)){const t=Settings.get().showType!==false?X.relType(n):'';
+      else if(isRel(n)){const t=Settings.get().showType!==false&&!bo?X.relType(n):'';
         if(!hide){const w=(n.f.as?n.w-28:n.w)/2,h=24;if(n.f.as)g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent asc${dup}"/>`;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y} ${n.x},${n.y+h} ${n.x-w},${n.y}" class="dia"/>`;if(n.k==='idrel')g+=`<polygon points="${n.x},${n.y-h+6} ${n.x+w-11},${n.y} ${n.x},${n.y+h-6} ${n.x-w+11},${n.y}" class="dia in"/>`;g+=`<text x="${n.x}" y="${n.y+(t?1:4)}" text-anchor="middle" class="tr">${esc(n.n)}</text>`+(t?`<text x="${n.x}" y="${n.y+14}" text-anchor="middle" class="tt">${t}</text>`:'');}
         else if(nt==='uml'&&!n.rows.length){
           if(n.h>30){const w=n.w/2,h=n.h/2;g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y} ${n.x},${n.y+h} ${n.x-w},${n.y}" class="dia"/>`;}
@@ -1030,11 +1066,17 @@ class Editor{
         <div class="in-sub">Alinear</div><div class="alg">${ab('l','Alinear a la izquierda',ALG.l)}${ab('c','Centrar en horizontal',ALG.c)}${ab('r','Alinear a la derecha',ALG.r)}${ab('t','Alinear arriba',ALG.t)}${ab('m','Centrar en vertical',ALG.m)}${ab('b','Alinear abajo',ALG.b)}</div>
         <div class="in-sub">Repartir</div><div class="alg">${ab('dh','Repartir en horizontal (mismo espacio)',ALG.dh)}${ab('dv','Repartir en vertical (mismo espacio)',ALG.dv)}</div>`;
       const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
-      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkrel">${GL.rel}<span>${ents.length===3?'Relación ternaria entre las 3':'Relación entre las '+ents.length}</span></button></div>`;
+      if(this.isER&&(!this.isBo||ents.length>=3)&&ents.length>=2&&ents.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkrel">${GL.rel}<span>${ents.length===3?'Relación ternaria entre las 3':'Relación entre las '+ents.length}</span></button></div>`;
+      const tbs=!this.isER?[...this.selIds].map(x=>this.node(x)).filter(t=>t&&t.c):[];
+      if(tbs.length>=2&&tbs.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkjoin">${GL.rel||''}<span>Relacionar las ${tbs.length} (tabla intermedia)</span></button></div><p class="in-p">Crea una tabla con la clave de cada una (PK y FK a la vez), como en una relación N:M${tbs.length>2?' de '+tbs.length+' tablas':''}.</p>`;
       h+=`<div class="in-actions"><button class="ebtn" data-act="lock">${GL.lock}<span>${[...this.selIds].every(x=>this.locked(this.node(x)))?'Desbloquear':'Bloquear'} posición</span></button></div>`;}
     else if(isNote(one)){h+=head('Nota')+`<label class="fld">Texto<textarea data-f="ntext" rows="5" spellcheck="true" placeholder="Escribe aquí tu duda o explicación">${esc(one.text||'')}</textarea></label>
         <div class="in-sub">Color</div><div class="seg wide">${Object.entries(NOTE_COLORS).map(([k,v])=>`<button class="segb ncsw nc-${k}" data-ncol="${k}" aria-pressed="${(one.c||'y')===k}">${v}</button>`).join('')}</div>
         <div class="in-sub">Ancho</div><div class="seg wide">${[[150,'Estrecha'],[200,'Normal'],[280,'Ancha']].map(([w,t])=>`<button class="segb" data-nw="${w}" aria-pressed="${Math.abs((one.w||180)-w)<30}">${t}</button>`).join('')}</div>`+lockChk(one);}
+    else if(this.isBo&&one&&isRel(one)){const es=this.hubEnds(one);
+      h+=head('Relación entre varias (boceto)')+`<div class="in-sub">Une a <span class="cnt">${es.length}</span></div><div class="alist">${es.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')}</div>`+
+        `<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?one.f.at.map(a=>esc(a)).join(', '):'Escríbelos en el texto de arriba: <code>'+esc(es.map(e=>e.n).join('-'))+'; atributo</code>'}</p>`+lockChk(one)+
+        `<p class="in-p">Al pulsar «Pasar al E-R» sale una sola relación${es.length===3?' ternaria':''} unida a las ${es.length}.</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(this.isBo&&one&&isEnt(one)){const X=this.X(),nb=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt);
       h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?(one.f.at.map(a=>esc(a)).join(', ')):'Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code>'}</p>`+`<div class="in-sub">Unida con <span class="cnt">${nb.length}</span></div><div class="alist">${nb.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Con nadie todavía. Mayús + clic en otra entidad para unirlas.</span>'}</div>`+lockChk(one)+
         `<p class="in-p">En el boceto solo hay entidades y líneas: sirve para pensar qué se relaciona con qué. Cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
@@ -1049,6 +1091,8 @@ class Editor{
           <div class="cq"><div class="in-q"><b class="qe">${esc(s.t.n)}</b> ¿cuántas/os <b class="qe">${esc(s.pa.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg"><button class="segb" disabled aria-pressed="true" title="La FK guarda un solo valor">1</button></div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('nul',1,nul,'0')}${sb('nul',0,!nul,'1')}</div></div><div class="cres">junto a «${esc(s.pa.n)}»: <b class="cd">(${nul?'0':'1'},1)</b></div></div>
           <div class="in-sub">Línea</div><div class="seg wide">${sb('pk',1,pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>Continua')}${sb('pk',0,!pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Discontinua')}</div><p class="in-p">${pk?'Identificadora: la FK forma parte de la PK.':'No identificadora: la FK es una columna normal.'}</p>`;})():'')+
         `<div class="in-actions"><button class="ebtn danger" data-fkact="del">${GL.clear||''}<span>Quitar la relación</span></button></div>`;}
+    else if(this.isBo&&this.selLink&&(()=>{const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();return l&&(isRel(X.N[l.a])||isRel(X.N[l.b]));})()){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X(),hb=isRel(X.N[l.a])?X.N[l.a]:X.N[l.b],e=X.N[l.a]===hb?X.N[l.b]:X.N[l.a];
+      h+=head('Línea (boceto)')+`<p class="in-p">Parte de la relación entre <b>${this.hubEnds(hb).map(x=>esc(x.n)).join(', ')}</b>. Llega a <b>${esc(e?e.n:'')}</b>.</p><p class="in-p">Las cardinalidades de una relación entre varias se ponen en el E-R.</p>`;}
     else if(this.isBo&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}const A=X.N[l.a],B=X.N[l.b];
       const q=(side,from,to)=>{const v=l['e'+side]||'??',c={mn:v[0]==='?'?null:v[0],mx:v[1]==='?'?null:v[1]};
         const sb=(k,x)=>`<button class="segb" data-bocard="${side}" data-k="${k}" data-v="${x}" aria-pressed="${c[k]===x}">${x}</button>`;
@@ -1276,7 +1320,11 @@ class Editor{
     ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)/1.8),y:Math.round(dy+(e.y-cy)/1.8),f:{}};bo.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;
       t.f=t.f||{};const at=t.f.at||[];names(e).forEach(n=>{if(!at.some(x=>lc(x)===lc(n))){at.push(n);na++;}});if(at.length)t.f.at=at;});
     const mark=x=>x&&x.mx?(x.mn||'?')+x.mx:null,used=new Set();
-    er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);if(en.length!==2){if(en.length>2)skip++;return;}
+    er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);if(en.length>2){const es=[...new Set(en.map(x=>map[x.e.id]).filter(Boolean))];if(es.length<3){skip++;return;}
+        const key=es.map(e=>e.id).sort().join('|');let h=bo.nodes.find(n=>isRel(n)&&bo.links.filter(l=>l.a===n.id||l.b===n.id).map(l=>l.a===n.id?l.b:l.a).sort().join('|')===key);
+        if(!h){h={id:uid(),k:'rel',n:'',x:Math.round(es.reduce((s,e)=>s+e.x,0)/es.length),y:Math.round(es.reduce((s,e)=>s+e.y,0)/es.length),f:{}};this.hubSpot(h,bo);bo.nodes.push(h);es.forEach(e=>bo.links.push({id:uid(),a:h.id,b:e.id,c:null,mn:null,mx:null}));nl++;}
+        const ra=names(r);if(ra.length){h.f.at=h.f.at||[];ra.forEach(n=>{if(!h.f.at.some(x=>lc(x)===lc(n))){h.f.at.push(n);na++;}});}return;}
+      if(en.length!==2)return;
       const A=map[en[0].e.id],B=map[en[1].e.id];if(!A||!B)return;
       let l=bo.links.find(l=>!used.has(l)&&((l.a===A.id&&l.b===B.id)||(l.a===B.id&&l.b===A.id)));
       if(!l){l={id:uid(),a:A.id,b:B.id};bo.links.push(l);nl++;}

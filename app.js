@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '2.8.13: relaciones entre varias entidades. En el boceto escribe «Alumno-Curso-Profesor; Nota» (o selecciona 3 entidades y pulsa «Relación…») y sale un rombo unido a las tres; al pasar al E-R es una relación ternaria. En el relacional y el DED, selecciona varias tablas y pulsa «Relacionar las N» para crear la tabla intermedia con la clave de cada una.',
   '2.8.12: el diagrama del panel de al lado ocupa todo el alto y se puede mover y ampliar: rueda del ratón para zoom, arrastrar para moverlo, botones − + y ⤢ (o doble clic) para verlo entero.',
   '2.8.11: el panel de al lado del diagrama ya no es solo el enunciado: elige arriba qué ver (Enunciado, Boceto, E-R, Relacional, DED o SQL) para tenerlo a la vista mientras trabajas. Por defecto, el enunciado.',
   '2.8.10: en el DED, al relacionar con N:M puedes elegir «Crearla sola» (la tabla intermedia) o «La hago yo»: no crea nada y te explica cómo hacerla a mano.',
