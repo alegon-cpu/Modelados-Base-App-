@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.9.0';
+const VERSION='2.9.1';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -496,7 +496,9 @@ class Editor{
       if(Math.hypot(A.x-B.x,A.y-B.y)<260){r.y+=90;}
       this.m.nodes.push(r);L.push({id:uid(),a:r.id,b:A.id,c:null,mn:null,mx:null},{id:uid(),a:r.id,b:B.id,c:null,mn:null,mx:null});
       this.save();this.selIds=new Set([r.id]);this.selLink=null;this.render();this.renderInsp();this.focusName();return;}
-    if(L.some(l=>(l.a===aId&&l.b===bId)||(l.a===bId&&l.b===aId))){toast('Esos dos elementos ya están unidos.');return;}
+    const dupRE=L.filter(l=>(l.a===aId&&l.b===bId)||(l.a===bId&&l.b===aId)).length;
+    if(dupRE&&!pairRE(A,B)){toast('Esos dos elementos ya están unidos.');return;}
+    if(dupRE){const pr=pairRE(A,B);toast(`Relación reflexiva: «${pr[1].n}» participa ${dupRE+1} veces en «${pr[0].n}». Las líneas se curvan solas; arrástralas para colocarlas.`);}
     const X=this.X();let a=aId,b=bId;
     if(isAtt(A)||isAtt(B)){
       if(isAtt(A)&&isAtt(B)){a=aId;b=bId;}else{const at=isAtt(A)?A:B,ow=isAtt(A)?B:A;a=ow.id;b=at.id;}

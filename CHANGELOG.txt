@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.9.1  (16/11/2026)
+--------------------
+- E-R: unir una relación otra vez a la misma entidad (reflexiva).
+- Serpiente: giros sin retraso.
+
 v2.9.0  (16/11/2026)
 --------------------
 - Boceto solo de texto (entidades y notas), texto más grande.

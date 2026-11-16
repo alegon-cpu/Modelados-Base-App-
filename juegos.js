@@ -342,7 +342,9 @@ Object.assign(Juegos,{
     const cv=document.getElementById('snk');cv.focus();this.snkSize();
     if(!this._snkKey){this._snkKey=e=>{const G=this._snk;if(!G||!document.getElementById('snk'))return;const k=e.key.toLowerCase(),D={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]}[k];
       if(D||k===' '){e.preventDefault();e.stopPropagation();}if(k===' '){if(!G.over){G.pause=!G.pause;this.snkMsg(G.pause?'Pausa (espacio para seguir)':'');}return;}
-      if(D&&G.q.length<3){const last=G.q.length?G.q[G.q.length-1]:G.dir;if(last[0]!==-D[0]||last[1]!==-D[1])G.q.push(D);}};window.addEventListener('keydown',this._snkKey,true);}
+      if(D&&G.q.length<3){const last=G.q.length?G.q[G.q.length-1]:G.dir;if((last[0]!==-D[0]||last[1]!==-D[1])&&(last[0]!==D[0]||last[1]!==D[1])){G.q.push(D);
+        // Giro al momento: si ya ha pasado parte del paso, se avanza ya en la nueva dirección (sin esperar al siguiente paso)
+        if(G.q.length===1&&!G.pause&&!G.over&&G.acc>=G.speed*0.35){G.acc=0;this.snkTick(G);}}}};window.addEventListener('keydown',this._snkKey,true);}
     this.snkMsg('');this.snkHud(g);
     const frame=t=>{const G=this._snk;if(G!==g)return;if(!document.getElementById('snk')){this.stopAll();return;}
       if(!g.last)g.last=t;const dt=Math.min(100,t-g.last);g.last=t;g._dt=dt;
