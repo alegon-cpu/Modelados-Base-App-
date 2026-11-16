@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.3.0';
+const VERSION='3.4.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -319,7 +319,7 @@ class Editor{
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
       <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · solo los nombres: la clave, el tipo y las relaciones se hacen en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre"></textarea></div>
-      <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
+      <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div><div class="minimap" hidden title="Minimapa: pincha o arrastra para moverte"><svg aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
     this.cv=el.querySelector('.ed-cv');this.svg=this.cv.querySelector('svg');this.insp=el.querySelector('.ed-in');this.enP=el.querySelector('.ed-en');this.enT=el.querySelector('#sideenun');this.sideSel=el.querySelector('#sidesel');this.sideSel.addEventListener('change',()=>{this.side=this.sideSel.value;try{Settings.set('sidePane',this.side);}catch(e){}this.renderSide();this.renderTools();});
@@ -330,6 +330,8 @@ class Editor{
     this.svg.addEventListener('pointerup',e=>this.onUp(e));
     this.svg.addEventListener('pointercancel',e=>this.onUp(e));
     this.cv.addEventListener('contextmenu',e=>e.preventDefault());
+    this.mini=this.cv.querySelector('.minimap');{let on=false;this.mini.addEventListener('pointerdown',e=>{if(e.button!==0)return;on=true;this.mini.setPointerCapture(e.pointerId);this.mini.classList.add('drag');this.miniGo(e);e.preventDefault();});
+      this.mini.addEventListener('pointermove',e=>{if(on)this.miniGo(e);});const off=()=>{on=false;this.mini.classList.remove('drag');};this.mini.addEventListener('pointerup',off);this.mini.addEventListener('pointercancel',off);}
     this.cv.addEventListener('wheel',e=>this.onWheel(e),{passive:false});
     this.cv.querySelector('.zoombar').addEventListener('click',e=>{const b=e.target.closest('[data-zoom]');if(!b)return;const k=b.dataset.zoom;
       if(k==='fit')this.fit();else if(k==='reset')this.zoomAt(1);else this.zoomAt(this.v.z*(k==='in'?1.2:1/1.2));});
@@ -390,7 +392,8 @@ class Editor{
   clampView(){const v=this.v,s=this.viewSize(),m=400;v.x=Math.min(W-s.w+m,Math.max(-m,v.x));v.y=Math.min(H-s.h+m,Math.max(-m,v.y));if(s.w>W+2*m)v.x=(W-s.w)/2;if(s.h>H+2*m)v.y=(H-s.h)/2;}
   applyView(){if(!this.p||!this.svg||!this.p._views)return;this.clampView();const v=this.v,s=this.viewSize();this.svg.setAttribute('viewBox',`${f1(v.x)} ${f1(v.y)} ${f1(s.w)} ${f1(s.h)}`);
     const z=this.cv.querySelector('.zpct');if(z)z.textContent=Math.round(v.z*100)+' %';
-    const t=this.svg.querySelector('.emp');if(t){t.setAttribute('x',f1(v.x+s.w/2));t.setAttribute('y',f1(v.y+s.h/2));}}
+    const t=this.svg.querySelector('.emp');if(t){t.setAttribute('x',f1(v.x+s.w/2));t.setAttribute('y',f1(v.y+s.h/2));}
+    this.updateMini();}
   keepSelVisible(){const ids=[...this.selIds];if(!ids.length)return;const v=this.v,s=this.viewSize(),pad=30/v.z;
     const bs=ids.map(id=>this.node(id)).filter(Boolean).map(n=>this.boxOf(n));if(!bs.length)return;
     const x1=Math.max(...bs.map(b=>b[2])),x0=Math.min(...bs.map(b=>b[0]));
@@ -653,7 +656,7 @@ class Editor{
     (C.notes||[]).forEach(n=>{const id=uid();this.notes.push({...n,id,x:n.x+off,y:n.y+off});sel.add(id);});
     this.selIds=sel;this.selLink=null;this.save();this.render();this.renderInsp();
   }
-  nudge(dx,dy){if(!this.selIds.size)return;this.snap();const X=this.isER?this.X():null,moved=new Set();
+  nudge(dx,dy){if(!this.selIds.size)return;const now=Date.now();if(!this._nudgeT||now-this._nudgeT>700)this.snap();this._nudgeT=now;const X=this.isER?this.X():null,moved=new Set();
     const mv=n=>{if(moved.has(n.id)||this.locked(n))return;moved.add(n.id);n.x+=dx;n.y+=dy;if(X&&!isAtt(n))X.attrsOf(n).forEach(mv);};
     this.selIds.forEach(id=>{const n=this.node(id);if(n)mv(n);});this.save();this.render();}
   key(e){ // atajos del lienzo (llamado por la app)
@@ -674,7 +677,7 @@ class Editor{
     for(const [a,t] of Object.entries(mk))if(K(a)){const okHere=t==='note'||(t==='table'?!this.isER:this.isER&&(!this.isBo||t==='ent'));if(!okHere)return false;return go(()=>this.create(t));}
     if(K('del')||e.key==='Backspace'||(e.key==='Delete'&&!KEYS().del))return go(()=>this.deleteSel());
     if(e.key==='Escape'){this.connect=false;this.from=null;this.pend=null;this.selIds=new Set();this.selLink=null;this.renderTools();this.render();this.renderInsp();return true;}
-    const st=e.shiftKey?10:1;const arrows={arrowleft:[-st,0],arrowright:[st,0],arrowup:[0,-st],arrowdown:[0,st]};
+    const st=Settings.get().snap?20:e.shiftKey?10:1;const arrows={arrowleft:[-st,0],arrowright:[st,0],arrowup:[0,-st],arrowdown:[0,st]};
     if(arrows[k]&&this.selIds.size){e.preventDefault();this.nudge(...arrows[k]);return true;}
     return false;
   }
@@ -920,22 +923,49 @@ class Editor{
   onMove(e){
     if(this.pan){if(Math.hypot(e.clientX-this.pan.x0,e.clientY-this.pan.y0)>4)this.pan.moved=true;this.v.x=this.pan.vx-(e.clientX-this.pan.x0)/this.v.z;this.v.y=this.pan.vy-(e.clientY-this.pan.y0)/this.v.z;this.applyView();return;}
     if(this.bendDrag){const d=this.bendDrag,p=this.pt(e),g=boGeo(d.A,d.B,0);let v=Math.round((p.x-g.mid[0])*g.n[0]+(p.y-g.mid[1])*g.n[1]);if(Math.abs(v)<10)v=0;
-      if(!d.moved){if(Math.abs(v-this.lineBend(d.l))<4)return;this.snap();d.moved=true;}d.l.bend=v;this.render();return;}
+      if(!d.moved){if(Math.abs(v-this.lineBend(d.l))<4)return;this.snap();d.moved=true;}d.l.bend=v;this.renderSoon();return;}
     if(this.drag){const d=this.drag,p=this.pt(e);let dx=p.x-d.x0,dy=p.y-d.y0;if(!d.moved){if(Math.hypot(dx,dy)<3)return;this.snap();d.moved=true;}
+      this._guides=null;
       if(Settings.get().snap&&d.list.length){const o=d.list[0];dx=Math.round((o.ox+dx)/20)*20-o.ox;dy=Math.round((o.oy+dy)/20)*20-o.oy;}
-      d.list.forEach(it=>{it.n.x=Math.round(Math.min(W-20,Math.max(20,it.ox+dx)));it.n.y=Math.round(Math.min(H-20,Math.max(20,it.oy+dy)));});this.render();return;}
-    if(this.band){const p=this.pt(e);this.band.x1=p.x;this.band.y1=p.y;this.render();}
+      else if(Settings.get().guides!==false&&d.list.length&&!e.altKey){const g=this.guideSnap(d,dx,dy);dx=g.dx;dy=g.dy;this._guides=g.svg;}
+      d.list.forEach(it=>{it.n.x=Math.round(Math.min(W-20,Math.max(20,it.ox+dx)));it.n.y=Math.round(Math.min(H-20,Math.max(20,it.oy+dy)));});this.renderSoon();return;}
+    if(this.band){const p=this.pt(e);this.band.x1=p.x;this.band.y1=p.y;this.renderSoon();}
   }
+  // Repinta en el siguiente fotograma (al arrastrar llegan muchos más movimientos del ratón que fotogramas)
+  // (con un temporizador de respaldo: si Windows cree que la ventana está tapada, requestAnimationFrame no llega)
+  renderSoon(){if(this._raf)return;const go=()=>{if(this._raf)this.render();};this._raf=requestAnimationFrame(go);this._rafT=setTimeout(go,40);}
+  // Guías de alineación: si un borde o el centro de lo que mueves queda casi alineado con otro elemento, se pega y se dibuja una línea
+  guideSnap(d,dx,dy){
+    const it=d.list.find(x=>x.n.id===d.click)||d.list[0],n=it.n,moving=new Set(d.list.map(x=>x.n.id));
+    const b=this.boxOf(n),ox=b[0]-n.x,oy=b[1]-n.y,w=b[2]-b[0],h=b[3]-b[1];
+    const x0=it.ox+dx+ox,y0=it.oy+dy+oy,me={x:[x0,x0+w/2,x0+w],y:[y0,y0+h/2,y0+h]},th=7/this.v.z;
+    let bx=null,by=null;
+    for(const o of this.items()){if(moving.has(o.id))continue;const c=this.boxOf(o),ot={x:[c[0],(c[0]+c[2])/2,c[2]],y:[c[1],(c[1]+c[3])/2,c[3]]};
+      for(const a of me.x)for(const t of ot.x){const df=t-a;if(Math.abs(df)<=th&&(!bx||Math.abs(df)<Math.abs(bx.df)))bx={df,at:t,c};}
+      for(const a of me.y)for(const t of ot.y){const df=t-a;if(Math.abs(df)<=th&&(!by||Math.abs(df)<Math.abs(by.df)))by={df,at:t,c};}}
+    if(bx)dx+=bx.df;if(by)dy+=by.df;
+    const ny0=it.oy+dy+oy,nx0=it.ox+dx+ox,sw=f1(1.2/this.v.z),da=`${f1(5/this.v.z)} ${f1(4/this.v.z)}`;let svg='';
+    if(bx)svg+=`<line class="guide" x1="${f1(bx.at)}" x2="${f1(bx.at)}" y1="${f1(Math.min(ny0,bx.c[1])-16)}" y2="${f1(Math.max(ny0+h,bx.c[3])+16)}" stroke-width="${sw}" stroke-dasharray="${da}"/>`;
+    if(by)svg+=`<line class="guide" y1="${f1(by.at)}" y2="${f1(by.at)}" x1="${f1(Math.min(nx0,by.c[0])-16)}" x2="${f1(Math.max(nx0+w,by.c[2])+16)}" stroke-width="${sw}" stroke-dasharray="${da}"/>`;
+    return{dx,dy,svg};}
+  // Minimapa: el diagrama en pequeño con el trozo que estás viendo; se pincha o arrastra para moverse
+  updateMini(){const mm=this.mini;if(!mm)return;const on=Settings.get().minimap!==false&&!!this.p&&this.hasContent();mm.hidden=!on;if(!on)return;
+    if(this._miniDirty||!this._miniR){this._miniDirty=false;this._miniR=this.items().map(n=>this.boxOf(n));}
+    const R=this._miniR,v=this.v,s=this.viewSize();if(!R.length)return;
+    let x0=Math.min(v.x,...R.map(b=>b[0])),y0=Math.min(v.y,...R.map(b=>b[1])),x1=Math.max(v.x+s.w,...R.map(b=>b[2])),y1=Math.max(v.y+s.h,...R.map(b=>b[3]));const pd=Math.max(x1-x0,y1-y0)*0.04;x0-=pd;y0-=pd;x1+=pd;y1+=pd;
+    const sv=mm.firstElementChild;sv.setAttribute('viewBox',`${f1(x0)} ${f1(y0)} ${f1(x1-x0)} ${f1(y1-y0)}`);this._miniVB=[x0,y0,x1-x0,y1-y0];
+    sv.innerHTML=R.map(b=>`<rect class="mi" x="${f1(b[0])}" y="${f1(b[1])}" width="${f1(b[2]-b[0])}" height="${f1(b[3]-b[1])}" rx="${f1((x1-x0)/120)}"/>`).join('')+`<rect class="mv" x="${f1(v.x)}" y="${f1(v.y)}" width="${f1(s.w)}" height="${f1(s.h)}" stroke-width="${f1((x1-x0)/90)}"/>`;}
+  miniGo(e){const sv=this.mini&&this.mini.firstElementChild;if(!sv||!this._miniVB)return;const p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(sv.getScreenCTM().inverse()),s=this.viewSize();this.v.x=q.x-s.w/2;this.v.y=q.y-s.h/2;this.applyView();}
   onUp(e){
     if(this.pan){const P=this.pan;this.pan=null;this.cv.classList.remove('panning');if(!P.moved&&P.btn===2&&e&&e.type==='pointerup')this.contextMenu(e,P);return;}
-    if(this.bendDrag){const d=this.bendDrag;this.bendDrag=null;if(d.moved){this.save();this.renderInsp();}return;}
-    if(this.drag){const d=this.drag;this.drag=null;if(d.moved)this.save();else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
+    if(this.bendDrag){const d=this.bendDrag;this.bendDrag=null;if(this._raf)this.render();if(d.moved){this.save();this.renderInsp();}return;}
+    if(this.drag){const d=this.drag;this.drag=null;if(this._raf||this._guides){this._guides=null;this.render();}if(d.moved)this.save();else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
     if(this.band){const b=this.band;this.band=null;const x0=Math.min(b.x0,b.x1),x1=Math.max(b.x0,b.x1),y0=Math.min(b.y0,b.y1),y1=Math.max(b.y0,b.y1);
       if(x1-x0>4||y1-y0>4){const s=new Set(b.add?b.base:[]);this.items().forEach(n=>{const bb=this.boxOf(n);if(bb[0]<x1&&bb[2]>x0&&bb[1]<y1&&bb[3]>y0)s.add(n.id);});this.selIds=s;}
       this.render();this.renderInsp();}
   }
   /* ---------- Dibujo ---------- */
-  render(){if(!this.p)return;{const em=this.isER?!this.m.nodes.length:!this.m.t.length;this.cv.dataset.empty=em&&!this.ro?({bo:'Escribe arriba «Entidad; atributos» o pulsa «Entidad» para empezar el boceto',er:'Pulsa «Entidad» en la barra de arriba para empezar tu E-R',rel:'Pulsa «Tabla» o «Pasar desde mi E-R» para empezar el relacional',ded:'Pulsa «Tabla», «Copiar mi relacional» o «Pasar desde mi E-R» para empezar el DED'}[this.mode]||''):'';}if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boSync();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);this.applyView();}
+  render(){if(this._raf){cancelAnimationFrame(this._raf);clearTimeout(this._rafT);this._raf=0;}if(!this.p)return;this._miniDirty=true;{const em=this.isER?!this.m.nodes.length:!this.m.t.length;this.cv.dataset.empty=em&&!this.ro?({bo:'Escribe arriba «Entidad; atributos» o pulsa «Entidad» para empezar el boceto',er:'Pulsa «Entidad» en la barra de arriba para empezar tu E-R',rel:'Pulsa «Tabla» o «Pasar desde mi E-R» para empezar el relacional',ded:'Pulsa «Tabla», «Copiar mi relacional» o «Pasar desde mi E-R» para empezar el DED'}[this.mode]||''):'';}if(this.isBo&&this.boT&&document.activeElement!==this.boT)this.boSync();this.svg.innerHTML=this.isER?this.erString(true):this.tablesString(true);if(this.drag&&this._guides)this.svg.insertAdjacentHTML('beforeend',this._guides);this.applyView();}
   gridSVG(){if(!Settings.get().grid)return '';return `<defs><pattern id="pdots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" class="pdot"/></pattern></defs><rect x="-400" y="-400" width="${W+800}" height="${H+800}" fill="url(#pdots)"/>`;}
   bandSVG(){const b=this.band;if(!b)return'';return `<rect x="${f1(Math.min(b.x0,b.x1))}" y="${f1(Math.min(b.y0,b.y1))}" width="${f1(Math.abs(b.x1-b.x0))}" height="${f1(Math.abs(b.y1-b.y0))}" class="band"/>`;}
   erString(live){

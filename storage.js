@@ -37,31 +37,49 @@ function unique(base, name, except) {
   while (fs.existsSync(path.join(base, c)) && !(except && c.toLowerCase() === except.toLowerCase())) c = `${n} (${i++})`;
   return c;
 }
+// Lo último que se escribió en cada archivo: si no ha cambiado (ni lo ha tocado nadie desde fuera), no se vuelve a escribir.
+// El autoguardado salta cada poco y antes reescribía los 4 diagramas, sus SVG y el SQL aunque solo cambiase uno.
+const written = new Map();
 function writeAtomic(file, data) {
+  const prev = written.get(file);
+  if (prev && prev.data === data) { try { if (fs.statSync(file).mtimeMs === prev.t) return; } catch (e) {} }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = file + '.tmp';
   fs.writeFileSync(tmp, data);
   fs.renameSync(tmp, file);
+  try { written.set(file, { data: typeof data === 'string' ? data : null, t: fs.statSync(file).mtimeMs }); } catch (e) { written.delete(file); }
 }
 function readJSON(file, def) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return def; } }
 const isProject = dir => fs.existsSync(path.join(dir, 'proyecto.json'));
 
-function load(base, folder) {
-  const dir = inside(base, folder);
-  const meta = readJSON(path.join(dir, 'proyecto.json'), {});
-  let enun = '';
-  try { enun = fs.readFileSync(path.join(dir, 'Enunciado.txt'), 'utf8'); } catch (e) {}
+// Los archivos de un proyecto. «read» devuelve el texto o null: así la misma lógica sirve para leer de forma normal o en paralelo
+const projFiles = dir => [path.join(dir, 'proyecto.json'), path.join(dir, 'Enunciado.txt'), ...Object.values(SUBS).map(s => path.join(dir, s, 'diagrama.json')), path.join(dir, 'SQL', 'script.sql'), path.join(dir, 'SQL', 'pruebas.sql')];
+function fromFiles(folder, dir, read) {
+  const json = (f, def) => { const t = read(f); if (t == null) return def; try { return JSON.parse(t); } catch (e) { return def; } };
+  const meta = json(path.join(dir, 'proyecto.json'), {}) || {};
+  const enun = read(path.join(dir, 'Enunciado.txt')) || '';
   const p = { folder, name: meta.name || folder, created: meta.created || 0, updated: meta.updated || 0, enun };
   if (meta.act && typeof meta.act === 'object') p.act = meta.act;
   if (typeof meta.icon === 'string' && meta.icon.length <= 8) p.icon = meta.icon;
   if (Array.isArray(meta.hl)) p.hl = meta.hl.filter(m => m && ['ent', 'rel', 'att'].includes(m.k) && (typeof m.t === 'string' || (Number.isInteger(m.s) && Number.isInteger(m.e) && m.e > m.s))).map(m => typeof m.t === 'string' ? { t: m.t, k: m.k } : { s: m.s, e: m.e, k: m.k });
   for (const [k, s] of Object.entries(SUBS)) {
-    const v = readJSON(path.join(dir, s, 'diagrama.json'), null);
+    const v = json(path.join(dir, s, 'diagrama.json'), null);
     p[k] = v && typeof v === 'object' ? v : EMPTY[k]();
   }
-  try { p.sql = fs.readFileSync(path.join(dir, 'SQL', 'script.sql'), 'utf8'); } catch (e) { p.sql = ''; }
-  try { p.test = fs.readFileSync(path.join(dir, 'SQL', 'pruebas.sql'), 'utf8'); } catch (e) { p.test = ''; }
+  p.sql = read(path.join(dir, 'SQL', 'script.sql')) || '';
+  p.test = read(path.join(dir, 'SQL', 'pruebas.sql')) || '';
   return p;
+}
+function load(base, folder) {
+  const dir = inside(base, folder);
+  return fromFiles(folder, dir, f => { try { return fs.readFileSync(f, 'utf8'); } catch (e) { return null; } });
+}
+// Igual que load, pero lee los archivos en paralelo sin bloquear la app (se usa al listar todos los proyectos al arrancar)
+async function loadAsync(base, folder) {
+  const dir = inside(base, folder), files = projFiles(dir);
+  const txt = await Promise.all(files.map(f => fs.promises.readFile(f, 'utf8').catch(() => null)));
+  const m = new Map(files.map((f, i) => [f, txt[i]]));
+  return fromFiles(folder, dir, f => m.has(f) ? m.get(f) : null);
 }
 // Recorre la carpeta de proyectos: las carpetas sin proyecto.json son carpetas para agrupar (pueden ir unas dentro de otras)
 function walk(base) {
@@ -83,6 +101,10 @@ function walk(base) {
 function list(base) {
   return walk(base).projects.map(f => load(base, f))
     .sort((a, b) => (a.created || 0) - (b.created || 0) || a.name.localeCompare(b.name));
+}
+async function listAsync(base) {
+  const ps = await Promise.all(walk(base).projects.map(f => loadAsync(base, f)));
+  return ps.sort((a, b) => (a.created || 0) - (b.created || 0) || a.name.localeCompare(b.name));
 }
 function groups(base) { return walk(base).groups.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base', numeric: true })); }
 function mkGroup(base, parent, name) {
@@ -195,4 +217,4 @@ function importZip(base, zipFile, tmpRoot) {
     return importDir(base, tmp);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
-module.exports = { SUBS, safeName, inside, list, groups, mkGroup, move, renameGroup, parentOf, load, save, create, rename, duplicate, importDir, importZip, exportZip };
+module.exports = { SUBS, safeName, inside, list, listAsync, loadAsync, groups, mkGroup, move, renameGroup, parentOf, load, save, create, rename, duplicate, importDir, importZip, exportZip };

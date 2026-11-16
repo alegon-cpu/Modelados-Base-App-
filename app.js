@@ -37,7 +37,9 @@ function standalone({inner,b}){
   const pad=60,x0=Math.floor(b[0]-pad),y0=Math.floor(b[1]-pad),w=Math.ceil(b[2]-b[0]+2*pad),h=Math.ceil(b[3]-b[1]+2*pad);
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}"><style>${SVG_CSS}</style><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#ffffff"/>${inner}</svg>\n`;
 }
-function exportSVGs(p){const parts=svgParts(p),o={};for(const k of ['er','rel','ded'])o[k]=parts[k]?standalone(parts[k]):null;return o;}
+// Las imágenes .svg solo se rehacen para los diagramas que han cambiado desde el último guardado (antes, las tres en cada autoguardado)
+function exportSVGs(p){const c=p._svgC||(p._svgC={}),o={},need=[];for(const k of ['er','rel','ded']){const key=JSON.stringify(p[k]||null);if(c[k]&&c[k].key===key)o[k]=c[k].svg;else need.push([k,key]);}
+  if(need.length){const parts=svgParts(p,need.map(x=>x[0]));for(const[k,key]of need){const s=parts[k]?standalone(parts[k]):null;c[k]={key,svg:s};o[k]=s;}}return o;}
 
 /* ===================== Captura: E-R, relacional y DED en una sola imagen ===================== */
 const SECCIONES=[['er','Modelo Entidad-Relación'],['rel','Modelo relacional'],['ded','Diagrama de estructura de datos (DED)']];
@@ -223,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.4: minimapa en el lienzo (pincha o arrastra en él para moverte) y guías de alineación al arrastrar (Alt para mover libre); los dos se activan o quitan en Ajustes > Lienzo. Arrastrar va más fluido en diagramas grandes, el autoguardado solo rehace las imágenes de los diagramas que han cambiado y no reescribe archivos iguales, y la lista de proyectos se carga sin bloquear la app. Las flechas respetan la cuadrícula y no llenan el «Deshacer». Inicio y paneles más ordenados (esquinas, sombras y tamaños iguales en todo el programa). Más seguro: Electron 44 y cada actualización se comprueba (SHA-256) antes de instalarse.',
   '3.3: 7 juegos nuevos en Juegos wapos: Memory (con un modo de BDD para unir conceptos y definiciones), Corredor, Asteroides, Cruza (la carretera y el río), Tiro al plato, Cueva (el helicóptero) y Solitario. Todos dan experiencia y fragmentos ◆, y cada uno tiene su reto para ganar un token.',
   '3.2: también puedes poner un vídeo de fondo (MP4 o WEBM), incluidos los fondos de tipo vídeo de Wallpaper Engine (al pulsar «Añadir…» se abre su carpeta si tienes Steam). Los vídeos se quedan solo en este ordenador: no se suben a GitHub. Se pausan solos con la ventana minimizada o mientras juegas.',
   '3.1: fondos personalizados. En Ajustes › Apariencia › «Fondo personalizado» puedes añadir tus propias imágenes, elegir cuál se ve detrás de la app, cuánto se ve y si va desenfocado. Las imágenes se guardan en tu carpeta de proyectos (en «.fondos») y se suben a GitHub con todo lo demás, así las tienes en cualquier ordenador. (El juego de hordas de la 3.0 se ha quitado.)',
@@ -555,7 +558,9 @@ const App={
         tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
         tog('boDiamond','Rombo en las líneas del Boceto','Un rombo pequeño, sin texto, en el centro de cada línea del Boceto (como en el E-R).')+
         tog('showType','Tipo de relación debajo del rombo','Muestra 1:1, 1:N o N:M en cada relación.')+tog('showCardQ','Marcar las cardinalidades que faltan','Pone (?,?) en las líneas que aún no tienen máximo y mínimo.')+
-        tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados.')+
+        tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados (también al moverlos con las flechas).')+
+        tog('guides','Guías de alineación al mover','Al arrastrar, si un borde o el centro queda casi alineado con otro elemento, se pega y aparece una línea. Mantén Alt para moverlo libre. (Con la cuadrícula activada no se usan.)')+
+        tog('minimap','Minimapa','Un mapa pequeño en la esquina del lienzo con todo el diagrama y lo que estás viendo. Pincha o arrastra en él para moverte.')+
         seg('zoomSpeed','Velocidad del zoom con la rueda','',[['slow','Lenta'],['normal','Normal'],['fast','Rápida']])+
         `<p class="set-sub">Para alinear varios elementos, selecciónalos (arrastrando en un hueco) y usa los botones de «Alinear» y «Repartir» del panel derecho.</p>`;}
     else if(sec==='actualizaciones'){h=H('Actualizaciones',`Tienes la versión <b>${VERSION}</b>.`)+tog('autoUpdate','Actualizar automáticamente','Las versiones nuevas se descargan solas y se instalan al cerrar la app. Si lo quitas, te avisará y elegirás tú.')+
@@ -909,8 +914,6 @@ const App={
     if(a==='upd-show'){if(this._upd){this._updLater=null;this.updateScreen(this._upd);}return;}
     if(a==='home'){Juegos.stopAll();this.showHome('inicio');return;}
     if(a==='games'||a==='games-profile'){if(this.cur&&this.cur.act&&this.cur.act.state==='run'&&!this.home){toast('Durante la actividad no se puede jugar.','warn');return;}Juegos.stopAll();Juegos.sub=a==='games'?'menu':'perfil';Juegos._qz=null;Juegos._bdq=null;this.showHome('juegos');return;}
-    if(a==='prog-choose'){const r=await this.run(()=>window.api.progChoose());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();toast('He cargado el progreso que había en esa carpeta.');this.renderSettings();return;}Sync.save(true);toast('Tu progreso se guarda ahora en '+r.dir);this.renderSettings();return;}
-    if(a==='prog-reset'){const r=await this.run(()=>window.api.progReset());if(!r)return;this._prog=r;if(await Sync.load()){this.afterSync();this.renderSettings();return;}Sync.save(true);this.renderSettings();return;}
     if(a==='prog-reveal'){this.run(()=>window.api.progReveal());return;}
     if(a==='prog-move'){this.closeModal();await this.action({dataset:{act:'basechoose'}});return;}
     if(a==='news'){this.showNews();return;}

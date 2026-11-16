@@ -11,4 +11,6 @@ const base2=fs.mkdtempSync(path.join(os.tmpdir(),'b2-'));const imp=S.importZip(b
 const l=S.list(base2);assert.strictEqual(l[0].er.nodes[0].n,'pizzeria');assert.strictEqual(l[0].enun,'Hola');
 const imp2=S.importZip(base2,zip,os.tmpdir());assert.ok(imp2[0].includes('(2)'));
 assert.throws(()=>S.load(base,'../etc'));
+S.listAsync(base2).then(la=>{assert.deepStrictEqual(la,S.list(base2));console.log('listAsync OK');});
+const pl=S.load(base,nf);S.save(base,pl,null);const before=fs.statSync(path.join(base,nf,'E-R','diagrama.json')).mtimeMs;S.save(base,pl,null);assert.strictEqual(fs.statSync(path.join(base,nf,'E-R','diagrama.json')).mtimeMs,before,'no se reescribe si no cambia');
 console.log('storage OK',l.map(x=>x.folder),imp2);

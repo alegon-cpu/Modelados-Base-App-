@@ -7,7 +7,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '3.3.0';
+const VERSION = app.getVersion(); // sale de package.json: solo hay que cambiarla allí
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -160,7 +160,8 @@ let fromUpdate = false;
 function updLog(m) { if (!fromUpdate) return; try { fs.appendFileSync(path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log'), new Date().toTimeString().slice(0, 8) + ' ' + m + '\r\n'); } catch (e) {} }
 app.whenReady().then(() => {
   if (INSTALLER) return;
-  try { protocol.handle('mbbg', req => { let n = ''; try { n = decodeURIComponent(new URL(req.url).pathname.replace(/^\//, '')); } catch (e) {} const f = vidFile(n); if (!f || !fs.existsSync(f)) return new Response('', { status: 404 }); return net.fetch(pathToFileURL(f).toString(), { headers: req.headers }); }); } catch (e) {}
+  // «mbbg://v/<vídeo>» y «mbbg://i/<imagen>»: el archivo se lee directamente (antes las imágenes iban enteras en base64 por IPC)
+  try { protocol.handle('mbbg', req => { let n = '', host = ''; try { const u = new URL(req.url); host = u.hostname; n = decodeURIComponent(u.pathname.replace(/^\//, '')); } catch (e) {} let f = null; try { f = host === 'i' ? bgFile(n) : vidFile(n); } catch (e) {} if (!f || !fs.existsSync(f)) return new Response('', { status: 404 }); return net.fetch(pathToFileURL(f).toString(), { headers: req.headers }); }); } catch (e) {}
   // Si venimos de una actualización, se apunta en el registro que la app ha arrancado
   try {
     const lg = path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log');
@@ -295,7 +296,7 @@ h('bg:add', async e => {
   const clean = nm.replace(/[\\/:*?"<>|#%]/g, '_'); let k = clean, i = 2; while (fs.existsSync(path.join(d, k))) k = clean.replace(/(\.\w+)$/, `-${i++}$1`);
   await fs.promises.copyFile(src, path.join(d, k)); return { name: (video ? 'v:' : '') + k, video }; });
 h('bg:read', n => { n = String(n || ''); if (n.startsWith('v:')) { const f = vidFile(n.slice(2)); return f && fs.existsSync(f) ? 'mbbg://v/' + encodeURIComponent(path.basename(f)) : null; }
-  const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg'); return 'data:image/' + ext + ';base64,' + fs.readFileSync(f).toString('base64'); });
+  const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; let t = 0; try { t = Math.round(fs.statSync(f).mtimeMs); } catch (e) {} return 'mbbg://i/' + encodeURIComponent(path.basename(f)) + '?t=' + t; });
 h('bg:del', n => { n = String(n || ''); const f = n.startsWith('v:') ? vidFile(n.slice(2)) : bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
 h('prog:reveal', () => { const i = progInfo(); if (i.file && fs.existsSync(i.file)) shell.showItemInFolder(i.file); else if (i.dir) shell.openPath(i.dir); });
 h('base:reveal', () => shell.openPath(base()));
@@ -357,8 +358,8 @@ h('base:choose', async () => {
   cfg.dataDir = dir; saveCfg();
   return dir;
 });
-h('proj:list', () => S.list(base()));
-h('proj:load', folder => S.load(base(), folder));
+h('proj:list', () => S.listAsync(base()));
+h('proj:load', folder => S.loadAsync(base(), folder));
 h('proj:create', (name, parent) => S.create(base(), name, parent || ''));
 h('grp:list', () => S.groups(base()));
 h('grp:create', (parent, name) => S.mkGroup(base(), parent || '', name));
@@ -389,14 +390,14 @@ h('file:erdplus', async (folder, name, text, e) => {
     filters: [{ name: T('Diagrama ERDPlus'), extensions: ['erdplus'] }] });
   if (r.canceled || !r.filePath) return null;
   fs.writeFileSync(r.filePath, String(text), 'utf8');
-  return r.filePath;
+  return remember(r.filePath);
 });
 h('proj:saveCapture', (folder, name, b64) => {
   const dir = path.join(S.inside(base(), folder), 'Captura');
   fs.mkdirSync(dir, { recursive: true });
   const f = path.join(dir, S.safeName(name) + '.png');
   fs.writeFileSync(f, Buffer.from(String(b64), 'base64'));
-  return f;
+  return remember(f);
 });
 // Guardar un texto (exportar .sql para Workbench / phpMyAdmin)
 h('file:saveText', async (o, e) => {
@@ -407,12 +408,15 @@ h('file:saveText', async (o, e) => {
     filters: Array.isArray(o.filters) ? o.filters : [] });
   if (r.canceled || !r.filePath) return null;
   fs.writeFileSync(r.filePath, String(o.text || ''), 'utf8');
-  return r.filePath;
+  return remember(r.filePath);
 });
 h('win:reload', e => { e.sender.reload(); });
 h('app:lang', l => { LG = l === 'en' ? 'en' : 'es'; });
 h('sqljs:wasm', () => fs.readFileSync(path.join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')));
-h('file:show', f => { shell.showItemInFolder(path.resolve(String(f || ''))); });
+// Solo se enseñan archivos de la carpeta de proyectos o que la app acaba de guardar (no cualquier ruta)
+const savedFiles = new Set();
+const remember = f => { if (f) savedFiles.add(path.resolve(f)); return f; };
+h('file:show', f => { const p = path.resolve(String(f || '')); let ok = savedFiles.has(p); if (!ok) { try { ok = p.startsWith(path.resolve(base()) + path.sep); } catch (e) {} } if (!ok) throw new Error('Ese archivo no es de la app.'); shell.showItemInFolder(p); });
 // ---------- Avisos de versión nueva (Releases de GitHub) ----------
 const REPO = 'alegon-cpu/Modelados-Base-App-';
 const vnum = s => String(s || '').trim().replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -438,6 +442,9 @@ h('update:check', async () => {
   if (!r.ok) throw new Error('GitHub respondió ' + r.status);
   const j = await r.json();
   const asset = (j.assets || []).find(a => /windows.*\.zip$/i.test(a.name)) || (j.assets || []).find(a => /\.zip$/i.test(a.name)) || null;
+  // Desde la 3.4 cada Release lleva «<zip>.sha256»: se comprueba el zip antes de instalarlo
+  shaUrl = null;
+  if (asset) { const s = (j.assets || []).find(a => a.name === asset.name + '.sha256'); shaUrl = s ? s.browser_download_url : null; }
   return { current: app.getVersion(), tag: j.tag_name, name: j.name || j.tag_name, body: String(j.body || '').slice(0, 5000),
     newer: isNewer(j.tag_name, app.getVersion()), canInstall: !!asset && canSelfUpdate(),
     asset: asset && { name: asset.name, url: asset.browser_download_url, size: asset.size } };
@@ -472,7 +479,7 @@ h('update:download', async (url, e) => {
   const dir = app.getPath('downloads');
   let f = path.join(dir, name), i = 2;
   while (fs.existsSync(f)) f = path.join(dir, name.replace(/(\.zip)?$/i, ` (${i++})$1`));
-  return downloadTo(url, f, e.sender);
+  return remember(await downloadTo(url, f, e.sender));
 });
 // Busca la carpeta que contiene "Modelado Bases.exe" dentro de lo descomprimido
 function findAppDir(dir, depth = 0) {
@@ -486,6 +493,14 @@ function findAppDir(dir, depth = 0) {
 let prepared = null, prepPromise = null;
 // Electron trata los .asar como carpetas: para tocar la versión descargada hay que desactivarlo un momento
 function noAsar(fn) { const prev = process.noAsar; process.noAsar = true; try { return fn(); } finally { process.noAsar = prev; } }
+// Lee el «.sha256» publicado junto al zip (si la Release lo tiene) y lo compara con lo descargado
+async function shaOf(url) {
+  url = String(url || ''); if (!url.startsWith(DL_PREFIX)) return null;
+  const r = await net.fetch(url, { headers: { 'User-Agent': 'Modelado-Bases' } }); if (!r.ok) return null;
+  const m = /\b[a-f0-9]{64}\b/i.exec(await r.text()); return m ? m[0].toLowerCase() : null;
+}
+function fileSha(f) { return new Promise((res, rej) => { const h = require('crypto').createHash('sha256'); fs.createReadStream(f).on('error', rej).on('data', d => h.update(d)).on('end', () => res(h.digest('hex'))); }); }
+let shaUrl = null;
 async function prepareUpdate(url, sender) {
   if (!canSelfUpdate()) throw new Error('Esta copia no se puede actualizar sola.');
   if (prepared && prepared.url === url && noAsar(() => fs.existsSync(prepared.src))) return prepared;
@@ -494,6 +509,10 @@ async function prepareUpdate(url, sender) {
   fs.mkdirSync(work, { recursive: true });
   const zip = path.join(work, 'update.zip');
   await downloadTo(url, zip, sender);
+  if (shaUrl) {
+    const want = await shaOf(shaUrl), got = await fileSha(zip);
+    if (want && want !== got) { try { fs.unlinkSync(zip); } catch (e) {} throw new Error('La descarga no coincide con la publicada (SHA-256). No se instala: inténtalo otra vez.'); }
+  }
   if (!sender.isDestroyed()) sender.send('update:progress', { phase: 'extract' });
   const AdmZip = require('adm-zip');
   const src = noAsar(() => { new AdmZip(zip).extractAllTo(path.join(work, 'x'), true); return findAppDir(path.join(work, 'x')); });

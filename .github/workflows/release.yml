@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.v.outputs.skip != 'true'
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
@@ -51,7 +51,10 @@ jobs:
 
       - name: Construir el zip de Windows
         if: steps.v.outputs.skip != 'true'
-        run: bash build.sh
+        run: |
+          bash build.sh
+          # Huella del zip: la app la comprueba antes de instalar la actualización
+          sha256sum "Modelado-Bases-${{ steps.v.outputs.version }}-Windows.zip" > "Modelado-Bases-${{ steps.v.outputs.version }}-Windows.zip.sha256"
 
       - name: Publicar la Release
         if: steps.v.outputs.skip != 'true'
@@ -61,5 +64,5 @@ jobs:
         run: |
           bash release-notes.sh > notes.md
           cat notes.md
-          gh release create "v$V" "Modelado-Bases-$V-Windows.zip" --target "$GITHUB_SHA" \
+          gh release create "v$V" "Modelado-Bases-$V-Windows.zip" "Modelado-Bases-$V-Windows.zip.sha256" --target "$GITHUB_SHA" \
             --title "Modelado Bases ${V%.0}" --notes-file notes.md --latest

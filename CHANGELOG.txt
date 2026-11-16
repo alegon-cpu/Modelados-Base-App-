@@ -41,6 +41,16 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.4.0  (16/11/2026)
+--------------------
+- Minimapa en el lienzo y guías de alineación al arrastrar (Ajustes > Lienzo).
+- Arrastrar más fluido; el autoguardado solo rehace lo que ha cambiado.
+- La lista de proyectos se carga sin bloquear la app; fondos de imagen sin base64.
+- Las flechas respetan la cuadrícula y no llenan el historial de deshacer.
+- Inicio y paneles más ordenados (esquinas, sombras y tamaños unificados).
+- Electron 44 y comprobación SHA-256 de cada actualización antes de instalarla.
+- Arreglado: botones de progreso que no hacían nada (se quitan).
+
 v3.3.0  (16/11/2026)
 --------------------
 - Juegos nuevos: Memory, Corredor, Asteroides, Cruza, Tiro al plato, Cueva y Solitario.
