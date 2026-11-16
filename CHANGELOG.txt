@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.9.0  (16/11/2026)
+--------------------
+- Boceto solo de texto (entidades y notas), texto más grande.
+- E-R: líneas que se doblan arrastrándolas; reflexivas curvadas solas.
+
 v2.8.14  (16/11/2026)
 ---------------------
 - Boceto: varias relaciones entre las mismas dos entidades y líneas que se pueden doblar.

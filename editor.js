@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.14';
+const VERSION='2.9.0';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -318,7 +318,7 @@ class Editor{
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una por línea · entidad: <code>Entidad; atributo1, atributo2…</code> · relación: <code>Entidad1-Entidad2; atributo…</code> (o de varias: <code>A-B-C</code>) (atributos opcionales) · solo los nombres: la clave y el tipo se deciden en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre&#10;Alumno-Curso; FechaMatricula, Nota&#10;Profesor-Curso"></textarea></div>
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · solo los nombres: la clave, el tipo y las relaciones se hacen en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre"></textarea></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -372,7 +372,7 @@ class Editor{
     const act=!!(this.p&&this.p.act),CB=(a,txt,tip,fw)=>`<button class="ebtn ch${fw?'f':'b'}" data-act="${a}" title="${tip}">${fw?'':GL.back}<span>${txt}</span>${fw?GL.fwd:''}</button>`,
       CH=(b,f)=>act&&!(f&&/bo2er/.test(f))?'':`</div><div class="tgroup chain" role="group" aria-label="Pasar entre diagramas">${act?'':b}${f}`,
       ERDP=act?'':`</div><div class="tgroup erdp" role="group" aria-label="ERDPlus"><span class="tlab">ERDPlus</span>${B('erdplus','Exportar','','copy','Guarda tu E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar','','open','Abre un archivo .erdplus y lo pasa a tu E-R')}`;
-    if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('connect','Unir','tool','sk','Une dos entidades con una línea (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades para que las líneas se crucen lo menos posible')+CH('',CB('bo2er','Pasar al E-R','Crea en el E-R las entidades que falten y una relación por cada línea, para terminarlas allí',1));
+    if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades en el lienzo')+CH('',CB('bo2er','Pasar al E-R','Crea en el E-R las entidades que falten, con sus atributos, para terminarlas allí',1));
     else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+ERDP+CH(CB('er2bo','Actualizar el boceto','Añade al boceto las entidades, atributos y líneas del E-R que le falten (no borra nada)'),CB('er2rel','Pasar al relacional','Va al relacional y crea las tablas a partir de este E-R',1));
     else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Traer de mi E-R','','fromer','Crea aquí las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Traer mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy)+(this.mode==='rel'?ERDP+CH(CB('rel2er','Actualizar el E-R','Crea en el E-R las entidades, atributos y relaciones que falten a partir de estas tablas'),CB('rel2ded','Pasar al DED','Va al DED y copia allí estas tablas',1)):CH(CB('ded2rel','Actualizar el relacional','Copia estas tablas (con sus claves ajenas) al relacional'),CB('ded2sql','Pasar al SQL','Va al SQL y genera el script a partir de este DED',1)));
     const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
@@ -573,7 +573,7 @@ class Editor{
     const bc=e.target.closest('[data-bocard]');if(bc){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+bc.dataset.bocard,v=(l[k]||'??').split('');
       const i=bc.dataset.k==='mn'?0:1;v[i]=v[i]===bc.dataset.v?'?':bc.dataset.v;const s=v.join('');if(s==='??')delete l[k];else l[k]=s;this.save();this.render();this.renderInsp();return;}
     const bd=e.target.closest('[data-bobend]');if(bd){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const v=bd.dataset.bobend;
-      if(v==='auto')delete l.bend;else if(v==='0')l.bend=0;else l.bend=Math.max(-400,Math.min(400,this.boBend(l)+(+v)));this.save();this.render();this.renderInsp();return;}
+      if(v==='auto')delete l.bend;else if(v==='0')l.bend=0;else l.bend=Math.max(-400,Math.min(400,this.lineBend(l)+(+v)));this.save();this.render();this.renderInsp();return;}
     const be=e.target.closest('[data-boe]');if(be){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+be.dataset.boe;if(be.dataset.v)l[k]=be.dataset.v;else delete l[k];this.save();this.render();this.renderInsp();return;}
     const sk=e.target.closest('[data-skt]');if(sk){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();if(sk.dataset.skt)l.t=sk.dataset.skt;else delete l.t;this.save();this.render();this.renderInsp();return;}
     const nc=e.target.closest('[data-ncol],[data-nw]');if(nc){const n=this.single();if(!isNote(n))return;this.snap();if(nc.dataset.ncol)n.c=nc.dataset.ncol;else n.w=+nc.dataset.nw;this.save();this.render();this.renderInsp();return;}
@@ -692,12 +692,12 @@ class Editor{
     if(multi){
       items.push({row:[['l','Alinear a la izquierda'],['c','Centrar en horizontal'],['r','Alinear a la derecha'],['t','Alinear arriba'],['m','Centrar en vertical'],['b','Alinear abajo'],['dh','Repartir en horizontal'],['dv','Repartir en vertical']].map(([k,t])=>({icon:ALG[k],title:t,fn:()=>this.align(k)}))});
       const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
-      if(this.isER&&(!this.isBo||ents.length>=3)&&ents.length>=2&&ents.length===this.selIds.size){SEP();I(ents.length===2?'Crear una relación entre las dos':`Crear una relación ${ents.length===3?'ternaria ':''}entre las ${ents.length}`,()=>this.relBetween());}
+      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size){SEP();I(ents.length===2?'Crear una relación entre las dos':`Crear una relación ${ents.length===3?'ternaria ':''}entre las ${ents.length}`,()=>this.relBetween());}
       edit();I(`Borrar ${this.selIds.size} elementos`,()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(isNote(n)){I('Editar texto',()=>this.rename(),{key:K('rename')});
       items.push({row:Object.entries(NOTE_COLORS).map(([k,t])=>({swatch:k,title:t,on:(n.c||'y')===k,fn:()=>{this.snap();n.c=k;this.save();this.render();this.renderInsp();}}))});
       edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
-    else if(n&&this.isBo&&isEnt(n)){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Unir con otra entidad…',()=>{this.connect=true;this.from=n.id;this.renderTools();this.render();toast('Pulsa la otra entidad.');});
+    else if(n&&this.isBo&&isEnt(n)){I('Renombrar',()=>this.rename(),{key:K('rename')});
       edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(n&&this.isER&&isEnt(n)){const X=this.X();I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir atributo',()=>this.addAttr(n));
       I('Entidad débil',()=>{this.snap();n.k=n.k==='weak'?'ent':'weak';this.save();this.render();this.renderInsp();},{check:n.k==='weak'});
@@ -764,6 +764,8 @@ class Editor{
     return [...this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')),
       ...this.m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>N[l.a].n+'-'+N[l.b].n+((l.at||[]).length?'; '+l.at.join(', '):'')),
       ...this.m.nodes.filter(isRel).map(h=>[h,this.hubEnds(h).map(e=>e.n)]).filter(([h,ns])=>ns.length>=2).map(([h,ns])=>ns.join('-')+((h.f.at||[]).length?'; '+h.f.at.join(', '):''))].join('\n');}
+  // Curva de una línea del E-R: la que puso el usuario, o automática si hay varias entre los mismos dos elementos (p. ej. una relación reflexiva)
+  lineBend(l,m=this.m){if(l.bend!=null)return l.bend;const k=[l.a,l.b].sort().join('|'),sib=m.links.filter(x=>[x.a,x.b].sort().join('|')===k);if(sib.length<2)return 0;return (sib.indexOf(l)-(sib.length-1)/2)*80;}
   boBend(l,m=this.m,N){if(l.bend!=null)return l.bend;if(!N){N={};m.nodes.forEach(n=>N[n.id]=n);}const k=[l.a,l.b].sort().join('|');
     const sib=m.links.filter(x=>x.a!==x.b&&isEnt(N[x.a])&&isEnt(N[x.b])&&[x.a,x.b].sort().join('|')===k);if(sib.length<2)return 0;return (sib.indexOf(l)-(sib.length-1)/2)*70;}
   hubSpot(h,m=this.m){const N={};m.nodes.forEach(n=>N[n.id]=n);const pts=[...m.nodes.filter(n=>n!==h).map(n=>[n.x,n.y]),...m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>[(N[l.a].x+N[l.b].x)/2,(N[l.a].y+N[l.b].y)/2])];
@@ -896,7 +898,7 @@ class Editor{
       this.render();return;
     }
     if(g){const id=g.dataset.id;
-      if(e.shiftKey&&this.selIds.size===1&&!this.selIds.has(id)){const a=[...this.selIds][0];if(this.isER)this.connectNodes(a,id);else this.startRelate(a,id);return;}
+      if(e.shiftKey&&!this.isBo&&this.selIds.size===1&&!this.selIds.has(id)){const a=[...this.selIds][0];if(this.isER)this.connectNodes(a,id);else this.startRelate(a,id);return;}
       if(e.ctrlKey||e.metaKey){if(this.selIds.has(id))this.selIds.delete(id);else this.selIds.add(id);this.selLink=null;this.render();this.renderInsp();return;}
       const already=this.selIds.has(id);if(!already){this.selIds=new Set([id]);this.selLink=null;this.pend=null;}
       const p=this.pt(e),X=this.isER?this.X():null,list=[],seen=new Set();
@@ -907,7 +909,7 @@ class Editor{
       if(!already){this.render();this.renderInsp();}return;}
     const fkl=e.target.closest('[data-fk]');if(fkl&&!this.isER){this.selIds=new Set();this.selLink=fkl.dataset.fk;this.pend=null;this.connect=false;this.from=null;this.render();this.renderInsp();return;}
     if(hl&&this.isER){this.selIds=new Set();this.selLink=hl.dataset.lid;this.pend=null;
-      if(this.isBo){const l=this.m.links.find(x=>x.id===hl.dataset.lid),A=l&&this.node(l.a),B=l&&this.node(l.b);if(l&&isEnt(A)&&isEnt(B)&&A!==B){this.bendDrag={l,A,B,moved:false};this.svg.setPointerCapture(e.pointerId);}}
+      {const l=this.m.links.find(x=>x.id===hl.dataset.lid),A=l&&this.node(l.a),B=l&&this.node(l.b);if(l&&A&&B&&A!==B){this.bendDrag={l,A,B,moved:false};this.svg.setPointerCapture(e.pointerId);}}
       this.render();this.renderInsp();return;}
     if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();
     const p=this.pt(e);this.band={x0:p.x,y0:p.y,x1:p.x,y1:p.y,add:e.shiftKey||e.ctrlKey,base:new Set(this.selIds)};this.svg.setPointerCapture(e.pointerId);
@@ -916,7 +918,7 @@ class Editor{
   onMove(e){
     if(this.pan){if(Math.hypot(e.clientX-this.pan.x0,e.clientY-this.pan.y0)>4)this.pan.moved=true;this.v.x=this.pan.vx-(e.clientX-this.pan.x0)/this.v.z;this.v.y=this.pan.vy-(e.clientY-this.pan.y0)/this.v.z;this.applyView();return;}
     if(this.bendDrag){const d=this.bendDrag,p=this.pt(e),g=boGeo(d.A,d.B,0);let v=Math.round((p.x-g.mid[0])*g.n[0]+(p.y-g.mid[1])*g.n[1]);if(Math.abs(v)<10)v=0;
-      if(!d.moved){if(Math.abs(v-this.boBend(d.l))<4)return;this.snap();d.moved=true;}d.l.bend=v;this.render();return;}
+      if(!d.moved){if(Math.abs(v-this.lineBend(d.l))<4)return;this.snap();d.moved=true;}d.l.bend=v;this.render();return;}
     if(this.drag){const d=this.drag,p=this.pt(e);let dx=p.x-d.x0,dy=p.y-d.y0;if(!d.moved){if(Math.hypot(dx,dy)<3)return;this.snap();d.moved=true;}
       if(Settings.get().snap&&d.list.length){const o=d.list[0];dx=Math.round((o.ox+dx)/20)*20-o.ox;dy=Math.round((o.oy+dy)/20)*20-o.oy;}
       d.list.forEach(it=>{it.n.x=Math.round(Math.min(W-20,Math.max(20,it.ox+dx)));it.n.y=Math.round(Math.min(H-20,Math.max(20,it.oy+dy)));});this.render();return;}
@@ -940,11 +942,11 @@ class Editor{
     const card=(P,u,c,full)=>{const n=[-u[1],u[0]],d=nt==='uml'?20:32,lp=[P[0]+u[0]*d+n[0]*13,P[1]+u[1]*d+n[1]*13],an=n[0]<-.35?'end':n[0]>.35?'start':'middle';
       const txt=nt==='uml'?umlMult(c):`(${c.mn??'?'},${c.mx??'?'})`;if(nt==='crow'&&full)return '';
       return `<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card${full?'':' cardq'}">${nt==='crow'?'?':txt}</text>`;};
-    m.links.forEach(l=>{const a=N[l.a],b=N[l.b];if(!a||!b)return;if(hide&&(isAtt(a)||isAtt(b)))return;const on=live&&this.selLink===l.id;
-      const pr=pairRE(a,b),r=pr?pr[0]:null,bb=bo&&isEnt(a)&&isEnt(b)&&a!==b?this.boBend(l,m,N):0,G=bb?boGeo(a,b,bb):null;
+    m.links.forEach(l=>{const a=N[l.a],b=N[l.b];if(!a||!b||bo)return;if(hide&&(isAtt(a)||isAtt(b)))return;const on=live&&this.selLink===l.id;
+      const pr=pairRE(a,b),r=pr?pr[0]:null,bnd=a!==b?this.lineBend(l,m):0,G=bnd?boGeo(a,b,bnd):null;
       if(G){const d=`M${f1(a.x)},${f1(a.y)} Q${f1(G.C[0])},${f1(G.C[1])} ${f1(b.x)},${f1(b.y)}`;L+=`<path d="${d}" class="ln${on?' lsel':''}" fill="none"/>`+(live?`<path d="${d}" class="hitl" fill="none" data-lid="${l.id}"/>`:'');}
       else L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
-      if(r){const en=r===a?b:a;const P=hitRect(en.x,en.y,en.w,en.h,r.x-en.x,r.y-en.y);const len=Math.hypot(r.x-P[0],r.y-P[1])||1;const u=[(r.x-P[0])/len,(r.y-P[1])/len];
+      if(r){const en=r===a?b:a,T=G?{x:G.C[0],y:G.C[1]}:r;const P=hitRect(en.x,en.y,en.w,en.h,T.x-en.x,T.y-en.y);const len=Math.hypot(T.x-P[0],T.y-P[1])||1;const u=[(T.x-P[0])/len,(T.y-P[1])/len];
         const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full&&nt!=='uml')MK+=marker(P,u,c.mx!=='1',c.mn==='0');if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);}
       if(bo&&isEnt(a)&&isEnt(b)&&a!==b){
         if(Settings.get().boDiamond!==false){const mx=G?G.M[0]:(a.x+b.x)/2,my=G?G.M[1]:(a.y+b.y)/2;MK+=`<polygon points="${f1(mx)},${f1(my-13)} ${f1(mx+21)},${f1(my)} ${f1(mx)},${f1(my+13)} ${f1(mx-21)},${f1(my)}" class="dia skd"${live?` data-lid="${l.id}" style="cursor:grab"`:''}/>`;}
@@ -953,7 +955,7 @@ class Editor{
           if(full)MK+=marker(P,u,c.mx==='N',c.mn==='0');else if(c.mx)MK+=markerMax(P,u,c.mx==='N');
           if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);});}
     });
-    m.nodes.forEach(n=>{if(hide&&isAtt(n))return;let g='';const dup=dups.has(n.id)?' dup':'';const x0=n.x-n.w/2,y0=n.y-n.h/2;
+    m.nodes.forEach(n=>{if(hide&&isAtt(n))return;if(bo&&isRel(n))return;let g='';const dup=dups.has(n.id)?' dup':'';const x0=n.x-n.w/2,y0=n.y-n.h/2;
       const rows=(list,top,crowTag)=>list.map((r,i)=>{const y=top+14+i*17,tx=x0+(crowTag?36:10)+(r.dep?6:0);
         let s=crowTag&&(r.k||r.p)?`<text x="${f1(x0+9)}" y="${f1(y)}" class="ktag">${r.p?'PK*':'PK'}</text>`:'';
         s+=`<text x="${f1(tx)}" y="${f1(y)}" class="tx${r.k||r.p?' txk':''}">${esc(r.t)}</text>`;
@@ -1080,7 +1082,7 @@ class Editor{
         <div class="in-sub">Alinear</div><div class="alg">${ab('l','Alinear a la izquierda',ALG.l)}${ab('c','Centrar en horizontal',ALG.c)}${ab('r','Alinear a la derecha',ALG.r)}${ab('t','Alinear arriba',ALG.t)}${ab('m','Centrar en vertical',ALG.m)}${ab('b','Alinear abajo',ALG.b)}</div>
         <div class="in-sub">Repartir</div><div class="alg">${ab('dh','Repartir en horizontal (mismo espacio)',ALG.dh)}${ab('dv','Repartir en vertical (mismo espacio)',ALG.dv)}</div>`;
       const ents=[...this.selIds].map(x=>this.node(x)).filter(isEnt);
-      if(this.isER&&(!this.isBo||ents.length>=3)&&ents.length>=2&&ents.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkrel">${GL.rel}<span>${ents.length===3?'Relación ternaria entre las 3':'Relación entre las '+ents.length}</span></button></div>`;
+      if(this.isER&&!this.isBo&&ents.length>=2&&ents.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkrel">${GL.rel}<span>${ents.length===3?'Relación ternaria entre las 3':'Relación entre las '+ents.length}</span></button></div>`;
       const tbs=!this.isER?[...this.selIds].map(x=>this.node(x)).filter(t=>t&&t.c):[];
       if(tbs.length>=2&&tbs.length===this.selIds.size)h+=`<div class="in-actions"><button class="ebtn" data-act="mkjoin">${GL.rel||''}<span>Relacionar las ${tbs.length} (tabla intermedia)</span></button></div><p class="in-p">Crea una tabla con la clave de cada una (PK y FK a la vez), como en una relación N:M${tbs.length>2?' de '+tbs.length+' tablas':''}.</p>`;
       h+=`<div class="in-actions"><button class="ebtn" data-act="lock">${GL.lock}<span>${[...this.selIds].every(x=>this.locked(this.node(x)))?'Desbloquear':'Bloquear'} posición</span></button></div>`;}
@@ -1092,8 +1094,8 @@ class Editor{
         `<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?one.f.at.map(a=>esc(a)).join(', '):'Escríbelos en el texto de arriba: <code>'+esc(es.map(e=>e.n).join('-'))+'; atributo</code>'}</p>`+lockChk(one)+
         `<p class="in-p">Al pulsar «Pasar al E-R» sale una sola relación${es.length===3?' ternaria':''} unida a las ${es.length}.</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(this.isBo&&one&&isEnt(one)){const X=this.X(),nb=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt);
-      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?(one.f.at.map(a=>esc(a)).join(', ')):'Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code>'}</p>`+`<div class="in-sub">Unida con <span class="cnt">${nb.length}</span></div><div class="alist">${nb.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Con nadie todavía. Mayús + clic en otra entidad para unirlas.</span>'}</div>`+lockChk(one)+
-        `<p class="in-p">En el boceto solo hay entidades y líneas: sirve para pensar qué se relaciona con qué. Cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
+      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?(one.f.at.map(a=>esc(a)).join(', ')):'Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code>'}</p>`+lockChk(one)+
+        `<p class="in-p">El boceto es para escribir: entidades y sus atributos. Las relaciones las haces en el E-R; cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(!this.isER&&this.selLink){const s=this.fkSel();if(!s){this.selLink=null;return this.renderInsp();}const ded=this.mode==='ded',has=k=>s.cols.every(c=>parseF(c[2])[k]);
       const tg=(k,txt,sub,ic)=>`<button class="opt" data-fkact="${k}" aria-pressed="${has(k)}"><b>${GL[ic]||''} ${txt}</b><small>${sub}</small></button>`;
       h+=head(ded?'Relación (DED)':'Flecha (relacional)')+`<p class="in-p"><b>${esc(s.t.n)}</b> → <b>${esc(s.pa.n)}</b></p>
@@ -1138,7 +1140,9 @@ class Editor{
       else{const ow=X.ownerOf(n),f=n.f;h+=head('Atributo')+nameF('name',n.n,'Nombre')+(ow?`<p class="in-p">De <button class="lnk" data-goto="${ow.id}">${esc(ow.n)}</button></p>`:`<p class="in-p warn">No está unido a nada. Usa Mayús + clic en su entidad.</p>`)+
         `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+(f.k||f.p?'':chk('f-u','Único',f.u,'uq','No se puede repetir: UNIQUE en el SQL'))+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'')+lockChk(n);}}
     else if(this.isER&&this.selLink){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();if(!l){this.selLink=null;return this.renderInsp();}
-      const a=X.N[l.a],b=X.N[l.b];h+=head('Línea');if(X.cardable(l)){const r=isRel(a)?a:b;h+=this.cardBlock(r,l.id);}else h+=`<p class="in-p">${esc(a.n)} — ${esc(b.n)}</p>`;}
+      const a=X.N[l.a],b=X.N[l.b];h+=head('Línea');if(X.cardable(l)){const r=isRel(a)?a:b;h+=this.cardBlock(r,l.id);}else h+=`<p class="in-p">${esc(a.n)} — ${esc(b.n)}</p>`;
+      const cb=(v,t,on)=>`<button class="segb" data-bobend="${v}" aria-pressed="${on}">${t}</button>`;
+      h+=`<div class="in-sub">Forma de la línea</div><div class="seg wide">${cb('-40','↶ Doblar',false)}${cb('0','Recta',!this.lineBend(l))}${cb('40','Doblar ↷',false)}</div><p class="in-p">O arrástrala con el ratón y se dobla hacia donde la lleves.</p>`;}
     else if(!this.isER&&one){const t=one,ded=this.mode==='ded',names=this.m.t.map(x=>x.n);tableDups(this.m);
       h+=head('Tabla')+nameF('tname',t.n,'Nombre')+`<div class="in-sub">Columnas <span class="cnt">${t.c.length}</span></div>`;
       t.c.forEach((c,k)=>{const f=parseF(c[2]),bad=t._dupCols.has(lc(c[0]));
