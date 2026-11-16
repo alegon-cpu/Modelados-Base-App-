@@ -223,7 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
-  '3.0: nuevo juego en Juegos wapos: «Ecos de Prisma». Hordas sin fin con 1 personaje principal y 2 apoyos que te dan un pasivo y atacan de vez en cuando. 23 personajes propios con su elemento y su kit (Velka, la Lanza Tronante, y la Senda de la Farsa con su Gran Función), reacciones entre elementos, barras de dureza, jefes cada 3 minutos, portales con guardianes y Resonancias, técnicas que evolucionan, reliquias, biomas y clima. Fuera de la partida: mejoras por personaje, invocación con sellos (sin dinero real), constelaciones, atuendos alternativos, misiones diarias y logros. Todo se guarda en tu progreso y se sincroniza con GitHub.',
+  '3.1: fondos personalizados. En Ajustes › Apariencia › «Fondo personalizado» puedes añadir tus propias imágenes, elegir cuál se ve detrás de la app, cuánto se ve y si va desenfocado. Las imágenes se guardan en tu carpeta de proyectos (en «.fondos») y se suben a GitHub con todo lo demás, así las tienes en cualquier ordenador. (El juego de hordas de la 3.0 se ha quitado.)',
   '2.9.1: en el E-R puedes unir una relación otra vez a la misma entidad (relación reflexiva): usa «Unir» o Mayús + clic aunque ya estén unidas, y sale una segunda línea curvada con su propia cardinalidad. La serpiente gira al momento de pulsar la flecha, sin retraso.',
   '2.9.0: el boceto es solo para escribir: texto más grande y en el lienzo solo salen las entidades y las notas (las relaciones se hacen en el E-R). En el E-R ya puedes doblar cualquier línea: arrástrala con el ratón hacia donde quieras, o usa «Doblar / Recta» en el panel. Las relaciones reflexivas (que vuelven a la misma entidad) salen con las dos líneas curvadas para que no se pisen.',
   '2.8.14: en el boceto puedes poner varias relaciones entre las mismas dos entidades (escribe la línea «A-B» dos veces, o únelas otra vez en el lienzo): las líneas se curvan solas para no taparse. Arrastra una línea o su rombo para doblarla, o usa los botones «Doblar / Recta / Auto» del panel. Al pasar al E-R salen como relaciones distintas.',
@@ -568,7 +568,7 @@ const App={
         <div class="set-row"><div class="set-lab"><b>Atajos de teclado</b></div><button class="ebtn" data-m="controls">Ver controles</button></div>
         <div class="set-row"><div class="set-lab"><b>Página del programa</b><small>Versiones publicadas en GitHub.</small></div><button class="ebtn" data-m="repo">Abrir</button></div>
         <div class="set-row"><div class="set-lab"><b>Restablecer ajustes</b><small>Vuelve a dejar todos los ajustes como venían. Tus proyectos no se tocan.</small></div><button class="ebtn danger" data-m="set-reset">Restablecer</button></div></div>`;}
-    body.innerHTML=h;
+    body.innerHTML=h;if(sec==='apariencia'){const bx=document.createElement('div');bx.id='cbgbox';body.appendChild(bx);CBG.settingsHTML().then(x=>{if(bx.isConnected)bx.innerHTML=x;});}
     const q=document.getElementById('thq');if(q){q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderSettings();const n=document.getElementById('thq');if(n){n.focus();n.setSelectionRange(pos,pos);}});}
   },
   // Guardar un atajo nuevo (si ya lo usaba otra acción, a esa se le quita)
@@ -1058,6 +1058,7 @@ const App={
         try{await this.flushAll();const r=await window.api.gitSetup(f);GH.info=r.info;GH.schedule();GH.paint('ok','GitHub · al día '+GH.ago(Date.now()));await this.refreshFromDisk();if(await Sync.load(true))this.afterSync();
           window.api.gitClaim().catch(()=>{});toast('Conectado con GitHub. Ya están subidos tus proyectos.');if(r.conflicts&&r.conflicts.length)GH.showConflicts(this,r.conflicts);else this.renderSettings();}
         catch(er){msg('');toast(er.message,'warn');ga.disabled=false;try{GH.info=await window.api.gitInfo();}catch(x){}}return;}}
+    if(e.target.closest('#cbgbox')&&await CBG.onClick(e))return;
     const sb=e.target.closest('[data-sec]');if(sb){this._sec=sb.dataset.sec;this.renderSettings();document.getElementById('setbody').scrollTop=0;return;}
     const sv=e.target.closest('[data-setv]');if(sv&&sv.dataset.setv==='lang'){if(sv.dataset.v!==LANG()){Settings.set('lang',sv.dataset.v);await this.flushAll();this.keepPlace();window.api.reload();}return;}
     if(sv){const v=sv.dataset.v;Settings.set(sv.dataset.setv,/^\d+$/.test(v)?+v:v);this.renderSettings();return;}

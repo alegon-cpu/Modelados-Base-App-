@@ -4,7 +4,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '3.0.0';
+const VERSION = '3.1.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -269,6 +269,17 @@ h('prog:read', () => { const dir = progDir(); let a = readProg(path.join(dir, PR
     delete cfg.progDir; saveCfg(); }
   return a; });
 h('prog:write', d => { writeProg(progDir(), d); return true; });
+// Fondos personalizados: imágenes en «.fondos» dentro de la carpeta de proyectos (así se suben a GitHub con todo lo demás)
+const BG_DIR = () => path.join(base(), '.fondos'), BG_RE = /\.(png|jpe?g|webp|gif)$/i;
+const bgFile = n => { const f = path.join(BG_DIR(), path.basename(String(n || ''))); return BG_RE.test(f) ? f : null; };
+h('bg:list', () => { const d = BG_DIR(); if (!fs.existsSync(d)) return []; return fs.readdirSync(d).filter(f => BG_RE.test(f)).map(f => { let size = 0, t = 0; try { const st = fs.statSync(path.join(d, f)); size = st.size; t = st.mtimeMs; } catch (e) {} return { name: f, size, t }; }).sort((a, b) => a.t - b.t); });
+h('bg:add', async e => { const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Elige una imagen de fondo'), filters: [{ name: T('Imágenes'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths || !r.filePaths[0]) return null; const src = r.filePaths[0]; if (!BG_RE.test(src)) throw new Error(T('Ese archivo no es una imagen (PNG, JPG, WEBP o GIF).'));
+  if (fs.statSync(src).size > 15 * 1024 * 1024) throw new Error(T('La imagen es demasiado grande: como mucho 15 MB.'));
+  const d = BG_DIR(); fs.mkdirSync(d, { recursive: true }); const clean = path.basename(src).replace(/[\\/:*?"<>|#%]/g, '_'); let k = clean, i = 2; while (fs.existsSync(path.join(d, k))) k = clean.replace(/(\.\w+)$/, `-${i++}$1`);
+  fs.copyFileSync(src, path.join(d, k)); return { name: k }; });
+h('bg:read', n => { const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg'); return 'data:image/' + ext + ';base64,' + fs.readFileSync(f).toString('base64'); });
+h('bg:del', n => { const f = bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
 h('prog:reveal', () => { const i = progInfo(); if (i.file && fs.existsSync(i.file)) shell.showItemInFolder(i.file); else if (i.dir) shell.openPath(i.dir); });
 h('base:reveal', () => shell.openPath(base()));
 function dataDirIn(parent) { return path.basename(parent) === DATA_NAME ? parent : path.join(parent, DATA_NAME); }

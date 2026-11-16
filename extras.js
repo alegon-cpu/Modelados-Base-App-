@@ -1,5 +1,5 @@
 /* ===================== Ajustes ===================== */
-const SET_DEF={uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
+const SET_DEF={cbg:'',cbgStr:55,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
   boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:true,loader:true,carryNotes:true,sidePane:'enun'};
@@ -11,6 +11,7 @@ const Settings={
     return this._c={...SET_DEF,...v};},
   set(k,val){const c={...this.get(),[k]:val};this._c=c;try{localStorage.setItem('mb:set',JSON.stringify(c));}catch(e){}this.apply();
     if(k==='season'){try{Juegos.apply();}catch(e){}}
+    if(String(k).startsWith('cbg')){try{CBG.apply();}catch(e){}}
     if(k==='sidePane'){try{if(App.ed&&App.ed.p){App.ed.side=val;App.ed.renderSide();App.ed.renderTools();}}catch(e){}}
     if(k==='winStart'||k==='onTop'){try{window.api.winPref({start:c.winStart,onTop:c.onTop}).catch(()=>{});}catch(e){}}},
   reset(){this._c={...SET_DEF};try{localStorage.setItem('mb:set',JSON.stringify(this._c));}catch(e){}this.apply();try{window.api.winPref({start:SET_DEF.winStart,onTop:SET_DEF.onTop}).catch(()=>{});}catch(e){}},
