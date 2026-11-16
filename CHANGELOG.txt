@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.0.0  (16/11/2026)
+--------------------
+- Nuevo juego: Ecos de Prisma (hordas con 1 principal y 2 apoyos, elementos, jefes, portales, invocación, misiones y logros).
+
 v2.9.1  (16/11/2026)
 --------------------
 - E-R: unir una relación otra vez a la misma entidad (reflexiva).
