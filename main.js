@@ -7,7 +7,7 @@ const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '3.2.0';
+const VERSION = '3.3.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';

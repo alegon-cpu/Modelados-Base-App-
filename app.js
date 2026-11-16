@@ -223,6 +223,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.3: 7 juegos nuevos en Juegos wapos: Memory (con un modo de BDD para unir conceptos y definiciones), Corredor, Asteroides, Cruza (la carretera y el río), Tiro al plato, Cueva (el helicóptero) y Solitario. Todos dan experiencia y fragmentos ◆, y cada uno tiene su reto para ganar un token.',
   '3.2: también puedes poner un vídeo de fondo (MP4 o WEBM), incluidos los fondos de tipo vídeo de Wallpaper Engine (al pulsar «Añadir…» se abre su carpeta si tienes Steam). Los vídeos se quedan solo en este ordenador: no se suben a GitHub. Se pausan solos con la ventana minimizada o mientras juegas.',
   '3.1: fondos personalizados. En Ajustes › Apariencia › «Fondo personalizado» puedes añadir tus propias imágenes, elegir cuál se ve detrás de la app, cuánto se ve y si va desenfocado. Las imágenes se guardan en tu carpeta de proyectos (en «.fondos») y se suben a GitHub con todo lo demás, así las tienes en cualquier ordenador. (El juego de hordas de la 3.0 se ha quitado.)',
   '2.9.1: en el E-R puedes unir una relación otra vez a la misma entidad (relación reflexiva): usa «Unir» o Mayús + clic aunque ya estén unidas, y sale una segunda línea curvada con su propia cardinalidad. La serpiente gira al momento de pulsar la flecha, sin retraso.',

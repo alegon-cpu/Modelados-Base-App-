@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.3.0  (16/11/2026)
+--------------------
+- Juegos nuevos: Memory, Corredor, Asteroides, Cruza, Tiro al plato, Cueva y Solitario.
+
 v3.2.0  (16/11/2026)
 --------------------
 - Vídeos de fondo (también de Wallpaper Engine), solo en este ordenador.
