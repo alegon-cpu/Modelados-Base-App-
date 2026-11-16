@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.2.0  (16/11/2026)
+--------------------
+- Vídeos de fondo (también de Wallpaper Engine), solo en este ordenador.
+
 v3.1.0  (16/11/2026)
 --------------------
 - Fondos personalizados guardados en la carpeta de proyectos (y en GitHub).

@@ -1,10 +1,13 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeTheme, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, nativeTheme, net, protocol } = require('electron');
+const { pathToFileURL } = require('url');
+// Vídeos de fondo: se sirven con «mbbg://v/<nombre>» (se quedan solo en este ordenador)
+try { protocol.registerSchemesAsPrivileged([{ scheme: 'mbbg', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } }]); } catch (e) {}
 const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
-const VERSION = '3.1.0';
+const VERSION = '3.2.0';
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
 const DATA_NAME = 'Modelados BDD';
@@ -157,6 +160,7 @@ let fromUpdate = false;
 function updLog(m) { if (!fromUpdate) return; try { fs.appendFileSync(path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log'), new Date().toTimeString().slice(0, 8) + ' ' + m + '\r\n'); } catch (e) {} }
 app.whenReady().then(() => {
   if (INSTALLER) return;
+  try { protocol.handle('mbbg', req => { let n = ''; try { n = decodeURIComponent(new URL(req.url).pathname.replace(/^\//, '')); } catch (e) {} const f = vidFile(n); if (!f || !fs.existsSync(f)) return new Response('', { status: 404 }); return net.fetch(pathToFileURL(f).toString(), { headers: req.headers }); }); } catch (e) {}
   // Si venimos de una actualización, se apunta en el registro que la app ha arrancado
   try {
     const lg = path.join(app.getPath('temp'), 'modelado-bases-update', 'update.log');
@@ -269,17 +273,30 @@ h('prog:read', () => { const dir = progDir(); let a = readProg(path.join(dir, PR
     delete cfg.progDir; saveCfg(); }
   return a; });
 h('prog:write', d => { writeProg(progDir(), d); return true; });
-// Fondos personalizados: imágenes en «.fondos» dentro de la carpeta de proyectos (así se suben a GitHub con todo lo demás)
-const BG_DIR = () => path.join(base(), '.fondos'), BG_RE = /\.(png|jpe?g|webp|gif)$/i;
+// Fondos personalizados: las imágenes van en «.fondos» dentro de la carpeta de proyectos (se suben a GitHub con todo lo demás).
+// Los vídeos pesan mucho: se quedan solo en este ordenador (carpeta de la app) y no se suben.
+const BG_DIR = () => path.join(base(), '.fondos'), BG_RE = /\.(png|jpe?g|webp|gif)$/i, VID_RE = /\.(mp4|webm|m4v|mov)$/i;
+const VID_DIR = () => path.join(app.getPath('userData'), 'fondos-video');
 const bgFile = n => { const f = path.join(BG_DIR(), path.basename(String(n || ''))); return BG_RE.test(f) ? f : null; };
-h('bg:list', () => { const d = BG_DIR(); if (!fs.existsSync(d)) return []; return fs.readdirSync(d).filter(f => BG_RE.test(f)).map(f => { let size = 0, t = 0; try { const st = fs.statSync(path.join(d, f)); size = st.size; t = st.mtimeMs; } catch (e) {} return { name: f, size, t }; }).sort((a, b) => a.t - b.t); });
-h('bg:add', async e => { const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Elige una imagen de fondo'), filters: [{ name: T('Imágenes'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }], properties: ['openFile'] });
-  if (r.canceled || !r.filePaths || !r.filePaths[0]) return null; const src = r.filePaths[0]; if (!BG_RE.test(src)) throw new Error(T('Ese archivo no es una imagen (PNG, JPG, WEBP o GIF).'));
-  if (fs.statSync(src).size > 15 * 1024 * 1024) throw new Error(T('La imagen es demasiado grande: como mucho 15 MB.'));
-  const d = BG_DIR(); fs.mkdirSync(d, { recursive: true }); const clean = path.basename(src).replace(/[\\/:*?"<>|#%]/g, '_'); let k = clean, i = 2; while (fs.existsSync(path.join(d, k))) k = clean.replace(/(\.\w+)$/, `-${i++}$1`);
-  fs.copyFileSync(src, path.join(d, k)); return { name: k }; });
-h('bg:read', n => { const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg'); return 'data:image/' + ext + ';base64,' + fs.readFileSync(f).toString('base64'); });
-h('bg:del', n => { const f = bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
+const vidFile = n => { const f = path.join(VID_DIR(), path.basename(String(n || ''))); return VID_RE.test(f) ? f : null; };
+const lsDir = (d, re, video) => { if (!fs.existsSync(d)) return []; return fs.readdirSync(d).filter(f => re.test(f)).map(f => { let size = 0, t = 0; try { const st = fs.statSync(path.join(d, f)); size = st.size; t = st.mtimeMs; } catch (e) {} return { name: video ? 'v:' + f : f, file: f, size, t, video: !!video }; }); };
+h('bg:list', () => [...lsDir(BG_DIR(), BG_RE), ...lsDir(VID_DIR(), VID_RE, true)].sort((a, b) => a.t - b.t));
+h('bg:add', async e => {
+  const we = ['C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\431960', 'C:\\Program Files\\Steam\\steamapps\\workshop\\content\\431960'].find(d => { try { return fs.existsSync(d); } catch (x) { return false; } });
+  const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Elige una imagen o un vídeo de fondo'), ...(we ? { defaultPath: we } : {}), filters: [{ name: T('Imágenes y vídeos'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm', 'm4v', 'mov'] }, { name: T('Imágenes'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }, { name: T('Vídeos'), extensions: ['mp4', 'webm', 'm4v', 'mov'] }], properties: ['openFile'] });
+  if (r.canceled || !r.filePaths || !r.filePaths[0]) return null; const src = r.filePaths[0], video = VID_RE.test(src);
+  if (!video && !BG_RE.test(src)) throw new Error(T('Ese archivo no es una imagen ni un vídeo (PNG, JPG, WEBP, GIF, MP4 o WEBM).'));
+  const size = fs.statSync(src).size;
+  if (!video && size > 15 * 1024 * 1024) throw new Error(T('La imagen es demasiado grande: como mucho 15 MB.'));
+  if (video && size > 1024 * 1024 * 1024) throw new Error(T('El vídeo es demasiado grande: como mucho 1 GB.'));
+  const d = video ? VID_DIR() : BG_DIR(); fs.mkdirSync(d, { recursive: true });
+  // en Wallpaper Engine todos se llaman igual: se usa el nombre de la carpeta del fondo
+  let nm = path.basename(src); if (video && /431960/.test(src)) { try { const pj = JSON.parse(fs.readFileSync(path.join(path.dirname(src), 'project.json'), 'utf8')); if (pj && pj.title) nm = pj.title + path.extname(src); } catch (x) {} }
+  const clean = nm.replace(/[\\/:*?"<>|#%]/g, '_'); let k = clean, i = 2; while (fs.existsSync(path.join(d, k))) k = clean.replace(/(\.\w+)$/, `-${i++}$1`);
+  await fs.promises.copyFile(src, path.join(d, k)); return { name: (video ? 'v:' : '') + k, video }; });
+h('bg:read', n => { n = String(n || ''); if (n.startsWith('v:')) { const f = vidFile(n.slice(2)); return f && fs.existsSync(f) ? 'mbbg://v/' + encodeURIComponent(path.basename(f)) : null; }
+  const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg'); return 'data:image/' + ext + ';base64,' + fs.readFileSync(f).toString('base64'); });
+h('bg:del', n => { n = String(n || ''); const f = n.startsWith('v:') ? vidFile(n.slice(2)) : bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
 h('prog:reveal', () => { const i = progInfo(); if (i.file && fs.existsSync(i.file)) shell.showItemInFolder(i.file); else if (i.dir) shell.openPath(i.dir); });
 h('base:reveal', () => shell.openPath(base()));
 function dataDirIn(parent) { return path.basename(parent) === DATA_NAME ? parent : path.join(parent, DATA_NAME); }
