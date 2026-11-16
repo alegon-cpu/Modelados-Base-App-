@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.5.0  (17/11/2026)
+--------------------
+- Corredor rehecho: dinosaurio nuevo con animaciones, paisaje por capas y día/noche suaves.
+- Más justo: obstáculos siempre separados lo que dura un salto y choques con la forma real.
+- Salto más alto si mantienes, caída rápida con ↓, empezar con Espacio, pausa al cambiar de ventana.
+- Murciélagos bajos: hay que saltar; altos: hay que agacharse.
+
 v3.4.0  (16/11/2026)
 --------------------
 - Minimapa en el lienzo y guías de alineación al arrastrar (Ajustes > Lienzo).
