@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='2.8.13';
+const VERSION='2.8.14';
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -52,6 +52,9 @@ function guessType(name,f){
 }
 
 /* ===================== Modelo E-R (funciones que no dependen del editor) ===================== */
+// Boceto: línea curvada (bend = cuánto se separa el centro de la recta; el signo es estable aunque la línea vaya al revés)
+const boGeo=(a,b,bend)=>{const [p,q]=String(a.id)<String(b.id)?[a,b]:[b,a],dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy)||1,n=[-dy/len,dx/len],mid=[(a.x+b.x)/2,(a.y+b.y)/2];
+  return{n,mid,M:[mid[0]+n[0]*bend,mid[1]+n[1]*bend],C:[mid[0]+n[0]*bend*2,mid[1]+n[1]*bend*2]};};
 const isEnt=n=>!!n&&(n.k==='ent'||n.k==='weak'), isRel=n=>!!n&&(n.k==='rel'||n.k==='idrel'), isAtt=n=>!!n&&n.k==='attr', isIsa=n=>!!n&&n.k==='isa';
 // Entidad asociativa: una relación (rombo) metida en un rectángulo, que a su vez puede relacionarse con otras entidades
 const isAssoc=n=>isRel(n)&&!!(n.f&&n.f.as);
@@ -478,7 +481,7 @@ class Editor{
   toggleAssoc(n){this.snap();if(n.f.as){const X=this.X(),bad=X.linksOf(n.id).filter(l=>isRel(X.other(l,n.id)));if(bad.length){this.m.links=this.m.links.filter(l=>!bad.includes(l));toast(`Se han quitado ${bad.length} línea(s) que la unían a otras relaciones.`);}delete n.f.as;}else n.f.as=1;this.save();this.render();this.renderInsp();}
   connectNodes(aId,bId){
     if(aId===bId)return;if(isNote(this.node(aId))||isNote(this.node(bId))){toast('Las notas no se unen a nada: son solo para apuntar cosas.');return;}const A=this.node(aId),B=this.node(bId);if(!A||!B)return;const L=this.m.links;
-    if(this.isBo){if(!isEnt(A)||!isEnt(B))return;if(L.some(l=>(l.a===aId&&l.b===bId)||(l.a===bId&&l.b===aId))){toast('Esas dos entidades ya están unidas.');return;}
+    if(this.isBo){if(!isEnt(A)||!isEnt(B))return;const dupN=L.filter(l=>(l.a===aId&&l.b===bId)||(l.a===bId&&l.b===aId)).length;if(dupN)toast(`Otra relación más entre «${A.n}» y «${B.n}» (ya van ${dupN+1}). Las líneas se curvan solas; arrástralas para doblarlas más.`);
       this.snap();const l={id:uid(),a:aId,b:bId,c:null,mn:null,mx:null};L.push(l);this.save();this.selIds=new Set();this.selLink=l.id;this.render();this.renderInsp();return;}
     if(isIsa(A)||isIsa(B)){const i=isIsa(A)?A:B,e=isIsa(A)?B:A;
       if(!isEnt(e)){toast('Una jerarquía solo se une a entidades.','warn');return;}
@@ -569,6 +572,8 @@ class Editor{
     const fa=e.target.closest('[data-fkact]');if(fa){this.fkAct(fa.dataset.fkact);return;}
     const bc=e.target.closest('[data-bocard]');if(bc){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+bc.dataset.bocard,v=(l[k]||'??').split('');
       const i=bc.dataset.k==='mn'?0:1;v[i]=v[i]===bc.dataset.v?'?':bc.dataset.v;const s=v.join('');if(s==='??')delete l[k];else l[k]=s;this.save();this.render();this.renderInsp();return;}
+    const bd=e.target.closest('[data-bobend]');if(bd){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const v=bd.dataset.bobend;
+      if(v==='auto')delete l.bend;else if(v==='0')l.bend=0;else l.bend=Math.max(-400,Math.min(400,this.boBend(l)+(+v)));this.save();this.render();this.renderInsp();return;}
     const be=e.target.closest('[data-boe]');if(be){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+be.dataset.boe;if(be.dataset.v)l[k]=be.dataset.v;else delete l[k];this.save();this.render();this.renderInsp();return;}
     const sk=e.target.closest('[data-skt]');if(sk){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();if(sk.dataset.skt)l.t=sk.dataset.skt;else delete l.t;this.save();this.render();this.renderInsp();return;}
     const nc=e.target.closest('[data-ncol],[data-nw]');if(nc){const n=this.single();if(!isNote(n))return;this.snap();if(nc.dataset.ncol)n.c=nc.dataset.ncol;else n.w=+nc.dataset.nw;this.save();this.render();this.renderInsp();return;}
@@ -759,6 +764,8 @@ class Editor{
     return [...this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')),
       ...this.m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>N[l.a].n+'-'+N[l.b].n+((l.at||[]).length?'; '+l.at.join(', '):'')),
       ...this.m.nodes.filter(isRel).map(h=>[h,this.hubEnds(h).map(e=>e.n)]).filter(([h,ns])=>ns.length>=2).map(([h,ns])=>ns.join('-')+((h.f.at||[]).length?'; '+h.f.at.join(', '):''))].join('\n');}
+  boBend(l,m=this.m,N){if(l.bend!=null)return l.bend;if(!N){N={};m.nodes.forEach(n=>N[n.id]=n);}const k=[l.a,l.b].sort().join('|');
+    const sib=m.links.filter(x=>x.a!==x.b&&isEnt(N[x.a])&&isEnt(N[x.b])&&[x.a,x.b].sort().join('|')===k);if(sib.length<2)return 0;return (sib.indexOf(l)-(sib.length-1)/2)*70;}
   hubSpot(h,m=this.m){const N={};m.nodes.forEach(n=>N[n.id]=n);const pts=[...m.nodes.filter(n=>n!==h).map(n=>[n.x,n.y]),...m.links.filter(l=>isEnt(N[l.a])&&isEnt(N[l.b])).map(l=>[(N[l.a].x+N[l.b].x)/2,(N[l.a].y+N[l.b].y)/2])];
     const free=(x,y)=>pts.every(p=>Math.hypot(p[0]-x,p[1]-y)>80);if(free(h.x,h.y))return;
     for(let r=60;r<400;r+=40)for(let a=0;a<8;a++){const x=h.x+Math.cos(a*Math.PI/4+Math.PI/2)*r,y=h.y+Math.sin(a*Math.PI/4+Math.PI/2)*r;if(free(x,y)){h.x=Math.round(x);h.y=Math.round(y);return;}}}
@@ -821,11 +828,12 @@ class Editor{
     const X=erIdx(er),relNames=er.nodes.filter(isRel).map(x=>x.n),card=v=>v?{mn:v[0]==='?'?null:v[0],mx:v[1]}:{mn:null,mx:null};
     const relAt=(r,list)=>{const have=new Set(erIdx(er).attrsOf(r).map(a=>lc(a.n)));(list||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
       const nn={id:uid(),k:'attr',n,x:r.x,y:r.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:r.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(r);ed2.placeAttr(r,nn);na++;});};
+    const usedR=new Set(),bN={};bo.nodes.forEach(n=>bN[n.id]=n);
     bo.links.forEach(l=>{const A=map[l.a],B=map[l.b];if(!A||!B)return;
-      const old=er.nodes.find(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());
-      if(old){relAt(old,l.at);return;}
-      const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',relNames),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};relNames.push(r.n);
-      if(A===B){r.x+=170;r.y-=100;}
+      const old=er.nodes.find(r=>isRel(r)&&!usedR.has(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());
+      if(old){usedR.add(old);relAt(old,l.at);return;}
+      const r={id:uid(),k:'rel',n:this.uniqueName(LANG()==='en'?'relationship':'relacion',relNames),x:Math.round((A.x+B.x)/2),y:Math.round((A.y+B.y)/2),f:{}};relNames.push(r.n);usedR.add(r);
+      if(A===B){r.x+=170;r.y-=100;}else{const bb=this.boBend(l,bo,bN);if(bb){const g=boGeo(A,B,bb*1.8);r.x=Math.round(g.M[0]);r.y=Math.round(g.M[1]);}}
       const ca=card(l.ea),cb=card(l.eb),lk=(e,c)=>({id:uid(),a:r.id,b:e.id,mn:c.mn,mx:c.mx,c:c.mn!=null&&c.mx!=null?`(${c.mn},${c.mx})`:null});
       er.nodes.push(r);er.links.push(lk(A,ca),lk(B,cb));nr++;relAt(r,l.at);});
     bo.nodes.filter(isRel).forEach(h=>{const ids=new Set(),es=[];bo.links.forEach(l=>{const o=l.a===h.id?l.b:l.b===h.id?l.a:null;const t=o&&map[o];if(t&&!ids.has(t.id)){ids.add(t.id);es.push(t);}});if(es.length<2)return;
@@ -898,13 +906,17 @@ class Editor{
       this.drag={x0:p.x,y0:p.y,list,moved:false,click:id,already};this.svg.setPointerCapture(e.pointerId);e.preventDefault();
       if(!already){this.render();this.renderInsp();}return;}
     const fkl=e.target.closest('[data-fk]');if(fkl&&!this.isER){this.selIds=new Set();this.selLink=fkl.dataset.fk;this.pend=null;this.connect=false;this.from=null;this.render();this.renderInsp();return;}
-    if(hl&&this.isER){this.selIds=new Set();this.selLink=hl.dataset.lid;this.pend=null;this.render();this.renderInsp();return;}
+    if(hl&&this.isER){this.selIds=new Set();this.selLink=hl.dataset.lid;this.pend=null;
+      if(this.isBo){const l=this.m.links.find(x=>x.id===hl.dataset.lid),A=l&&this.node(l.a),B=l&&this.node(l.b);if(l&&isEnt(A)&&isEnt(B)&&A!==B){this.bendDrag={l,A,B,moved:false};this.svg.setPointerCapture(e.pointerId);}}
+      this.render();this.renderInsp();return;}
     if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();
     const p=this.pt(e);this.band={x0:p.x,y0:p.y,x1:p.x,y1:p.y,add:e.shiftKey||e.ctrlKey,base:new Set(this.selIds)};this.svg.setPointerCapture(e.pointerId);
     if(!this.band.add){this.selIds=new Set();this.selLink=null;this.pend=null;}
   }
   onMove(e){
     if(this.pan){if(Math.hypot(e.clientX-this.pan.x0,e.clientY-this.pan.y0)>4)this.pan.moved=true;this.v.x=this.pan.vx-(e.clientX-this.pan.x0)/this.v.z;this.v.y=this.pan.vy-(e.clientY-this.pan.y0)/this.v.z;this.applyView();return;}
+    if(this.bendDrag){const d=this.bendDrag,p=this.pt(e),g=boGeo(d.A,d.B,0);let v=Math.round((p.x-g.mid[0])*g.n[0]+(p.y-g.mid[1])*g.n[1]);if(Math.abs(v)<10)v=0;
+      if(!d.moved){if(Math.abs(v-this.boBend(d.l))<4)return;this.snap();d.moved=true;}d.l.bend=v;this.render();return;}
     if(this.drag){const d=this.drag,p=this.pt(e);let dx=p.x-d.x0,dy=p.y-d.y0;if(!d.moved){if(Math.hypot(dx,dy)<3)return;this.snap();d.moved=true;}
       if(Settings.get().snap&&d.list.length){const o=d.list[0];dx=Math.round((o.ox+dx)/20)*20-o.ox;dy=Math.round((o.oy+dy)/20)*20-o.oy;}
       d.list.forEach(it=>{it.n.x=Math.round(Math.min(W-20,Math.max(20,it.ox+dx)));it.n.y=Math.round(Math.min(H-20,Math.max(20,it.oy+dy)));});this.render();return;}
@@ -912,6 +924,7 @@ class Editor{
   }
   onUp(e){
     if(this.pan){const P=this.pan;this.pan=null;this.cv.classList.remove('panning');if(!P.moved&&P.btn===2&&e&&e.type==='pointerup')this.contextMenu(e,P);return;}
+    if(this.bendDrag){const d=this.bendDrag;this.bendDrag=null;if(d.moved){this.save();this.renderInsp();}return;}
     if(this.drag){const d=this.drag;this.drag=null;if(d.moved)this.save();else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
     if(this.band){const b=this.band;this.band=null;const x0=Math.min(b.x0,b.x1),x1=Math.max(b.x0,b.x1),y0=Math.min(b.y0,b.y1),y1=Math.max(b.y0,b.y1);
       if(x1-x0>4||y1-y0>4){const s=new Set(b.add?b.base:[]);this.items().forEach(n=>{const bb=this.boxOf(n);if(bb[0]<x1&&bb[2]>x0&&bb[1]<y1&&bb[3]>y0)s.add(n.id);});this.selIds=s;}
@@ -928,13 +941,14 @@ class Editor{
       const txt=nt==='uml'?umlMult(c):`(${c.mn??'?'},${c.mx??'?'})`;if(nt==='crow'&&full)return '';
       return `<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card${full?'':' cardq'}">${nt==='crow'?'?':txt}</text>`;};
     m.links.forEach(l=>{const a=N[l.a],b=N[l.b];if(!a||!b)return;if(hide&&(isAtt(a)||isAtt(b)))return;const on=live&&this.selLink===l.id;
-      const pr=pairRE(a,b),r=pr?pr[0]:null;
-      L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
+      const pr=pairRE(a,b),r=pr?pr[0]:null,bb=bo&&isEnt(a)&&isEnt(b)&&a!==b?this.boBend(l,m,N):0,G=bb?boGeo(a,b,bb):null;
+      if(G){const d=`M${f1(a.x)},${f1(a.y)} Q${f1(G.C[0])},${f1(G.C[1])} ${f1(b.x)},${f1(b.y)}`;L+=`<path d="${d}" class="ln${on?' lsel':''}" fill="none"/>`+(live?`<path d="${d}" class="hitl" fill="none" data-lid="${l.id}"/>`:'');}
+      else L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
       if(r){const en=r===a?b:a;const P=hitRect(en.x,en.y,en.w,en.h,r.x-en.x,r.y-en.y);const len=Math.hypot(r.x-P[0],r.y-P[1])||1;const u=[(r.x-P[0])/len,(r.y-P[1])/len];
         const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full&&nt!=='uml')MK+=marker(P,u,c.mx!=='1',c.mn==='0');if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);}
       if(bo&&isEnt(a)&&isEnt(b)&&a!==b){
-        if(Settings.get().boDiamond!==false){const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;MK+=`<polygon points="${f1(mx)},${f1(my-13)} ${f1(mx+21)},${f1(my)} ${f1(mx)},${f1(my+13)} ${f1(mx-21)},${f1(my)}" class="dia skd"/>`;}
-        [[a,b,l.ea],[b,a,l.eb]].forEach(([e,o,v])=>{const P=hitRect(e.x,e.y,e.w,e.h,o.x-e.x,o.y-e.y),len=Math.hypot(o.x-P[0],o.y-P[1])||1,u=[(o.x-P[0])/len,(o.y-P[1])/len];
+        if(Settings.get().boDiamond!==false){const mx=G?G.M[0]:(a.x+b.x)/2,my=G?G.M[1]:(a.y+b.y)/2;MK+=`<polygon points="${f1(mx)},${f1(my-13)} ${f1(mx+21)},${f1(my)} ${f1(mx)},${f1(my+13)} ${f1(mx-21)},${f1(my)}" class="dia skd"${live?` data-lid="${l.id}" style="cursor:grab"`:''}/>`;}
+        [[a,b,l.ea],[b,a,l.eb]].forEach(([e,o,v])=>{if(G)o={x:G.C[0],y:G.C[1]};const P=hitRect(e.x,e.y,e.w,e.h,o.x-e.x,o.y-e.y),len=Math.hypot(o.x-P[0],o.y-P[1])||1,u=[(o.x-P[0])/len,(o.y-P[1])/len];
           const c={mn:v&&v[0]!=='?'?v[0]:null,mx:v&&v[1]!=='?'?v[1]:null},full=c.mn!=null&&c.mx!=null;
           if(full)MK+=marker(P,u,c.mx==='N',c.mn==='0');else if(c.mx)MK+=markerMax(P,u,c.mx==='N');
           if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);});}
@@ -1100,7 +1114,9 @@ class Editor{
           <div class="cardrow"><span>máximo</span><div class="seg">${sb('mx','1')}${sb('mx','N')}</div></div>
           <div class="cardrow"><span>mínimo</span><div class="seg">${sb('mn','0')}${sb('mn','1')}</div></div>
           <div class="cres">junto a «${esc(to)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;};
+      const bv=this.boBend(l),cb=(v,t,on)=>`<button class="segb" data-bobend="${v}" aria-pressed="${on}">${t}</button>`;
       h+=head('Línea (boceto)')+`<p class="in-p"><b>${esc(A.n)}</b> — <b>${esc(B.n)}</b></p><div class="in-sub">Cardinalidades (opcional)</div>`+q('b',A.n,B.n)+q('a',B.n,A.n)+
+        `<div class="in-sub">Forma de la línea</div><div class="seg wide">${cb('-50','↶ Doblar',false)}${cb('0','Recta',bv===0)}${cb('auto','Auto',l.bend==null)}${cb('50','Doblar ↷',false)}</div><p class="in-p">También puedes arrastrar la línea con el ratón para doblarla.</p>`+
         `<p class="in-p bo-leg">Igual que en el E-R. Al pulsar «Pasar al E-R» se ponen en la relación.</p>`+
         `<div class="in-sub">Atributos de la relación <span class="cnt">${(l.at||[]).length}</span></div><p class="in-p">${(l.at||[]).length?l.at.map(a=>esc(a)).join(', '):'Ninguno. Si la relación tiene atributos, escríbelos arriba: <code>'+esc(A.n)+'-'+esc(B.n)+'; atributo1, atributo2</code>'}</p>`;}
     else if(false){const l=null,A=null,B=null;

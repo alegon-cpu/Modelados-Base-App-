@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v2.8.14  (16/11/2026)
+---------------------
+- Boceto: varias relaciones entre las mismas dos entidades y líneas que se pueden doblar.
+
 v2.8.13  (15/11/2026)
 ---------------------
 - Relaciones entre varias entidades en el boceto (A-B-C) y tabla intermedia de varias tablas en relacional/DED.
