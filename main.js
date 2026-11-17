@@ -298,6 +298,12 @@ h('bg:add', async e => {
 h('bg:read', n => { n = String(n || ''); if (n.startsWith('v:')) { const f = vidFile(n.slice(2)); return f && fs.existsSync(f) ? 'mbbg://v/' + encodeURIComponent(path.basename(f)) : null; }
   const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; let t = 0; try { t = Math.round(fs.statSync(f).mtimeMs); } catch (e) {} return 'mbbg://i/' + encodeURIComponent(path.basename(f)) + '?t=' + t; });
 h('bg:del', n => { n = String(n || ''); const f = n.startsWith('v:') ? vidFile(n.slice(2)) : bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
+// Modo examen (Firebase): las sesiones se quedan aquí, la ventana solo pide peticiones
+const FB = require('./fb');
+h('fb:who', () => FB.who());
+h('fb:login', (email, pass) => FB.login(email, pass));
+h('fb:logout', () => FB.logout());
+h('fb:req', (role, method, p, body) => FB.req(role, method, p, body));
 h('prog:reveal', () => { const i = progInfo(); if (i.file && fs.existsSync(i.file)) shell.showItemInFolder(i.file); else if (i.dir) shell.openPath(i.dir); });
 h('base:reveal', () => shell.openPath(base()));
 function dataDirIn(parent) { return path.basename(parent) === DATA_NAME ? parent : path.join(parent, DATA_NAME); }

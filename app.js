@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.6: modo examen online (en Inicio, «Examen»). El profesor crea el examen con un código de 4 cifras, el enunciado, los minutos y qué partes son obligatorias u opcionales. Los alumnos entran con el código: nadie ve el enunciado antes de empezar, el tiempo es el mismo para todos, lo que haces se envía solo y al acabar se entrega solo.',
   '3.5.1: las cardinalidades se leen como en clase: la pareja junto a una entidad dice cuántas veces participa esa entidad (Provincia (1,1) pertenece (1,N) Comunidad). Ya no salen al revés al pasar a tablas, a Workbench ni a ERDPlus, y la pata de gallo del E-R se dibuja como en ERDPlus. Si en tu clase se lee al revés, cámbialo en Ajustes › Lienzo.',
   '3.5: el Corredor, rehecho. Dibujo nuevo (un dinosaurio con animaciones de correr, saltar, agacharse y chocar; montañas, colinas y nubes que se mueven a distinta velocidad; el día y la noche cambian poco a poco) y juego más justo: los obstáculos nunca salen tan juntos que no se puedan pasar, los choques se calculan con la forma real, el salto sube más si mantienes la tecla, ↓ te baja rápido en el aire, se empieza con Espacio y se pausa al cambiar de ventana. Los murciélagos bajos se saltan y los altos se esquivan agachándote.',
   '3.4: minimapa en el lienzo (pincha o arrastra en él para moverte) y guías de alineación al arrastrar (Alt para mover libre); los dos se activan o quitan en Ajustes > Lienzo. Arrastrar va más fluido en diagramas grandes, el autoguardado solo rehace las imágenes de los diagramas que han cambiado y no reescribe archivos iguales, y la lista de proyectos se carga sin bloquear la app. Las flechas respetan la cuadrícula y no llenan el «Deshacer». Inicio y paneles más ordenados (esquinas, sombras y tamaños iguales en todo el programa). Más seguro: Electron 44 y cada actualización se comprueba (SHA-256) antes de instalarse.',
@@ -756,18 +757,20 @@ const App={
   /* ---------- Actividad conjunta (modo estudiante) ---------- */
   isRO(p,view){const a=p&&p.act;if(!a)return false;if(a.state!=='run')return true;if(view==='enun')return true;return !(a.parts||[]).includes(view);},
   actLeft(p){return Math.max(0,(p.act.end||0)-Date.now());},
-  actBar(p){const a=p.act,T={bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'},parts=(a.parts||[]).map(x=>T[x]).join(', ');
+  actBar(p){if(p.act.online)return EX.bar(p);const a=p.act,T={bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'},parts=(a.parts||[]).map(x=>T[x]).join(', ');
     const left=a.state==='run'?this.actLeft(p):0,mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);
     return `<div class="actbar ${a.state}"><span class="act-tag">Modo estudiante</span><span class="act-t"><b>${esc(a.title||'Actividad')}</b> · hay que hacer: ${esc(parts)} · ${a.mins} min</span>
       ${a.state==='ready'?`<button class="ebtn pri" data-act="act-start">Empezar</button>`:a.state==='run'?`<span class="act-clock${left<60000?' low':''}" id="actclock">⏱ ${mm}:${String(ss).padStart(2,'0')}</span>`:`<span class="act-clock over">Se acabó el tiempo</span>`}
       <button class="ebtn" data-act="act-exit">Salir del modo estudiante</button></div>`;},
-  actTick(){const p=this.cur;if(!p||!p.act||p.act.state!=='run')return;
+  actTick(){try{EX.tickAll();}catch(e){}const p=this.cur;if(!p||!p.act||p.act.online||p.act.state!=='run')return;
     if(this.actLeft(p)<=0){p.act.state='over';this.touch(p);this.saveNow();this.renderMain();
       this.modal(`<h3>Se acabó el tiempo</h3><p>La actividad «${esc(p.act.title||'')}» ha terminado. El proyecto queda bloqueado: ya no se puede cambiar.</p><p>Enséñaselo a quien hizo la actividad. Cuando terminéis, pulsa «Salir del modo estudiante» para poder editarlo otra vez.</p><div class="mrow"><button class="ebtn pri" data-m="close">Entendido</button></div>`);return;}
     const c=document.getElementById('actclock');if(c){const l=this.actLeft(p),mm=Math.floor(l/60000),ss=Math.floor(l%60000/1000);c.textContent=`⏱ ${mm}:${String(ss).padStart(2,'0')}`;c.classList.toggle('low',l<60000);}},
   startActivity(p){if(!p||!p.act||p.act.state!=='ready')return;p.act.state='run';p.act.start=Date.now();p.act.end=Date.now()+p.act.mins*60000;this.touch(p);this.saveNow();
     this.go(p,(p.act.parts||[])[0]||'enun');toast(`¡Empieza! Tenéis ${p.act.mins} minutos.`);},
   exitActivity(p){if(!p||!p.act)return;const run=p.act.state==='run';
+    if(p.act.online){if(run){toast('Durante el examen no se puede salir. Si hay un problema, avisa al profesor.','warn');return;}
+      this.confirm('Salir del modo examen',p.act.state==='ready'?'Todavía no ha empezado. Si sales, el proyecto vuelve a ser normal y tendrás que entrar otra vez con el código.':'El proyecto vuelve a ser normal y podrás editarlo. Lo que entregaste ya lo tiene el profesor.','Salir',()=>{delete p.act;this.touch(p);this.flushAll();this.renderMain();toast('Has salido del modo examen.');});return;}
     this.confirm('Salir del modo estudiante',run?'La actividad todavía no ha terminado. Si sales, el tiempo se para y podrás usar todo otra vez (Pasar desde mi E-R, teoría…).':'El proyecto vuelve a ser normal: puedes editarlo y usar todas las pestañas.','Salir',()=>{delete p.act;this.touch(p);this.saveNow();this.renderMain();toast('Has salido del modo estudiante.');});},
   showMakeActivity(q){const nw=!q;const p=q||{name:'',enun:''};this._actP=nw?null:p;const T=[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED'],['sql','SQL']];
     this.modal(`<h3>Crear una actividad</h3><p>Escribe el enunciado y se genera un código. Cada compañero lo pega en «Importar código» y hace su versión a la vez, con el tiempo contado. Sin pasar nada automáticamente ni mirar la teoría.</p>
@@ -806,6 +809,7 @@ const App={
     return this._th[key]=h;},
   renderHome(mv){const en=LANG()==='en';
     if(this.home==='juegos'){Juegos.render(mv);return;}
+    if(this.home==='examen'){EX.render(mv);return;}
     if(this.home==='teoria'){
       mv.innerHTML=`<header class="ph"><span class="pname static">${en?'Theory':'Teoría'}</span><div class="ph-acts"><button class="ebtn" data-act="home">← ${en?'Home':'Inicio'}</button></div></header><div class="view home-th" id="thview">${theoryHTML(this._thc,this._ths,this._thq)}</div>`;
       const q=document.getElementById('thq2');q.addEventListener('input',()=>{this._thq=q.value;const pos=q.selectionStart;this.renderMain();const q2=document.getElementById('thq2');q2.focus();q2.setSelectionRange(pos,pos);});
@@ -818,6 +822,7 @@ const App={
       <section class="home-top deco">${HOME_ART}<div class="ht-txt"><p class="ht-k">Modelado Bases</p><h2>${(()=>{const h=new Date().getHours(),n=(Juegos.profile().nick||'').trim();return (h<6?'Buenas noches':h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches')+(n?', '+esc(n):'');})()}</h2><p>E-R, relacional, DED y SQL de tus ejercicios de bases de datos.</p></div>${Juegos.profileCard()}
         <div class="row"><button class="ebtn pri" data-act="newproj">Nuevo proyecto</button><button class="ebtn" data-act="import" title="También para unirte a una actividad: pega el código que te han pasado">Importar código o actividad</button><button class="ebtn" data-act="controls">Controles</button><button class="ebtn" data-act="settings">Ajustes</button></div></section>
       <section class="home-act"><span class="ha-ic" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="18" r="12" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M17 11v7l4.5 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M13 3.5h8M17 3.5v2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div class="ha-t"><h3>Crear actividad</h3><p>Escribe un enunciado y se genera un código para que tus compañeros lo hagáis a la vez, con tiempo.</p></div><div class="ha-f"><button class="ebtn pri" data-act="mkact-home">Crear actividad</button></div></section>
+      <section class="home-act home-ex"><span class="ha-ic" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 34 34"><rect x="7" y="4" width="20" height="26" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11h10M12 16h10M12 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="24.5" cy="24.5" r="5.5" fill="var(--panel)" stroke="currentColor" stroke-width="1.6"/><path d="M24.5 21.8v2.9l1.8 1.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><div class="ha-t"><h3>Examen</h3><p>Entra con el código de 4 cifras que te dé el profesor. Empieza y acaba a la vez para todos, y se entrega solo.</p></div><div class="ha-f"><button class="ebtn pri" data-act="ex-join">Entrar a un examen</button><button class="ebtn" data-act="ex-profe">Soy profesor</button></div></section>
       <section><h3>Últimos proyectos abiertos</h3>${list.length?`<div class="rc-grid">${list.map(({p,t})=>{const c=this.counts(p);return `<button class="rc" data-pid="${p._id}"><span class="rc-th">${this.thumb(p)||'<span class="rc-empty">Vacío</span>'}</span><b class="rc-n">${esc(p.name)}</b><small>${t?ago(t):'Sin abrir todavía'}${[c.er,c.ded||c.rel].filter(Boolean).map(x=>' · '+x).join('')}${p.act?' · Actividad':''}</small></button>`;}).join('')}</div>`:'<p class="tnote">Todavía no tienes proyectos. Pulsa «Nuevo proyecto».</p>'}</section>
       <section><h3>Teoría</h3><div class="thc-grid">${TH_CH.map(c=>`<button class="thc" data-thc="${c.id}">${ICO[c.ico]||''}<b>${esc(en?c.te:c.t)}</b><small>${thSections(c).slice(0,5).map(s=>esc(s.t)).join(' · ')}${thSections(c).length>5?' …':''}</small></button>`).join('')}</div></section></div>`;},
   renderMain(){
@@ -898,13 +903,14 @@ const App={
     const vt=e.target.closest('.vtabs [data-view]');if(vt){this.go(this.cur,vt.dataset.view);return;}
     const rc=e.target.closest('.home .rc[data-pid]');if(rc){this.go(this.byId(rc.dataset.pid),Settings.get().openTab||'er');return;}
     const tc=e.target.closest('[data-thc]');if(tc&&this.home){this._thc=tc.dataset.thc;this._ths=tc.dataset.ths||null;this.home='teoria';if(!tc.dataset.ths)this._thq=this._thq||'';this.renderMain();if(!tc.dataset.ths){const a=document.getElementById('thart2');if(a)a.scrollTop=0;}return;}
-    const hb=e.target.closest('.home [data-act], .home-th [data-act], .ph [data-act=home]');if(hb){this.action(hb);return;}
+    const hb=e.target.closest('.home [data-act], .home-th [data-act], .ex-v [data-act], .ph [data-act=home]');if(hb){this.action(hb);return;}
     const b=e.target.closest('.ph [data-act], .welcome [data-act]')||((this.view==='sql'||this.view==='test')&&e.target.closest('#view [data-act]'));if(b)this.action(b);
   },
   async run(fn,okMsg){try{const r=await fn();if(okMsg&&r!==null&&r!==undefined)toast(typeof okMsg==='function'?okMsg(r):okMsg);return r;}catch(e){toast(e.message,'warn');this.status('bad',e.message);return null;}},
   confirm(title,text,btn,cb,extra=''){this._cf=cb;this.modal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>${extra}<div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="cf-ok">${esc(btn)}</button></div>`);},
   async action(b){
     const a=b.dataset.act,p=this.cur;
+    if(a&&a.startsWith('ex-')){await EX.action(a,b);return;}
     if(a==='controls'){this.showControls();return;}
     if(a==='settings'){this.showSettings();return;}
     if(a==='theory'){if(this.cur&&this.cur.act&&!this.home){toast('Durante la actividad no se puede mirar la teoría.','warn');return;}this.showHome('teoria');return;}
@@ -1072,6 +1078,7 @@ const App={
     const tn=e.target.closest('[data-th]');if(tn){this._th=tn.dataset.th;this.renderSettings();const a=document.getElementById('thart');if(a)a.scrollTop=0;return;}
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this._capKey=null;this.closeModal();return;}
+    if(k.startsWith('ex-')){await EX.m(k,b);return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
     if(k==='ic'){const p=this._icP;this.closeModal();if(!p)return;if(b.dataset.ic)p.icon=b.dataset.ic;else delete p.icon;this.touch(p);this.renderTree();return;}
     if(k==='gh-claim'){this.closeModal();window.api.gitClaim().catch(()=>{});return;}

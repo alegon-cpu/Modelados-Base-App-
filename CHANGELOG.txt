@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.6.0  (17/11/2026)
+--------------------
+- Modo examen online: en Inicio, «Examen». El profesor entra con su cuenta, crea el examen (titulo, enunciado, minutos, que partes son obligatorias y cuales opcionales) y le sale un codigo de 4 cifras.
+- Los alumnos entran con el codigo y su nombre. Nadie ve el enunciado hasta que empieza, y empieza y acaba a la vez para todos (hora del servidor).
+- Lo que hace cada alumno se envia solo cada minuto; boton Entregar; al acabar el tiempo se entrega solo y se bloquea.
+- El profesor ve quien esta conectado y quien ha entregado, puede sumar 5 minutos o terminar ya, y abrir las entregas como proyectos.
+
 v3.5.1  (17/11/2026)
 --------------------
 - Cardinalidad leida como participacion (como en clase): bien al pasar a tablas, Workbench y ERDPlus. Ajuste para leerla al reves.
