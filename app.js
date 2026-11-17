@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.7: versión para macOS y Linux (además de Windows). En el examen: sala de espera (el profesor ve quién ha entrado antes de empezar), «Terminar ya» acaba al momento y el panel del profesor va más fluido. En el DED se pueden cambiar las cuatro cardinalidades de una relación (también el mínimo del lado de la tabla padre). Arreglado «Cambiar carpeta» cuando todavía no habías elegido ninguna.',
   '3.6.2: arreglado el error «Cannot find module ./fb» al actualizar a la 3.6.',
   '3.6.1: los fondos de temporada (hojas, nieve…) vienen apagados. Si los quieres, enciéndelos en Ajustes › Accesibilidad › «Fondos de temporada».',
   '3.6: modo examen online (en Inicio, «Examen»). El profesor crea el examen con un código de 4 cifras, el enunciado, los minutos y qué partes son obligatorias u opcionales. Los alumnos entran con el código: nadie ve el enunciado antes de empezar, el tiempo es el mismo para todos, lo que haces se envía solo y al acabar se entrega solo.',
@@ -378,6 +379,7 @@ const App={
   get autosave(){return true;},
   async start(){
     if(this.solo)document.body.classList.add('solo');
+    try{document.documentElement.classList.add('os-'+(window.api.platform||'win32'));}catch(e){}
     Sync.hook();Settings.init();I18N.start();try{window.api.setLang(LANG());}catch(e){}Theme.init();Splits.init();this.ed=new Editor(this);this.bind();setInterval(()=>this.actTick(),1000);
     window.api.onCloseRequest(()=>this.onCloseRequest());
     // Lo primero de todo: buscar si hay versión nueva (sin esperar a cargar proyectos ni a GitHub)
@@ -696,7 +698,7 @@ const App={
       if(modalOpen){if(e.key==='Escape'){this.closeModal();}return;}
       const K=a=>keyIs(e,a),edv=this.cur&&['bo','er','rel','ded'].includes(this.view)&&this.ed.p&&!this.locked.has(this.cur.folder);
       if(K('controls')){e.preventDefault();this.showControls();return;}
-      if(K('settings')){e.preventDefault();this.showSettings();return;}
+      if(K('settings')){e.preventDefault();if(this.examLock()){this.lockMsg();return;}this.showSettings();return;}
       if(K('find')&&edv){e.preventDefault();this.ed.openSearch();return;}
       if(K('save')){e.preventDefault();this.saveNow();return;}
       if(K('projector')){e.preventDefault();const v=!Settings.get().projector;Settings.set('projector',v);toast(v?'Modo proyector activado (vuelve a pulsar el atajo para quitarlo).':'Modo proyector desactivado.');return;}
@@ -804,7 +806,10 @@ const App={
     this.modal(`<h3>Actividad «${esc(np.act.title)}»</h3><p>Hay que hacer: <b>${parts.map(x=>({bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL'})[x]).join(', ')}</b> en <b>${np.act.mins} minutos</b>.</p>
       <ul class="plist"><li>Todo se hace a mano: no se puede pasar del E-R a tablas, ni generar el SQL, ni mirar la teoría.</li><li>Cuando se acabe el tiempo, el proyecto se bloquea hasta que pulses «Salir del modo estudiante».</li></ul>
       <p>Lee el enunciado. Cuando estéis todos, pulsa <b>Empezar</b>.</p><div class="mrow"><button class="ebtn" data-m="close">Todavía no</button><button class="ebtn pri" data-m="act-start">Empezar</button></div>`);},
-  showHome(k){this.home=k||'inicio';if(k==='teoria'&&!this._thc)this._thc='er';this.renderTree();this.renderMain();document.getElementById('mainv').scrollTop=0;},
+  // Durante un examen online (esperando o en marcha) solo se puede usar el proyecto del examen
+  examLock(){return (this.projects||[]).find(x=>x.act&&x.act.online&&(x.act.state==='run'||x.act.state==='ready'))||null;},
+  lockMsg(){toast('Durante el examen solo puedes usar el examen: nada de otros proyectos, teoría, juegos ni ajustes.','warn');},
+  showHome(k){const L=this.examLock();if(L){this.lockMsg();if(this.cur!==L||this.home)this.go(L,'enun');return;}this.home=k||'inicio';if(k==='teoria'&&!this._thc)this._thc='er';this.renderTree();this.renderMain();document.getElementById('mainv').scrollTop=0;},
   // Miniatura de un proyecto: su E-R, o si no su DED o su relacional
   thumb(p){const key=p.folder+':'+(p.updated||0);this._th=this._th||{};if(this._th[key]!=null)return this._th[key];let h='';
     try{const parts=svgParts(p),k=['er','ded','rel'].find(x=>parts[x]);if(k){const {inner,b}=parts[k],pd=30;h=`<svg viewBox="${f1(b[0]-pd)} ${f1(b[1]-pd)} ${f1(b[2]-b[0]+2*pd)} ${f1(b[3]-b[1]+2*pd)}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;}}catch(e){}
@@ -892,7 +897,7 @@ const App={
     ed.boFromText([...E.map(x=>x.name+(x.at.length?'; '+x.at.join(', '):'')),...R.map(x=>x.a+'-'+x.b+(x.at.length?'; '+x.at.join(', '):''))].join('\n'));ed._boEd=false;
     if(!was)ed.distribute();ed.fit(true);
     toast(`Pasado al Boceto: ${ne} entidad(es), ${na} atributo(s) y ${nr} línea(s). Revisa el texto de arriba y corrige lo que haga falta. Ctrl+Z lo deshace.`);},
-  go(p,view){this.home=null;Recent.touch(p.folder);if(p.folder&&p.folder.includes('/'))this.openPath(p.folder);this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
+  go(p,view){const L=this.examLock();if(L&&p!==L){this.lockMsg();p=L;view=(L.act.show||[]).includes(view)?view:'enun';if(this.cur===L&&!this.home)return;}this.home=null;Recent.touch(p.folder);if(p.folder&&p.folder.includes('/'))this.openPath(p.folder);this.cur=p;this.view=view;this.open[p._id]=true;this.renderTree();this.renderMain();},
   byId(id){return this.projects.find(x=>x._id===id);},
   onSide(e){
     const gf=e.target.closest('.gf');if(gf){if(e.target.closest('.gname'))return;const g=gf.dataset.g;this.setGOpen(g,gf.getAttribute('aria-expanded')!=='true');this.renderTree();return;}
@@ -913,6 +918,7 @@ const App={
   async action(b){
     const a=b.dataset.act,p=this.cur;
     if(a&&a.startsWith('ex-')){await EX.action(a,b);return;}
+    if(a&&this.examLock()&&!a.startsWith('act-')&&!['save','controls','news'].includes(a)){this.lockMsg();return;}
     if(a==='controls'){this.showControls();return;}
     if(a==='settings'){this.showSettings();return;}
     if(a==='theory'){if(this.cur&&this.cur.act&&!this.home){toast('Durante la actividad no se puede mirar la teoría.','warn');return;}this.showHome('teoria');return;}
@@ -930,6 +936,8 @@ const App={
     if(a==='save'){this.saveNow();return;}
     if(a==='upd-retry'){if(this._upd)this.prepareSilently(this._upd);return;}
     if(a==='upd-now'){b.disabled=true;b.textContent='Actualizando…';try{await this.flushAll();await window.api.updateInstall(this._upd.asset.url);}catch(e){b.disabled=false;b.textContent='Reiniciar y actualizar';toast('No se pudo actualizar: '+e.message,'warn');}return;}
+    // sin carpeta todavía, «Cambiar carpeta…» (Ajustes o barra de abajo) es elegirla por primera vez
+    if((a==='basechoose'||a==='prog-move')&&!this.base){this.closeModal();await this.action({dataset:{act:'setup-choose'}});return;}
     if(a==='setup-choose'||a==='setup-default'){
       const r=await this.run(()=>window.api.baseSetup(a==='setup-default'));if(!r)return;
       this.base=r.dir;try{if(await Sync.load())this.afterSync(true);this._prog=await window.api.progInfo();}catch(e){}this.renderFoot();await this.reload();

@@ -12,6 +12,19 @@ COMO ABRIRLO
 La primera vez, Windows puede mostrar "Windows protegio su PC" porque el
 programa no esta firmado. Pulsa "Mas informacion" y luego "Ejecutar de todas formas".
 
+EN MAC
+1. Descomprime el .zip y arrastra "Modelado Bases" a Aplicaciones.
+2. La primera vez: clic derecho sobre la app > Abrir > Abrir (no esta firmada
+   por Apple). Si no te deja: Ajustes del Sistema > Privacidad y seguridad >
+   "Abrir igualmente". O en la Terminal:  xattr -cr "/Applications/Modelado Bases.app"
+
+EN LINUX
+1. Descomprime el .tar.gz (por ejemplo en tu carpeta personal).
+2. Abre "modelado-bases.sh" (doble clic > Ejecutar) o en la terminal:
+   cd "Modelado Bases" && ./modelado-bases.sh
+
+En Mac y Linux la app avisa de las versiones nuevas, pero hay que descargarlas a mano.
+
 DONDE SE GUARDAN TUS PROYECTOS
 La primera vez que lo abras te pregunta donde crear la carpeta  Modelados BDD.
 Todos tus proyectos van dentro. Para moverla: "Cambiar..." en la barra de abajo.

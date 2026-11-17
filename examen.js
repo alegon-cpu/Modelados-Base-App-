@@ -63,7 +63,7 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
       <div class="mrow"><button class="ebtn pri" data-m="close">Entendido</button></div>`);},
   tickAll(){for(const p of App.projects||[]){const a=p.act;if(a&&a.online&&(a.state==='ready'||a.state==='run'))this.tick(p);}this.tickProfe();},
   tick(p){const a=p.act,o=a.online,r=this.rt(p),now=this.now();
-    const every=a.state==='ready'?(o.ini-now<8000?1000:3000):15000;
+    const every=a.state==='ready'?(o.ini-now<8000?1000:3000):8000;
     if(!r.busy&&Date.now()-(r.last||0)>every){r.last=Date.now();this.sync(p);}
     if(a.state==='run'){if(now>=o.fin){if(!r.ending)this.finish(p);}
       else if(p.updated>(r.sentUpd||0)&&Date.now()-(r.sentAt||0)>60000&&!r.sending)this.send(p,false);}
@@ -76,6 +76,8 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
   async sync(p){const a=p.act,o=a.online,r=this.rt(p);r.busy=true;
     try{const m=await this.meta(o.code,'alumno');
       if(!m||m.creado!==o.id){a.state='over';o.borrado=1;App.touch(p);App.renderMain();toast('El profesor ha borrado el examen.','warn');return;}
+      // sala de espera: el profesor ve quién ha entrado aunque todavía no haya empezado (una vez por sesión)
+      if(!r.sala&&this.uid){r.sala='…';const z=await this.q('alumno','PATCH',`examenes/${o.code}/sala/${this.uid}`,FBV.doc({nombre:o.nombre,hora:new Date(this.now())}));r.sala=z.status===200?'ok':'no';}
       const ext=a.state==='run'&&m.fin>o.fin+1000;o.ini=m.inicio;o.fin=m.fin;a.end=o.fin-this.off;
       if(ext)toast('El profesor ha añadido tiempo: ahora acaba a las '+hhmm(o.fin-this.off)+'.');
       if(a.state==='ready'&&this.now()>=o.ini){const e=await this.q('alumno','GET',`examenes/${o.code}/enunciado/main`);
@@ -114,10 +116,14 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
       if(r.status!==200)throw new Error(this.err(r));P.list=(r.data||[]).filter(x=>x.document).map(x=>this.parse(x.document)).sort((a,b)=>(b.creado||0)-(a.creado||0));P.err='';
       if(P.sel&&!P.list.some(x=>x.code===P.sel))P.sel=null;if(P.sel)await this.refreshEnt(true);}
     catch(e){P.err=e.message;if(/sesión|Primero inicia/i.test(e.message)){P.who=await window.api.fbWho().catch(()=>({}));}}
-    P.last=Date.now();if(App.home==='examen')App.renderMain();},
+    P.last=Date.now();const sig=JSON.stringify([P.list,P.ent,P.err,P.salaOff,P.sel,P.who&&P.who.profe]);if(sig!==P.sig){P.sig=sig;if(App.home==='examen')App.renderMain();}},
   async refreshEnt(quiet){const P=this.P;if(!P.sel)return;
     try{const r=await this.q('profe','GET',`examenes/${P.sel}/entregas?pageSize=300`);if(r.status!==200)throw new Error(this.err(r));
-      P.ent=((r.data&&r.data.documents)||[]).map(d=>({uid:FBV.id(d),...FBV.obj(d)})).sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));}
+      const ent=((r.data&&r.data.documents)||[]).map(d=>({uid:FBV.id(d),...FBV.obj(d)}));
+      // los que están en la sala de espera y todavía no han enviado nada (si las reglas lo permiten)
+      const z=await this.q('profe','GET',`examenes/${P.sel}/sala?pageSize=300`);P.salaOff=z.status===403;
+      if(z.status===200)((z.data&&z.data.documents)||[]).forEach(d=>{const id=FBV.id(d);if(!ent.some(e=>e.uid===id))ent.push({uid:id,...FBV.obj(d),estado:'sala',proyecto:'{}'});});
+      P.ent=ent.sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));}
     catch(e){P.err=e.message;}if(!quiet&&App.home==='examen')App.renderMain();},
   tickProfe(){const P=this.P;if(App.home!=='examen'||!P.who||!P.who.profe)return;
     if(!P.busy&&Date.now()-P.last>(P.sel?5000:20000)){P.busy=true;this.refreshList().finally(()=>{P.busy=false;});}
@@ -140,11 +146,12 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
     const has=(e,k)=>{try{const pr=JSON.parse(e.proyecto||'{}'),v=pr[k];return k==='sql'?!!String(v||'').trim():v&&((v.nodes&&v.nodes.length)||(v.t&&v.t.length));}catch(err){return false;}};
     return `<div class="ex-head"><div><div class="ex-big">${x.code}</div><button class="ebtn sm" data-act="ex-copy" data-code="${x.code}">Copiar código</button></div>
       <div class="ex-info"><h3>${esc(x.titulo||'Sin título')}</h3><p>${esc(this.partsTxt(x.req,x.opt))} · ${x.mins} min</p><p class="ex-st st-${s}" data-exclock="${x.code}">${esc(this.stTxt(x))}</p></div></div>
-      <div class="row ex-ctl">${s==='wait'?`<button class="ebtn pri" data-act="ex-start">Empezar ahora</button>`:''}${s==='soon'||s==='run'?`<button class="ebtn" data-act="ex-plus">+5 minutos</button><button class="ebtn" data-act="ex-end">Terminar ya</button>`:''}${s==='over'&&E.length?`<button class="ebtn pri" data-act="ex-openall">Abrir todas en la app</button>`:''}<span class="tspace"></span><button class="ebtn danger" data-act="ex-del">Borrar examen</button></div>
-      <h4>Entregas <small>${E.length} conectados · ${done} entregadas</small></h4>
+      <div class="row ex-ctl">${s==='wait'?`<button class="ebtn pri" data-act="ex-start">Empezar ahora</button>`:''}${s==='soon'||s==='run'?`<button class="ebtn" data-act="ex-plus">+5 minutos</button><button class="ebtn" data-act="ex-end">Terminar ya</button>`:''}${s==='over'&&E.some(e=>e.estado!=='sala')?`<button class="ebtn pri" data-act="ex-openall">Abrir todas en la app</button>`:''}<span class="tspace"></span><button class="ebtn danger" data-act="ex-del">Borrar examen</button></div>
+      <h4>Alumnos <small>${E.length} conectados · ${done} entregadas</small></h4>
       ${E.length?`<div class="ex-tw"><table class="ex-t"><thead><tr><th>Alumno</th><th>Estado</th><th>Última vez</th>${[...x.req,...x.opt].map(k=>`<th>${EXP_N[k]}</th>`).join('')}<th></th></tr></thead><tbody>
-        ${E.map(e=>`<tr><td>${esc(e.nombre||'?')}</td><td><span class="ex-pill${e.estado==='entregada'?' st-ok':''}">${e.estado==='entregada'?'Entregada':'Trabajando'}</span></td><td>${e.hora?hhmm(e.hora):'—'}</td>${[...x.req,...x.opt].map(k=>`<td>${has(e,k)?'✓':'·'}</td>`).join('')}<td><button class="ebtn sm" data-act="ex-openone" data-uid="${escA(e.uid)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`
-        :`<p class="tnote">${s==='wait'?'Cuando lo empieces, aquí irán apareciendo los alumnos (lo que hacen se envía solo cada minuto).':'Nadie ha enviado nada todavía.'}</p>`}`;},
+        ${E.map(e=>`<tr><td>${esc(e.nombre||'?')}</td><td><span class="ex-pill${e.estado==='entregada'?' st-ok':''}">${e.estado==='entregada'?'Entregada':e.estado==='sala'?(s==='wait'||s==='soon'?'Esperando':'Sin enviar aún'):'Trabajando'}</span></td><td>${e.hora?hhmm(e.hora):'—'}</td>${[...x.req,...x.opt].map(k=>`<td>${has(e,k)?'✓':'·'}</td>`).join('')}<td>${e.estado==='sala'?'':`<button class="ebtn sm" data-act="ex-openone" data-uid="${escA(e.uid)}">Abrir</button>`}</td></tr>`).join('')}</tbody></table></div>`
+        :`<p class="tnote">${s==='wait'?(this.P.salaOff?'Cuando lo empieces, aquí irán apareciendo los alumnos.':'Aquí irán apareciendo los alumnos según entren con el código.'):'Nadie ha entrado todavía.'}</p>`}
+      ${this.P.salaOff?'<p class="tnote">Para ver quién está esperando antes de empezar, actualiza las reglas de Firebase (falta la «sala»).</p>':''}`;},
   newModal(){const cur=App.cur,en=cur&&(cur.enun||'').trim()&&!cur.act?cur.enun:'',def={er:'req',rel:'req',ded:'req',sql:'opt',bo:'opt'};
     App.modal(`<h3>Nuevo examen</h3><p>Se genera un código de 4 cifras para los alumnos. Nadie ve el enunciado hasta que empiece, y el tiempo es el mismo para todos.</p>
       <label class="fld">Título<input type="text" id="extitle" value="${escA(cur&&!cur.act&&en?cur.name:'')}" placeholder="Por ejemplo: Examen tema 2 · Biblioteca" spellcheck="false"></label>
@@ -166,10 +173,11 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
       const e=await this.q('profe','PATCH',`examenes/${code}/enunciado/main`,FBV.doc({texto:enun}));if(e.status!==200)throw new Error(this.err(e));
       App.closeModal();P.sel=code;P.ent=[];await this.refreshList();toast('Examen creado. Código: '+code);}
     catch(err){toast(err.message,'warn');btn.disabled=false;btn.textContent='Crear examen';}},
-  async setTimes(code,ini,fin,msg){const r=await this.q('profe','PATCH',`examenes/${code}?updateMask.fieldPaths=inicio&updateMask.fieldPaths=fin`,FBV.doc({inicio:new Date(ini),fin:new Date(fin)}));
-    if(r.status!==200){toast(this.err(r),'warn');return;}toast(msg);await this.refreshList();},
+  async setTimes(code,ini,fin,msg){const x=(this.P.list||[]).find(e=>e.code===code),old=x&&[x.inicio,x.fin];if(x){x.inicio=ini;x.fin=fin;App.renderMain();}const r=await this.q('profe','PATCH',`examenes/${code}?updateMask.fieldPaths=inicio&updateMask.fieldPaths=fin`,FBV.doc({inicio:new Date(ini),fin:new Date(fin)}));
+    if(r.status!==200){if(x){[x.inicio,x.fin]=old;App.renderMain();}toast(this.err(r),'warn');return;}toast(msg);this.P.sig=null;await this.refreshList();},
   async del(code){const P=this.P;try{const r=await this.q('profe','GET',`examenes/${code}/entregas?pageSize=300`);
       for(const d of (r.data&&r.data.documents)||[])await this.q('profe','DELETE',`examenes/${code}/entregas/${FBV.id(d)}`);
+      const z=await this.q('profe','GET',`examenes/${code}/sala?pageSize=300`);for(const d of (z.status===200&&z.data&&z.data.documents)||[])await this.q('profe','DELETE',`examenes/${code}/sala/${FBV.id(d)}`);
       await this.q('profe','DELETE',`examenes/${code}/enunciado/main`);const x=await this.q('profe','DELETE','examenes/'+code);if(x.status!==200)throw new Error(this.err(x));
       if(P.sel===code){P.sel=null;P.ent=null;}toast('Examen '+code+' borrado.');await this.refreshList();}catch(e){toast(e.message,'warn');}},
   // Las entregas se abren como proyectos normales dentro de una carpeta «Examen 1234 · título»
@@ -193,10 +201,10 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
     if(a==='ex-sel'){P.sel=b.dataset.code;P.ent=null;App.renderMain();await this.refreshEnt();return;}
     if(a==='ex-copy'){try{await navigator.clipboard.writeText(b.dataset.code);toast('Código copiado.');}catch(e){toast('Código: '+b.dataset.code);}return;}
     if(!x)return;
-    if(a==='ex-start'){const n=this.now()+5000;await this.setTimes(x.code,n,n+x.mins*60000,'¡Examen empezado! Los alumnos lo verán en unos segundos.');return;}
+    if(a==='ex-start'){const n=this.now()+3000;await this.setTimes(x.code,n,n+x.mins*60000,'¡Examen empezado! Los alumnos lo verán en unos segundos.');return;}
     if(a==='ex-plus'){await this.setTimes(x.code,x.inicio,x.fin+300000,'+5 minutos: ahora acaba a las '+hhmm(x.fin+300000-this.off)+'.');return;}
-    if(a==='ex-end'){App.confirm('Terminar el examen ya','Los alumnos tendrán 20 segundos más y luego se entregará solo lo que tengan.','Terminar',()=>{const n=this.now()+20000;this.setTimes(x.code,Math.min(x.inicio,n-1000),n,'El examen termina en 20 segundos.');});return;}
+    if(a==='ex-end'){App.confirm('Terminar el examen ya','Se acaba ahora para todos y se entrega solo lo que tenga cada alumno (les llega en unos segundos).','Terminar',()=>{const n=this.now();this.setTimes(x.code,Math.min(x.inicio,n-1000),n,'Examen terminado. Las entregas irán llegando en unos segundos.');});return;}
     if(a==='ex-del'){App.confirm('Borrar el examen '+x.code,'Se borran el examen, el enunciado y todas las entregas de Firebase. Las que ya abriste en la app se quedan.','Borrar',()=>this.del(x.code));return;}
     if(a==='ex-openone'){const e=(P.ent||[]).find(z=>z.uid===b.dataset.uid);if(!e)return;const f=await this.importEnt(x,[e]);const np=f&&App.projects.find(z=>z.folder===f);if(np){App.go(np,x.req[0]||'er');toast('Abierta la entrega de '+e.nombre+'.');}return;}
-    if(a==='ex-openall'){const f=await this.importEnt(x,P.ent||[]);if(f){toast((P.ent||[]).length+' entregas abiertas en la carpeta «Examen '+x.code+'».');App.renderMain();}return;}},
+    if(a==='ex-openall'){const L=(P.ent||[]).filter(e=>e.estado!=='sala'),f=await this.importEnt(x,L);if(f){toast(L.length+' entregas abiertas en la carpeta «Examen '+x.code+'».');App.renderMain();}return;}},
   async m(k,b){if(k==='ex-join'){await this.join(b);return;}if(k==='ex-create'){await this.create(b);return;}}};

@@ -1,6 +1,6 @@
 name: Publicar versión
 
-# Cuando cambia la versión en package.json (en main), construye el zip de Windows
+# Cuando cambia la versión en package.json (en main), construye la app para Windows, Linux y macOS
 # y crea la Release vX.Y.Z. Si esa versión ya está publicada, no hace nada.
 on:
   push:
@@ -16,11 +16,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publicar:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      skip: ${{ steps.v.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Versión
         id: v
         env:
@@ -28,41 +30,69 @@ jobs:
         run: |
           V=$(node -p "require('./package.json').version")
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          if gh release view "v$V" >/dev/null 2>&1; then
+          if gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "La versión v$V ya está publicada: no hay nada que hacer."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
+  construir:
+    needs: version
+    if: needs.version.outputs.skip != 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - plat: win
+            os: ubuntu-latest
+          - plat: linux
+            os: ubuntu-latest
+          - plat: mac
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        if: steps.v.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
-
       - name: Instalar dependencias
-        if: steps.v.outputs.skip != 'true'
         run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-
       - name: Pruebas
-        if: steps.v.outputs.skip != 'true'
+        if: matrix.plat == 'win'
         run: node test-storage.js
-
-      - name: Construir el zip de Windows
-        if: steps.v.outputs.skip != 'true'
+      - name: Construir (${{ matrix.plat }})
         run: |
-          bash build.sh
-          # Huella del zip: la app la comprueba antes de instalar la actualización
-          sha256sum "Modelado-Bases-${{ steps.v.outputs.version }}-Windows.zip" > "Modelado-Bases-${{ steps.v.outputs.version }}-Windows.zip.sha256"
+          F=$(bash build.sh ${{ matrix.plat }} | tail -1)
+          # Huella del paquete: la app la comprueba antes de instalar la actualización
+          shasum -a 256 "$F" > "$F.sha256"
+          ls -la "$F" "$F.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquete-${{ matrix.plat }}
+          path: |
+            Modelado-Bases-*.zip
+            Modelado-Bases-*.tar.gz
+            Modelado-Bases-*.sha256
+          if-no-files-found: error
 
+  publicar:
+    needs: [version, construir]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: paquetes
+          merge-multiple: true
       - name: Publicar la Release
-        if: steps.v.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          V: ${{ steps.v.outputs.version }}
+          V: ${{ needs.version.outputs.version }}
         run: |
+          ls -la paquetes
           bash release-notes.sh > notes.md
           cat notes.md
-          gh release create "v$V" "Modelado-Bases-$V-Windows.zip" "Modelado-Bases-$V-Windows.zip.sha256" --target "$GITHUB_SHA" \
+          gh release create "v$V" paquetes/* --target "$GITHUB_SHA" \
             --title "Modelado Bases ${V%.0}" --notes-file notes.md --latest

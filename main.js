@@ -8,6 +8,13 @@ const S = require('./storage');
 const FB = require('./fb'); // modo examen; también antes del modo instalador
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
+// Linux: el sandbox de Chromium necesita «chrome-sandbox» con permisos de root (setuid). Si no los tiene
+// (lo normal al descomprimir el .tar.gz), la app no arrancaría: se abre sin ese sandbox.
+if (process.platform === 'linux') {
+  try { const sb = fs.statSync(path.join(path.dirname(process.execPath), 'chrome-sandbox')); if (!(sb.uid === 0 && (sb.mode & 0o4000))) app.commandLine.appendSwitch('no-sandbox'); }
+  catch (e) { app.commandLine.appendSwitch('no-sandbox'); }
+}
+const MAC = process.platform === 'darwin';
 const VERSION = app.getVersion(); // sale de package.json: solo hay que cambiarla allí
 let win, cfgFile, cfg = {};
 const solos = new Map(); // ventanas de un solo proyecto: webContents.id -> { w, folder }
@@ -113,7 +120,8 @@ function makeWindow(opts, query) {
     width: 1440, height: 900, minWidth: 900, minHeight: 600, title: 'Modelado Bases ' + VERSION,
     icon: path.join(__dirname, 'icon.png'), backgroundColor: bg(), show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
-    titleBarStyle: 'hidden', titleBarOverlay: overlay()
+    // macOS: los tres botones de colores quedan arriba a la izquierda; en Windows y Linux se pintan a la derecha
+    ...(MAC ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 12, y: 11 } } : { titleBarStyle: 'hidden', titleBarOverlay: overlay() })
   }, opts));
   let shown = false;
   const showIt = (why) => {
@@ -172,7 +180,8 @@ app.whenReady().then(() => {
   cfgFile = path.join(app.getPath('userData'), 'config.json');
   try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) { cfg = {}; }
   if (cfg.dataDir) { try { fs.mkdirSync(cfg.dataDir, { recursive: true }); } catch (e) {} }
-  Menu.setApplicationMenu(null);
+  // En macOS hace falta el menú «Edición» para que funcionen Cmd+C, Cmd+V… y el de la app para Cmd+Q
+  Menu.setApplicationMenu(MAC ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
   openMain();
 });
 function openMain() {
@@ -447,7 +456,8 @@ h('update:check', async () => {
   if (r.status === 404) return { current: app.getVersion(), tag: null, newer: false };
   if (!r.ok) throw new Error('GitHub respondió ' + r.status);
   const j = await r.json();
-  const asset = (j.assets || []).find(a => /windows.*\.zip$/i.test(a.name)) || (j.assets || []).find(a => /\.zip$/i.test(a.name)) || null;
+  const want = process.platform === 'win32' ? /windows.*\.zip$/i : MAC ? /mac.*\.zip$/i : /linux.*\.tar\.gz$/i;
+  const asset = (j.assets || []).find(a => want.test(a.name)) || null;
   // Desde la 3.4 cada Release lleva «<zip>.sha256»: se comprueba el zip antes de instalarlo
   shaUrl = null;
   if (asset) { const s = (j.assets || []).find(a => a.name === asset.name + '.sha256'); shaUrl = s ? s.browser_download_url : null; }

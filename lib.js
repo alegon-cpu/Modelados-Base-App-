@@ -87,7 +87,7 @@ function drawER(er){
 function prepTables(d){
   const T={};
   d.t.forEach(t=>{
-    t.cols=t.c.map(c=>{const f=(c[2]||'').split(' ');const o={n:c[0],ty:c[1],pk:f.includes('pk'),nul:f.includes('null'),uq:f.includes('uq')};const fk=f.find(x=>x.startsWith('fk:'));if(fk)o.fk=fk.slice(3);return o;});
+    t.cols=t.c.map(c=>{const f=(c[2]||'').split(' ');const o={n:c[0],ty:c[1],pk:f.includes('pk'),nul:f.includes('null'),uq:f.includes('uq'),pmin:f.includes('pmin')};const fk=f.find(x=>x.startsWith('fk:'));if(fk)o.fk=fk.slice(3);return o;});
     t.w=Math.max(150,t.n.length*8+40,...t.cols.map(c=>(c.n.length+1+c.ty.length+(c.uq?3:0))*7.2+44));
     t.h=26+t.cols.length*20+8; t.cx=t.x+t.w/2; t.cy=t.y+t.h/2; T[t.n]=t;
   });
@@ -135,7 +135,7 @@ function drawDED(d){
     if(ch===pa){
       const x2=ch.x+ch.w,y2=ch.y+ch.h;
       const sp=`<path d="M${x2-34},${y2} V${y2+26} H${x2+26} V${y2-34} H${x2}" class="lk${dash}"/>`;LK+=sp+HIT(sp);
-      MK+=marker([x2-34,y2],[0,1],!childOne,true,'lkm','lko')+marker([x2,y2-34],[1,0],false,c.nul,'lkm','lko');
+      MK+=marker([x2-34,y2],[0,1],!childOne,!c.pmin,'lkm','lko')+marker([x2,y2-34],[1,0],false,c.nul,'lkm','lko');
       return;
     }
     let A,B,uA,uB;
@@ -146,8 +146,8 @@ function drawDED(d){
       A=rectExit(ch,p,q);B=rectExit(pa,q,p);
       const sp=`<line x1="${f1(A[0])}" y1="${f1(A[1])}" x2="${f1(B[0])}" y2="${f1(B[1])}" class="lk${dash}"/>`;LK+=sp+HIT(sp);
       uA=unitV(A,B);uB=[-uA[0],-uA[1]];}
-    if(d.not==='uml')MK+=endLabel(A,uA,childOne?'0..1':'0..*')+endLabel(B,uB,c.nul?'0..1':'1');
-    else MK+=marker(A,uA,!childOne,true,'lkm','lko')+marker(B,uB,false,c.nul,'lkm','lko');
+    if(d.not==='uml')MK+=endLabel(A,uA,(c.pmin?'1':'0')+(childOne?'..1':'..*'))+endLabel(B,uB,c.nul?'0..1':'1');
+    else MK+=marker(A,uA,!childOne,!c.pmin,'lkm','lko')+marker(B,uB,false,c.nul,'lkm','lko');
   });
   d.t.forEach(t=>{
     BX+=`<rect x="${t.x}" y="${t.y}" width="${f1(t.w)}" height="${t.h}" rx="6" class="tbox"/>`;

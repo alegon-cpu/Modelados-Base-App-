@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.7.0  (17/11/2026)
+--------------------
+- Version para macOS (Mac con chip Apple o Intel) y para Linux, ademas de Windows.
+- Examen: sala de espera (el profesor ve quien ha entrado antes de empezar), "Terminar ya" acaba al momento y el panel del profesor va mas fluido.
+- DED: en una relacion se pueden cambiar las cuatro cardinalidades (tambien el minimo del lado de la tabla padre).
+- Arreglado "Cambiar carpeta" cuando todavia no se habia elegido ninguna.
+
 v3.6.2  (17/11/2026)
 --------------------
 - Arreglado el error "Cannot find module './fb'" al actualizar.

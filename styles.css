@@ -1315,3 +1315,6 @@ html.has-cbg .titlebar,html.has-cbg .statusbar{background:color-mix(in srgb,var(
 .ex-pt{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
 .ex-pt select,.ex-at{height:30px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);padding:0 6px;font:inherit}
 .ebtn.sm{height:26px;padding:0 9px;font-size:12px}
+
+/* macOS: hueco para los tres botones de la ventana (a la izquierda) */
+html.os-darwin .titlebar{padding-left:80px}

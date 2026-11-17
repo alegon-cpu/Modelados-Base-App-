@@ -13,10 +13,11 @@ cat <<'TXT'
 Desde la 1.7.4 no tienes que hacer nada: la app se actualiza sola al cerrarla (o con «Reiniciar y actualizar»).
 Si tienes una versión anterior a la 1.7.4 y no se actualiza, instala esta a mano una vez: cierra la app, descarga el zip de abajo y extráelo encima de la carpeta del programa.
 
-Si es la primera vez:
-1. Descarga el zip de abajo (Assets).
-2. Descomprímelo (clic derecho > Extraer todo) y abre «Modelado Bases.exe».
-3. Si Windows muestra «Windows protegió su PC»: «Más información» y luego «Ejecutar de todas formas».
+Si es la primera vez (descarga el archivo de tu sistema en Assets, abajo):
+- Windows: «…-Windows.zip». Descomprímelo (clic derecho > Extraer todo) y abre «Modelado Bases.exe». Si sale «Windows protegió su PC»: «Más información» > «Ejecutar de todas formas».
+- macOS: «…-Mac.zip» (Mac con chip Apple o Intel). Descomprímelo y arrastra «Modelado Bases» a Aplicaciones. La primera vez: clic derecho sobre la app > Abrir > Abrir. Si macOS dice que no se puede abrir: Ajustes del Sistema > Privacidad y seguridad > «Abrir igualmente».
+- Linux: «…-Linux.tar.gz». Descomprímelo y abre «modelado-bases.sh» (o en la terminal: ./modelado-bases.sh).
+En macOS y Linux la app avisa cuando hay versión nueva, pero se instala a mano (descargando la nueva).
 
 Tus proyectos están en la carpeta Modelados BDD y no se tocan al actualizar.
 TXT

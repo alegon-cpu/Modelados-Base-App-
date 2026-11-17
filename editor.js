@@ -1,11 +1,11 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.6.2'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='3.7.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
 let uidN=0; const uid=(p='n')=>p+Date.now().toString(36)+(uidN++).toString(36)+Math.random().toString(36).slice(2,6);
-const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
-const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
+const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x==='pmin')o.pmin=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
+const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&o.pmin&&'pmin',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
 const lc=s=>String(s||'').trim().toLowerCase();
 const VIEWS={enun:'Enunciado',bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
@@ -319,6 +319,9 @@ class Editor{
   // Solo lectura: actividad terminada, o pestaña que no toca en la actividad
   get ro(){return !!(this.app&&this.app.isRO&&this.p&&this.app.isRO(this.p,this.mode));}
   get inAct(){return !!(this.p&&this.p.act);}
+  // el modo fácil no vale en una actividad ni en un examen
+  get easy(){return !!this._easy&&!this.inAct&&!(this.app&&this.app.examLock&&this.app.examLock());}
+  set easy(v){this._easy=!!v;}
   // Notación del E-R: chen (rombos y óvalos), crow (pata de gallo) o uml. El boceto siempre es sencillo.
   get not(){return 'chen';}
   locked(n){return !!n&&(isNote(n)||!this.isER?!!n.lk:!!(n.f&&n.f.lock));}
@@ -583,6 +586,7 @@ class Editor{
       if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});}
       else i.f[k]=v==='1'?true:v==='0'?false:v;this.save();this.render();this.renderInsp();return;}
     const fs=e.target.closest('[data-fkset]');if(fs){this.fkSet(fs.dataset.fkset,fs.dataset.v==='1');return;}
+    const fn=e.target.closest('[data-fkn]');if(fn){if(fn.dataset.fkn==='N'){const s=this.fkSel();toast(`Una clave ajena guarda un solo valor, así que el máximo es 1. Si los dos lados son N (N:M), hace falta una tabla intermedia: selecciona «${s?s.t.n:''}» y «${s?s.pa.n:''}» y pulsa «Relacionar las 2 (tabla intermedia)».`,'warn');}return;}
     const fa=e.target.closest('[data-fkact]');if(fa){this.fkAct(fa.dataset.fkact);return;}
     const bc=e.target.closest('[data-bocard]');if(bc){const l=this.m.links.find(x=>x.id===this.selLink);if(!l)return;this.snap();const k='e'+bc.dataset.bocard,v=(l[k]||'??').split('');
       const i=bc.dataset.k==='mn'?0:1;v[i]=v[i]===bc.dataset.v?'?':bc.dataset.v;const s=v.join('');if(s==='??')delete l[k];else l[k]=s;this.save();this.render();this.renderInsp();return;}
@@ -1144,10 +1148,10 @@ class Editor{
       h+=head(ded?'Relación (DED)':'Flecha (relacional)')+`<p class="in-p"><b>${esc(s.t.n)}</b> → <b>${esc(s.pa.n)}</b></p>
         <p class="in-p">La clave ajena (FK) está en «${esc(s.t.n)}»: <b>${s.cols.map(c=>esc(c[0])).join(', ')}</b>. Apunta a la clave primaria de «${esc(s.pa.n)}».</p>
         <div class="in-actions"><button class="ebtn" data-fkact="swap">${GL.fromer||''}<span>Pasar la FK a «${esc(s.pa.n)}»</span></button></div>`+
-        (ded?(()=>{const sb=(k,v,on,t)=>`<button class="segb" data-fkset="${k}" data-v="${v}" aria-pressed="${on}">${t}</button>`,uq=has('uq'),nul=s.cols.some(c=>parseF(c[2]).nul),pk=has('pk');
+        (ded?(()=>{const sb=(k,v,on,t)=>`<button class="segb" data-fkset="${k}" data-v="${v}" aria-pressed="${on}">${t}</button>`,uq=has('uq'),nul=s.cols.some(c=>parseF(c[2]).nul),pk=has('pk'),pmin=has('pmin');
           return `<div class="in-sub">Cardinalidades</div>
-          <div class="cq"><div class="in-q"><b class="qe">${esc(s.pa.n)}</b> ¿cuántas/os <b class="qe">${esc(s.t.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg">${sb('uq',1,uq,'1')}${sb('uq',0,!uq,'N')}</div></div><div class="cardrow"><span>mínimo</span><div class="seg"><button class="segb" disabled aria-pressed="true" title="En el DED el lado de la tabla hija siempre puede tener cero">0</button></div></div><div class="cres">junto a «${esc(s.t.n)}»: <b class="cd">(0,${uq?'1':'N'})</b></div></div>
-          <div class="cq"><div class="in-q"><b class="qe">${esc(s.t.n)}</b> ¿cuántas/os <b class="qe">${esc(s.pa.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg"><button class="segb" disabled aria-pressed="true" title="La FK guarda un solo valor">1</button></div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('nul',1,nul,'0')}${sb('nul',0,!nul,'1')}</div></div><div class="cres">junto a «${esc(s.pa.n)}»: <b class="cd">(${nul?'0':'1'},1)</b></div></div>
+          <div class="cq"><div class="in-q"><b class="qe">${esc(s.pa.n)}</b> ¿cuántas/os <b class="qe">${esc(s.t.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg">${sb('uq',1,uq,'1')}${sb('uq',0,!uq,'N')}</div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('pmin',0,!pmin,'0')}${sb('pmin',1,pmin,'1')}</div></div><div class="cres">junto a «${esc(s.t.n)}»: <b class="cd">(${pmin?'1':'0'},${uq?'1':'N'})</b></div></div>
+          <div class="cq"><div class="in-q"><b class="qe">${esc(s.t.n)}</b> ¿cuántas/os <b class="qe">${esc(s.pa.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg"><button class="segb" aria-pressed="true" data-fkn="1">1</button><button class="segb" aria-pressed="false" data-fkn="N" title="Para N en los dos lados hace falta una tabla intermedia">N</button></div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('nul',1,nul,'0')}${sb('nul',0,!nul,'1')}</div></div><div class="cres">junto a «${esc(s.pa.n)}»: <b class="cd">(${nul?'0':'1'},1)</b></div></div>
           <div class="in-sub">Línea</div><div class="seg wide">${sb('pk',1,pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>Continua')}${sb('pk',0,!pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Discontinua')}</div><p class="in-p">${pk?'Identificadora: la FK forma parte de la PK.':'No identificadora: la FK es una columna normal.'}</p>`;})():'')+
         `<div class="in-actions"><button class="ebtn danger" data-fkact="del">${GL.clear||''}<span>Quitar la relación</span></button></div>`;}
     else if(this.isBo&&this.selLink&&(()=>{const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();return l&&(isRel(X.N[l.a])||isRel(X.N[l.b]));})()){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X(),hb=isRel(X.N[l.a])?X.N[l.a]:X.N[l.b],e=X.N[l.a]===hb?X.N[l.b]:X.N[l.a];
@@ -1420,8 +1424,8 @@ class Editor{
         if(ends.length===2&&ends[0][0]===ends[1][0]){r.x+=170;r.y-=100;}relNames.push(r.n);er.nodes.push(r);ends.forEach(([e,mn,mx])=>er.links.push(lk(r,e,mn,mx)));nr++;return r;};
       const base=LANG()==='en'?'relationship':'relacion';
       ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE)return;if(!replace&&has(E,PE))return;
-        const uq=cs.every(c=>c.f.uq)||(cs.every(c=>c.f.pk)&&C(t).filter(c=>c.f.pk).length===cs.length),nul=cs.some(c=>c.f.nul),ident=E.k==='weak'&&cs.every(c=>c.f.pk);
-        mkRel(base,CARD_PART()?[[E,nul?'0':'1','1'],[PE,'0',uq?'1':'N']]:[[E,'0',uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
+        const uq=cs.every(c=>c.f.uq)||(cs.every(c=>c.f.pk)&&C(t).filter(c=>c.f.pk).length===cs.length),nul=cs.some(c=>c.f.nul),pm=cs.every(c=>c.f.pmin)?'1':'0',ident=E.k==='weak'&&cs.every(c=>c.f.pk);
+        mkRel(base,CARD_PART()?[[E,nul?'0':'1','1'],[PE,pm,uq?'1':'N']]:[[E,pm,uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
       src.filter(isLink).forEach(t=>{const rs=refs(C(t).filter(c=>c.f.pk)),ends=rs.map(({P})=>eBy[lc(P.n)]).filter(Boolean);if(ends.length<2)return;
         if(!replace&&ends.length===2&&has(ends[0],ends[1]))return;
         const r=mkRel(t.n,ends.map(e=>[e,'0','N']));C(t).filter(c=>!c.f.pk&&!c.f.fk).forEach(c=>addAttr(r,c,c.f.nul?{o:1}:{}));});
