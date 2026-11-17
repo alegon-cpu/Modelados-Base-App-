@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.6.2  (17/11/2026)
+--------------------
+- Arreglado el error "Cannot find module './fb'" al actualizar.
+
 v3.6.1  (17/11/2026)
 --------------------
 - Los fondos de temporada (hojas de otono, nieve...) vienen apagados. Se encienden en Ajustes.

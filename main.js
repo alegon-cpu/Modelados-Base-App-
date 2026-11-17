@@ -5,6 +5,7 @@ try { protocol.registerSchemesAsPrivileged([{ scheme: 'mbbg', privileges: { stan
 const path = require('path');
 const fs = require('fs');
 const S = require('./storage');
+const FB = require('./fb'); // modo examen; también antes del modo instalador
 const makeGit = require('./git'); // se carga aquí, antes del modo instalador (que desactiva leer dentro del .asar)
 
 const VERSION = app.getVersion(); // sale de package.json: solo hay que cambiarla allí
@@ -299,7 +300,6 @@ h('bg:read', n => { n = String(n || ''); if (n.startsWith('v:')) { const f = vid
   const f = bgFile(n); if (!f || !fs.existsSync(f)) return null; let t = 0; try { t = Math.round(fs.statSync(f).mtimeMs); } catch (e) {} return 'mbbg://i/' + encodeURIComponent(path.basename(f)) + '?t=' + t; });
 h('bg:del', n => { n = String(n || ''); const f = n.startsWith('v:') ? vidFile(n.slice(2)) : bgFile(n); if (f && fs.existsSync(f)) fs.unlinkSync(f); return true; });
 // Modo examen (Firebase): las sesiones se quedan aquí, la ventana solo pide peticiones
-const FB = require('./fb');
 h('fb:who', () => FB.who());
 h('fb:login', (email, pass) => FB.login(email, pass));
 h('fb:logout', () => FB.logout());

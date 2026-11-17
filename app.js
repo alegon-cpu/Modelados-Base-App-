@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.6.2: arreglado el error «Cannot find module ./fb» al actualizar a la 3.6.',
   '3.6.1: los fondos de temporada (hojas, nieve…) vienen apagados. Si los quieres, enciéndelos en Ajustes › Accesibilidad › «Fondos de temporada».',
   '3.6: modo examen online (en Inicio, «Examen»). El profesor crea el examen con un código de 4 cifras, el enunciado, los minutos y qué partes son obligatorias u opcionales. Los alumnos entran con el código: nadie ve el enunciado antes de empezar, el tiempo es el mismo para todos, lo que haces se envía solo y al acabar se entrega solo.',
   '3.5.1: las cardinalidades se leen como en clase: la pareja junto a una entidad dice cuántas veces participa esa entidad (Provincia (1,1) pertenece (1,N) Comunidad). Ya no salen al revés al pasar a tablas, a Workbench ni a ERDPlus, y la pata de gallo del E-R se dibuja como en ERDPlus. Si en tu clase se lee al revés, cámbialo en Ajustes › Lienzo.',
