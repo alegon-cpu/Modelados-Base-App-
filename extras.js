@@ -2,12 +2,14 @@
 const SET_DEF={cardMode:'part',cbg:'',cbgStr:45,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
-  boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:true,loader:true,carryNotes:true,sidePane:'enun',minimap:true,guides:true};
+  boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:false,loader:true,carryNotes:true,sidePane:'enun',minimap:true,guides:true};
 const Settings={
   _c:null,
   get(){if(this._c)return this._c;let v={};try{v=JSON.parse(localStorage.getItem('mb:set')||'{}')||{};}catch(e){}
     // lo que antes se guardaba suelto (panel fijo, enunciado al lado, modo fácil)
     const old=(k,key,on)=>{if(v[k]==null){try{const x=localStorage.getItem(key);if(x!=null)v[k]=x===on;}catch(e){}}};old('pinInsp','mb:pin','1');old('easy','mb:easy','1');if(v.showEnun==null){try{const x=localStorage.getItem('mb:showEnun');if(x!=null)v.showEnun=x!=='0';}catch(e){}}
+    // 3.6.1: los fondos de temporada vienen apagados (una vez, también para quien ya los tenía); se pueden volver a encender en Ajustes
+    if(v._sea!==1){v.season=false;v._sea=1;try{localStorage.setItem('mb:set',JSON.stringify(v));}catch(e){}}
     return this._c={...SET_DEF,...v};},
   set(k,val){const c={...this.get(),[k]:val};this._c=c;try{localStorage.setItem('mb:set',JSON.stringify(c));}catch(e){}this.apply();
     if(k==='season'){try{Juegos.apply();}catch(e){}}

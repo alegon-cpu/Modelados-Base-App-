@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.6.1  (17/11/2026)
+--------------------
+- Los fondos de temporada (hojas de otono, nieve...) vienen apagados. Se encienden en Ajustes.
+
 v3.6.0  (17/11/2026)
 --------------------
 - Modo examen online: en Inicio, «Examen». El profesor entra con su cuenta, crea el examen (titulo, enunciado, minutos, que partes son obligatorias y cuales opcionales) y le sale un codigo de 4 cifras.
