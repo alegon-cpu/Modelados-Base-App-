@@ -1,5 +1,5 @@
 /* ===================== Ajustes ===================== */
-const SET_DEF={cbg:'',cbgStr:45,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
+const SET_DEF={cardMode:'part',cbg:'',cbgStr:45,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
   boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:true,loader:true,carryNotes:true,sidePane:'enun',minimap:true,guides:true};
@@ -56,6 +56,8 @@ function fromERDPlus(text){
       const mn=slot&&slot.participation?(/mandatory/i.test(slot.participation)?'1':'0'):null,mx=slot&&slot.cardinality?(/one/i.test(slot.cardinality)?'1':'N'):null;
       links.push({id:uid(),a:r.id,b:e.id,mn,mx,c:mn&&mx?`(${mn},${mx})`:null});}
     else if(isAtt(s)||isAtt(t)){const at=isAtt(s)?s:t,ow=at===s?t:s;links.push({id:uid(),a:ow.id,b:at.id,c:null,mn:null,mx:null});}});
+  // ERDPlus guarda junto a cada entidad cuántas veces participa ella: en modo «otro» se intercambian las dos puntas
+  if(!CARD_PART()){const byR={};links.forEach(l=>{const r=nodes.find(n=>n.id===l.a);if(r&&isRel(r))(byR[r.id]=byR[r.id]||[]).push(l);});Object.values(byR).forEach(ls=>{if(ls.length!==2)return;const [A,B]=ls;[A.mn,B.mn]=[B.mn,A.mn];[A.mx,B.mx]=[B.mx,A.mx];[A,B].forEach(l=>l.c=l.mn&&l.mx?`(${l.mn},${l.mx})`:null);});}
   nodes.forEach(n=>delete n._slots);
   // En una entidad débil, la clave es parcial
   const X=erIdx({nodes,links});nodes.filter(isAtt).forEach(a=>{const ow=X.ownerOf(a);if(ow&&ow.k==='weak'&&a.f.k){a.f.k=false;a.f.p=true;}});

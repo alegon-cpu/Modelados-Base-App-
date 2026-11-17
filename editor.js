@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.5.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='3.5.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -63,6 +63,15 @@ const pairRE=(a,b)=>{if(!a||!b)return null;if(isRel(a)&&isEnt(b))return[a,b];if(
   if(isAssoc(b)&&isRel(a)&&!isAssoc(a))return[a,b];if(isAssoc(a)&&isRel(b)&&!isAssoc(b))return[b,a];return null;};
 // Etiqueta de una jerarquía: (t,e) total exclusiva, (p,s) parcial solapada…
 const isaLabel=f=>{f=f||{};return false?`{${f.tot?(LANG()==='en'?'complete':'completa'):(LANG()==='en'?'incomplete':'incompleta')}, ${f.dis===false?(LANG()==='en'?'overlapping':'solapada'):(LANG()==='en'?'disjoint':'disjunta')}}`:`(${f.tot?'t':'p'},${f.dis===false?'s':'e'})`;};
+// Cómo se lee la pareja (mín,máx) junto a una entidad:
+//  «part» (por defecto, como en clase): cuántas veces participa ESA entidad en la relación → Provincia (1,1) pertenece (1,N) Comunidad.
+//  «otro»: cuántos ejemplares de esa entidad tiene cada uno de la otra (la forma «de enfrente»).
+// Para pasar a tablas, a ERDPlus o a Workbench hace falta la forma «de enfrente»: en modo «part» se intercambian las dos puntas.
+const CARD_PART=()=>{try{return Settings.get().cardMode!=='otro';}catch(e){return true;}};
+const swapEnds=en=>{if(en.length!==2)return en;const [A,B]=en;return [{...A,mn:B.mn,mx:B.mx},{...B,mn:A.mn,mx:A.mx}];};
+function acrossEnds(en){return CARD_PART()?swapEnds(en):en;}
+// ERDPlus y la pata de gallo guardan/dibujan junto a cada entidad cuántas veces participa ELLA... dibujado en la otra punta. Ver toERDPlus y el dibujo.
+function hereEnds(en){return CARD_PART()?en:swapEnds(en);}
 function mmOf(l){if(l.mn!=null||l.mx!=null)return{mn:l.mn??null,mx:l.mx??null};if(l.c){const m=String(l.c).match(/\((\w),(\w)\)/);if(m)return{mn:m[1],mx:m[2]};}return{mn:null,mx:null};}
 // Relacionar en el DED preguntando como en el E-R: P.ca = cardinalidad junto a A, P.cb = junto a B
 function dedPlan(P){const a=P.ca,b=P.cb;if(!a.mx||!b.mx||!a.mn||!b.mn)return null;const manyA=a.mx==='N',manyB=b.mx==='N',ident=P.line==='cont';
@@ -134,7 +143,7 @@ function erToTables(er,easy){
     const addFK=(child,parent,{pk,uq,nul,suffix})=>{const pc=pkCols(parent);pc.forEach(c=>{let name=c[0];if(child.c.some(x=>lc(x[0])===lc(name)))name=uniqueCol(child,c[0]+'_'+(suffix||parent.n));
       child.c.push([name,c[1],joinF({pk:pk?1:0,uq:(uq&&pc.length===1)?1:0,nul:nul?1:0,fk:parent.n})]);});};
     er.nodes.filter(isRel).sort((a,b)=>isAssoc(b)-isAssoc(a)).forEach(r=>{
-      const en=X.ends(r).filter(x=>byEnt[x.e.id]);if(en.length<2)return;
+      const en=acrossEnds(X.ends(r).filter(x=>byEnt[x.e.id]));if(en.length<2)return;
       if(isAssoc(r)){ // entidad asociativa: siempre tabla propia con las claves de sus entidades
         const t={id:uid(),n:r.n,x:0,y:0,c:[],_mid:en.map(x=>byEnt[x.e.id])},self=new Set(en.map(x=>x.e.id)).size<en.length;
         en.forEach((x,i)=>addFK(t,byEnt[x.e.id],{pk:1,suffix:self?String(i+1):x.e.n}));rattrs0(r).forEach(c=>t.c.push([uniqueCol(t,c[0]),c[1],c[2]]));tables.push(t);byEnt[r.id]=t;return;}
@@ -979,7 +988,7 @@ class Editor{
       if(G){const d=`M${f1(a.x)},${f1(a.y)} Q${f1(G.C[0])},${f1(G.C[1])} ${f1(b.x)},${f1(b.y)}`;L+=`<path d="${d}" class="ln${on?' lsel':''}" fill="none"/>`+(live?`<path d="${d}" class="hitl" fill="none" data-lid="${l.id}"/>`:'');}
       else L+=seg([a.x,a.y],[b.x,b.y],'ln'+(on?' lsel':'')+(r&&r.k==='idrel'&&hide?' lid':''))+(live?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="hitl" data-lid="${l.id}"/>`:'');
       if(r){const en=r===a?b:a,T=G?{x:G.C[0],y:G.C[1]}:r;const P=hitRect(en.x,en.y,en.w,en.h,T.x-en.x,T.y-en.y);const len=Math.hypot(T.x-P[0],T.y-P[1])||1;const u=[(T.x-P[0])/len,(T.y-P[1])/len];
-        const c=mmOf(l),full=c.mn!=null&&c.mx!=null;if(full&&nt!=='uml')MK+=marker(P,u,c.mx!=='1',c.mn==='0');if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);}
+        const c=mmOf(l),full=c.mn!=null&&c.mx!=null;let mk=c;if(CARD_PART()){const oth=X.ends(r).filter(x=>x.l!==l);if(oth.length===1)mk=mmOf(oth[0].l);}const fullK=mk.mn!=null&&mk.mx!=null;if(fullK&&nt!=='uml')MK+=marker(P,u,mk.mx!=='1',mk.mn==='0');if(full||Settings.get().showCardQ!==false)TX+=card(P,u,c,full);}
       if(bo&&isEnt(a)&&isEnt(b)&&a!==b){
         if(Settings.get().boDiamond!==false){const mx=G?G.M[0]:(a.x+b.x)/2,my=G?G.M[1]:(a.y+b.y)/2;MK+=`<polygon points="${f1(mx)},${f1(my-13)} ${f1(mx+21)},${f1(my)} ${f1(mx)},${f1(my+13)} ${f1(mx-21)},${f1(my)}" class="dia skd"${live?` data-lid="${l.id}" style="cursor:grab"`:''}/>`;}
         [[a,b,l.ea],[b,a,l.eb]].forEach(([e,o,v])=>{if(G)o={x:G.C[0],y:G.C[1]};const P=hitRect(e.x,e.y,e.w,e.h,o.x-e.x,o.y-e.y),len=Math.hypot(o.x-P[0],o.y-P[1])||1,u=[(o.x-P[0])/len,(o.y-P[1])/len];
@@ -1046,13 +1055,15 @@ class Editor{
     this.insp.querySelectorAll('[data-f=cname]').forEach(i=>{const t=this.single();if(!t||!t._dupCols)return;i.classList.toggle('bad',t._dupCols.has(lc(i.value)));});
   }
   /* ---------- Panel de propiedades ---------- */
-  cardQ(from,to,l){const c=mmOf(l);const sb=(k,v)=>`<button class="segb" data-card="${k}" data-v="${v}" data-link="${l.id}" aria-pressed="${c[k]===v}">${v}</button>`;
+  cardQ(from,to,l,near){const c=mmOf(l);near=near||to;const sb=(k,v)=>`<button class="segb" data-card="${k}" data-v="${v}" data-link="${l.id}" aria-pressed="${c[k]===v}">${v}</button>`;
     return `<div class="cq"><div class="in-q"><b class="qe">${esc(from)}</b> ¿cuántas/os <b class="qe">${esc(to)}</b> puede tener como…</div>
       <div class="cardrow"><span>máximo</span><div class="seg">${sb('mx','1')}${sb('mx','N')}</div></div>
       <div class="cardrow"><span>mínimo</span><div class="seg">${sb('mn','0')}${sb('mn','1')}</div></div>
-      <div class="cres">junto a «${esc(to)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;}
+      <div class="cres">junto a «${esc(near)}»: <b class="cd">(${c.mn??'?'},${c.mx??'?'})</b></div></div>`;}
   cardBlock(r,onlyLink){const X=this.X(),ls=X.ends(r);let h='';
-    if(ls.length===2){const [A,B]=ls;if(!onlyLink||onlyLink===B.l.id)h+=this.cardQ(A.e.n,B.e.n,B.l);if(!onlyLink||onlyLink===A.l.id)h+=this.cardQ(B.e.n,A.e.n,A.l);}
+    if(ls.length===2){const [A,B]=ls;if(CARD_PART()){ // la respuesta va junto a quien pregunta (cuántas veces participa)
+      if(!onlyLink||onlyLink===A.l.id)h+=this.cardQ(A.e.n,B.e.n,A.l,A.e.n);if(!onlyLink||onlyLink===B.l.id)h+=this.cardQ(B.e.n,A.e.n,B.l,B.e.n);}
+      else{if(!onlyLink||onlyLink===B.l.id)h+=this.cardQ(A.e.n,B.e.n,B.l);if(!onlyLink||onlyLink===A.l.id)h+=this.cardQ(B.e.n,A.e.n,A.l);}}
     else if(ls.length>2)ls.forEach(x=>{if(!onlyLink||onlyLink===x.l.id)h+=this.cardQ(ls.filter(y=>y!==x).map(y=>y.e.n).join(' + '),x.e.n,x.l);});
     else h+=`<p class="in-p">Une la relación con dos entidades.</p>`;return h;}
   attrList(o){const X=this.X(),dups=erDups(this.m),at=X.attrsOf(o);
@@ -1410,7 +1421,7 @@ class Editor{
       const base=LANG()==='en'?'relationship':'relacion';
       ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE)return;if(!replace&&has(E,PE))return;
         const uq=cs.every(c=>c.f.uq)||(cs.every(c=>c.f.pk)&&C(t).filter(c=>c.f.pk).length===cs.length),nul=cs.some(c=>c.f.nul),ident=E.k==='weak'&&cs.every(c=>c.f.pk);
-        mkRel(base,[[E,'0',uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
+        mkRel(base,CARD_PART()?[[E,nul?'0':'1','1'],[PE,'0',uq?'1':'N']]:[[E,'0',uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
       src.filter(isLink).forEach(t=>{const rs=refs(C(t).filter(c=>c.f.pk)),ends=rs.map(({P})=>eBy[lc(P.n)]).filter(Boolean);if(ends.length<2)return;
         if(!replace&&ends.length===2&&has(ends[0],ends[1]))return;
         const r=mkRel(t.n,ends.map(e=>[e,'0','N']));C(t).filter(c=>!c.f.pk&&!c.f.fk).forEach(c=>addAttr(r,c,c.f.nul?{o:1}:{}));});

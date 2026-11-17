@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.5.1  (17/11/2026)
+--------------------
+- Cardinalidad leida como participacion (como en clase): bien al pasar a tablas, Workbench y ERDPlus. Ajuste para leerla al reves.
+
 v3.5.0  (17/11/2026)
 --------------------
 - Corredor rehecho: dinosaurio nuevo con animaciones, paisaje por capas y día/noche suaves.

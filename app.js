@@ -81,8 +81,8 @@ function toERDPlus(er){
   er.nodes.filter(isAtt).forEach(n=>{const f=n.f||{};
     shapes.push({type:'Attribute',details:{name:n.n,isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id]}});
     const ow=X.ownerOf(n);if(ow)connectors.push({type:'Connector',details:{id:next++},source:ids[n.id],destination:ids[ow.id]});});
-  er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);
-    const slots=en.map((x,i)=>({slotIndex:i,minimum:'',maximum:'',participation:x.mn==='1'?'mandatory':'optional',cardinality:x.mx==='1'?'one':'many',role:'',entityId:ids[x.e.id]}));
+  er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r),ea=hereEnds(en);
+    const slots=ea.map((x,i)=>({slotIndex:i,minimum:'',maximum:'',participation:x.mn==='1'?'mandatory':'optional',cardinality:x.mx==='1'?'one':'many',role:'',entityId:ids[x.e.id]}));
     shapes.push({type:'Relationship',details:{name:r.n,isIdentifying:r.k==='idrel',x:X0(r),y:Y0(r),slots,id:ids[r.id]}});
     en.forEach((x,i)=>connectors.push({type:'RelationshipConnector',details:{slotIndex:i,id:next++},source:ids[x.e.id],destination:ids[r.id]}));});
   const width=Math.max(800,...er.nodes.map(n=>X0(n)+n.w+60)),height=Math.max(600,...er.nodes.map(n=>Y0(n)+n.h+60));
@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.5.1: las cardinalidades se leen como en clase: la pareja junto a una entidad dice cuántas veces participa esa entidad (Provincia (1,1) pertenece (1,N) Comunidad). Ya no salen al revés al pasar a tablas, a Workbench ni a ERDPlus, y la pata de gallo del E-R se dibuja como en ERDPlus. Si en tu clase se lee al revés, cámbialo en Ajustes › Lienzo.',
   '3.5: el Corredor, rehecho. Dibujo nuevo (un dinosaurio con animaciones de correr, saltar, agacharse y chocar; montañas, colinas y nubes que se mueven a distinta velocidad; el día y la noche cambian poco a poco) y juego más justo: los obstáculos nunca salen tan juntos que no se puedan pasar, los choques se calculan con la forma real, el salto sube más si mantienes la tecla, ↓ te baja rápido en el aire, se empieza con Espacio y se pausa al cambiar de ventana. Los murciélagos bajos se saltan y los altos se esquivan agachándote.',
   '3.4: minimapa en el lienzo (pincha o arrastra en él para moverte) y guías de alineación al arrastrar (Alt para mover libre); los dos se activan o quitan en Ajustes > Lienzo. Arrastrar va más fluido en diagramas grandes, el autoguardado solo rehace las imágenes de los diagramas que han cambiado y no reescribe archivos iguales, y la lista de proyectos se carga sin bloquear la app. Las flechas respetan la cuadrícula y no llenan el «Deshacer». Inicio y paneles más ordenados (esquinas, sombras y tamaños iguales en todo el programa). Más seguro: Electron 44 y cada actualización se comprueba (SHA-256) antes de instalarse.',
   '3.3: 7 juegos nuevos en Juegos wapos: Memory (con un modo de BDD para unir conceptos y definiciones), Corredor, Asteroides, Cruza (la carretera y el río), Tiro al plato, Cueva (el helicóptero) y Solitario. Todos dan experiencia y fragmentos ◆, y cada uno tiene su reto para ganar un token.',
@@ -555,7 +556,7 @@ const App={
     else if(sec==='atajos'){const K=KEYS();
       h=H('Atajos de teclado','Pulsa «Cambiar» y después la combinación que quieras (por ejemplo Ctrl+Mayús+E). Esc cancela.')+KEY_NAMES.map(([g,rows])=>`<p class="set-g">${g}</p>`+rows.map(([a,l])=>`<div class="set-row"><div class="set-lab"><b>${l}</b></div><div class="keyrow">${this._capKey===a?'<span class="keycap wait">Pulsa la combinación…</span>':K[a]?`<span class="keycap">${kb(K[a]==='Delete'?'Supr':K[a])}</span>`:'<span class="keycap none">Sin atajo</span>'}<button class="ebtn" data-m="key-set" data-k="${a}">Cambiar</button>${K[a]?`<button class="ebtn" data-m="key-clear" data-k="${a}" title="Quitar el atajo" aria-label="Quitar el atajo">✕</button>`:''}</div></div>`).join('')).join('')+
         `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
-    else if(sec==='lienzo'){h=H('Lienzo')+seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
+    else if(sec==='lienzo'){h=H('Lienzo')+seg('cardMode','Cómo se lee la cardinalidad (mín,máx) del E-R','La pareja que pones junto a una entidad. Se usa al pasar a tablas, a ERDPlus, a Workbench y en el quiz.',[['part','Cuántas veces participa esa entidad'],['otro','Cuántas de esa entidad tiene la otra']])+seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
         tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
         tog('boDiamond','Rombo en las líneas del Boceto','Un rombo pequeño, sin texto, en el centro de cada línea del Boceto (como en el E-R).')+
         tog('showType','Tipo de relación debajo del rombo','Muestra 1:1, 1:N o N:M en cada relación.')+tog('showCardQ','Marcar las cardinalidades que faltan','Pone (?,?) en las líneas que aún no tienen máximo y mínimo.')+

@@ -50,9 +50,10 @@ const TEORIA=[
 <p>Si un dato no es de ninguna de las dos entidades, sino de que estén relacionadas, va en la relación. Ejemplo: la <i>nota</i> no es del alumno ni del curso: es de <i>la matrícula</i> de ese alumno en ese curso.</p>`},
 
 {id:'cardinalidad',t:'Cardinalidad (máximo y mínimo)',k:'cardinalidad minimo maximo participacion 1:1 1:n n:m obligatoria opcional',h:`
-<p>En cada línea entre relación y entidad se pone una pareja <b>(mínimo, máximo)</b>. En esta app (como en ERD Plus) la pareja que está <b>junto a una entidad</b> dice <b>cuántos ejemplares de esa entidad</b> puede tener cada ejemplar de la otra.</p>
-<div class="th-ex"><b>Ejemplo:</b> Pizzería ¿cuántos Animatrónicos puede tener como máximo? <b>Muchos (N)</b>. ¿Y como mínimo? <b>Ninguno (0)</b>. Junto a Animatrónico va <b>(0,N)</b>.<br>
-Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como mínimo <b>1</b>. Junto a Pizzería va <b>(1,1)</b>.</div>
+<p>En cada línea entre relación y entidad se pone una pareja <b>(mínimo, máximo)</b>. La pareja que está <b>junto a una entidad</b> dice <b>cuántas veces participa esa entidad</b> en la relación: con cuántos ejemplares de la otra se puede relacionar cada uno de ella.</p>
+<div class="th-ex"><b>Ejemplo:</b> Provincia —pertenece— Comunidad. Cada provincia ¿a cuántas comunidades pertenece? Como mínimo <b>1</b> y como máximo <b>1</b>: junto a Provincia va <b>(1,1)</b>.<br>
+Cada comunidad ¿cuántas provincias tiene? Como mínimo <b>1</b> y como máximo <b>muchas (N)</b>: junto a Comunidad va <b>(1,N)</b>. Es una 1:N y, al pasar a tablas, la clave ajena va a <b>Provincia</b> (la que participa como mucho 1 vez).</div>
+<p class="tnote">Si en tu clase se lee al revés (la pareja junto a una entidad cuenta cuántas de esa entidad tiene la otra), cámbialo en Ajustes › Lienzo › «Cómo se lee la cardinalidad».</p>
 <table class="th-tab"><tr><th>Valor</th><th>Significa</th></tr>
 <tr><td><b>Mínimo 0</b></td><td>Participación opcional: puede no tener ninguno.</td></tr>
 <tr><td><b>Mínimo 1</b></td><td>Participación obligatoria: siempre tiene al menos uno.</td></tr>
@@ -97,7 +98,7 @@ Animatrónico ¿cuántas Pizzerías puede tener? Como máximo <b>1</b> y como m�
 <tr><td>Atributo compuesto</td><td>Se guardan sus partes como columnas (calle, número, ciudad).</td></tr>
 <tr><td>Atributo derivado</td><td>No se guarda (se calcula).</td></tr>
 <tr><td>Atributo multivaluado</td><td>Tabla aparte: la PK de la entidad + el atributo. Las dos forman la PK.</td></tr>
-<tr><td>Relación <b>1:N</b></td><td>La PK del lado «1» pasa como <b>FK</b> a la tabla del lado «N». Si el mínimo junto al lado 1 es 0, la FK puede ser NULL.</td></tr>
+<tr><td>Relación <b>1:N</b></td><td>La PK de la entidad que tiene muchas pasa como <b>FK</b> a la que participa como mucho 1 vez (la que tiene (x,1) a su lado). Si esa participación tiene mínimo 0, la FK puede ser NULL.</td></tr>
 <tr><td>Relación <b>1:1</b></td><td>La FK va a una de las dos tablas (mejor a la que participa de forma obligatoria) y se marca <b>UNIQUE</b>.</td></tr>
 <tr><td>Relación <b>N:M</b></td><td>Tabla nueva con las PK de las dos entidades como FK; juntas forman su PK. Los atributos de la relación van aquí.</td></tr>
 <tr><td>Entidad <b>débil</b></td><td>Su tabla lleva la PK de la fuerte como FK, y su PK es esa FK + la clave parcial.</td></tr>
@@ -160,7 +161,7 @@ CREATE TABLE Matricula (<br>&nbsp;&nbsp;DNI CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Cod
 <li><b>Atributos en el sitio equivocado:</b> la nota de una matrícula va en la relación, no en Alumno.</li>
 <li><b>Guardar datos derivados</b> (edad, total) cuando se pueden calcular.</li>
 <li><b>Claves que cambian o se repiten</b> (el nombre) en vez de un código o el DNI.</li>
-<li><b>Leer al revés la cardinalidad:</b> la pareja junto a una entidad cuenta ejemplares de esa entidad.</li>
+<li><b>Leer al revés la cardinalidad:</b> la pareja junto a una entidad dice cuántas veces participa esa entidad (cada provincia pertenece a (1,1) comunidad).</li>
 <li><b>Entidades que en realidad son atributos:</b> si solo tiene un dato y no se relaciona con nada más, seguramente es un atributo.</li></ul>`},
 
 {id:'glosario',t:'Glosario',k:'glosario definiciones vocabulario',h:`

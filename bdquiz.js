@@ -35,7 +35,7 @@ const BDQ_S=[
 const BDQ={
   _bank:null,
   rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};},
-  baseER(S){return mkER(S.ents.map(([n,x,y,at])=>[n,x,y,at]),S.rels.map(([n,x,y,a,ca,b,cb,at])=>[n,x,y,[[a,ca[0],ca[1]],[b,cb[0],cb[1]]],at]));},
+  baseER(S){return mkER(S.ents.map(([n,x,y,at])=>[n,x,y,at]),S.rels.map(([n,x,y,a,ca,b,cb,at])=>[n,x,y,CARD_PART()?[[a,cb[0],cb[1]],[b,ca[0],ca[1]]]:[[a,ca[0],ca[1]],[b,cb[0],cb[1]]],at]));}, // los datos están «de enfrente»: en modo «part» se dan la vuelta
   baseTables(S,ded){const er=this.baseER(S),{tables}=erToTables(er,true);tables.forEach(t=>{delete t._src;delete t._mid;delete t._ex;delete t._ey;t.c=t.c.map(c=>{const f=parseF(c[2]);return[c[0],ded?(c[1]&&c[1]!=='INT'?c[1]:guessType(c[0],f)):c[1],c[2]];});});return{t:tables,notes:[]};},
   // Fallos que se pueden meter en cada tipo de diagrama
   mutsER(m,S,R){const X=erIdx(m),out=[];
