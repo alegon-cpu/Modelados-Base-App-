@@ -461,7 +461,7 @@ async function latestViaWeb() {
   const m = /\/releases\/tag\/(v?\d+\.\d+\.\d+)/.exec((r.url || '') + ' ' + html);
   if (!m) throw new Error('GitHub respondió ' + r.status);
   const tag = m[1], v = tag.replace(/^v/, ''), base = `${DL_PREFIX}${tag}/`;
-  const names = [`Modelado-Bases-${v}-Windows.zip`, `Modelado-Bases-${v}-Mac.zip`, `Modelado-Bases-${v}-Linux.tar.gz`];
+  const names = [`Modelado-Bases-${v}-Windows.zip`, `Modelado-Bases-${v}-Linux.tar.gz`]; // (Mac no: solo en algunas versiones)
   const assets = [];
   for (const n of names) assets.push({ name: n, browser_download_url: base + n, size: 0 }, { name: n + '.sha256', browser_download_url: base + n + '.sha256', size: 0 });
   return { tag_name: tag, name: 'Modelado Bases ' + v.replace(/\.0$/, ''), body: '', assets };
@@ -480,7 +480,8 @@ h('update:check', async () => {
   shaUrl = null;
   if (asset) { const s = (j.assets || []).find(a => a.name === asset.name + '.sha256'); shaUrl = s ? s.browser_download_url : null; }
   return { current: app.getVersion(), tag: j.tag_name, name: j.name || j.tag_name, body: String(j.body || '').slice(0, 5000),
-    newer: isNewer(j.tag_name, app.getVersion()), canInstall: !!asset && canSelfUpdate(),
+    // en Mac solo hay paquete en algunas versiones: sin él, no se avisa
+    newer: isNewer(j.tag_name, app.getVersion()) && (!MAC || !!asset), canInstall: !!asset && canSelfUpdate(),
     asset: asset && { name: asset.name, url: asset.browser_download_url, size: asset.size } };
 });
 async function downloadTo(url, f, sender) {

@@ -1,0 +1,47 @@
+name: Versión para Mac
+
+# Solo a mano (Actions › «Versión para Mac» › Run workflow): construye la app para macOS
+# y la añade a una versión ya publicada (por defecto, la última).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión (por ejemplo 4.2.1). Vacío = la última publicada'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - name: Versión
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ github.event.inputs.version }}"
+          if [ -z "$V" ]; then V=$(gh release view -R "$GITHUB_REPOSITORY" --json tagName -q .tagName | sed 's/^v//'); fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Versión: $V"
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ steps.v.outputs.version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Construir y subir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          F=$(bash build.sh mac | tail -1)
+          shasum -a 256 "$F" > "$F.sha256"
+          gh release upload "v${{ steps.v.outputs.version }}" "$F" "$F.sha256" --clobber -R "$GITHUB_REPOSITORY"

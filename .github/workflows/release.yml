@@ -1,6 +1,6 @@
 name: Publicar versión
 
-# Cuando cambia la versión en package.json (en main), construye la app para Windows, Linux y macOS
+# Cuando cambia la versión en package.json (en main), construye la app para Windows y Linux
 # y crea la Release vX.Y.Z. Si esa versión ya está publicada, no hace nada.
 on:
   push:
@@ -46,11 +46,8 @@ jobs:
             os: ubuntu-latest
           - plat: linux
             os: ubuntu-latest
-          - plat: mac
-            os: macos-14
+    # macOS va aparte: «Versión para Mac» (mac.yml), solo cuando se pida
     runs-on: ${{ matrix.os }}
-    # si el Mac no consigue máquina (a veces GitHub tarda o falla), se publica igual Windows y Linux
-    continue-on-error: ${{ matrix.plat == 'mac' }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4

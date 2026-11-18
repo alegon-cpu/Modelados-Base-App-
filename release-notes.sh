@@ -15,7 +15,7 @@ Si tienes una versión anterior a la 1.7.4 y no se actualiza, instala esta a man
 
 Si es la primera vez (descarga el archivo de tu sistema en Assets, abajo):
 - Windows: «…-Windows.zip». Descomprímelo (clic derecho > Extraer todo) y abre «Modelado Bases.exe». Si sale «Windows protegió su PC»: «Más información» > «Ejecutar de todas formas».
-- macOS: «…-Mac.zip» (Mac con chip Apple o Intel). Descomprímelo y arrastra «Modelado Bases» a Aplicaciones. La primera vez: clic derecho sobre la app > Abrir > Abrir. Si macOS dice que no se puede abrir: Ajustes del Sistema > Privacidad y seguridad > «Abrir igualmente».
+- macOS: «…-Mac.zip», solo en algunas versiones (si no está aquí, búscalo en una versión anterior). Para Mac con chip Apple o Intel. Descomprímelo y arrastra «Modelado Bases» a Aplicaciones. La primera vez: clic derecho sobre la app > Abrir > Abrir. Si macOS dice que no se puede abrir: Ajustes del Sistema > Privacidad y seguridad > «Abrir igualmente».
 - Linux: «…-Linux.tar.gz». Descomprímelo y abre «modelado-bases.sh» (o en la terminal: ./modelado-bases.sh).
 En macOS y Linux la app avisa cuando hay versión nueva, pero se instala a mano (descargando la nueva).
 
