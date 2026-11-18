@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.8.1  (18/11/2026)
+--------------------
+- Boceto: la raya entre el texto y el dibujo se arrastra para cambiar el tamano de cada zona (doble clic la deja como estaba).
+
 v3.8.0  (18/11/2026)
 --------------------
 - Boceto: cada entidad muestra sus atributos. Pinchando un atributo (o desde el panel) se marca su tipo: clave primaria, unico, opcional, multivaluado, derivado o compuesto.

@@ -185,7 +185,7 @@ body.solo .side,body.solo .sb-base{display:none}
 .ed-cvc .ed-cv{flex:1}
 .bo-zone{display:flex;flex-direction:column;gap:4px}
 .bo-zone .lbl{margin:0}.bo-zone code{font:11.5px var(--f-mono);background:var(--panel);padding:0 4px;border-radius:var(--r-xs)}
-.bo-txt{height:42vh;min-height:120px;max-height:70vh;resize:vertical;font:15px/1.6 var(--f-mono);padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink)}
+.bo-txt{height:42vh;min-height:60px;resize:none;font:15px/1.6 var(--f-mono);padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink)}
 .bo-txt:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .boe .segb{font-size:12px;padding:4px 2px}
 .bo-leg{font-size:12px}
@@ -1332,3 +1332,7 @@ html.os-darwin .titlebar{padding-left:80px}
 .bo-chip{font:inherit;font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);cursor:pointer}
 .bo-chip:hover{color:var(--ink)}
 .bo-chip[aria-pressed="true"]{border-color:var(--c-ent);color:var(--ink);background:color-mix(in srgb,var(--c-ent) 16%,var(--surface))}
+/* Separador entre el texto y el dibujo del boceto */
+.bo-split{height:10px;margin:-4px 0 -6px;cursor:row-resize;touch-action:none;display:flex;align-items:center;justify-content:center;outline:none}
+.bo-split span{width:44px;height:4px;border-radius:99px;background:var(--line-2);transition:background .15s,width .15s}
+.bo-split:hover span,.bo-split:focus-visible span,.bo-split.drag span{background:var(--accent);width:64px}

@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.8.1: en el boceto, la raya entre el texto y el dibujo se arrastra para hacer más grande uno u otro (doble clic: como estaba). Se recuerda.',
   '3.8: boceto con atributos. Cada entidad del boceto enseña sus atributos; pincha uno para marcar si es clave primaria, único, opcional, multivaluado, derivado o compuesto (también desde el panel de la derecha). Los atributos de una relación se escriben arriba como «Entidad1-Entidad2; atributo»: no se dibujan, pero al pasar al E-R sale la relación con su atributo, y los tipos marcados pasan también.',
   '3.7.1: buscar actualizaciones funciona aunque la API de GitHub no responda (pasaba en redes compartidas como la del instituto).',
   '3.7: versión para macOS y Linux (además de Windows). En el examen: sala de espera (el profesor ve quién ha entrado antes de empezar), «Terminar ya» acaba al momento y el panel del profesor va más fluido. En el DED se pueden cambiar las cuatro cardinalidades de una relación (también el mínimo del lado de la tabla padre). Arreglado «Cambiar carpeta» cuando todavía no habías elegido ninguna.',

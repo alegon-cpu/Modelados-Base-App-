@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.8.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='3.8.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -334,7 +334,7 @@ class Editor{
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · atributos de una relación: <code>Entidad1-Entidad2; atributo</code> · pincha un atributo en el dibujo para marcar si es clave, multivaluado…</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Alumno-Curso; Nota"></textarea></div>
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · atributos de una relación: <code>Entidad1-Entidad2; atributo</code> · pincha un atributo en el dibujo para marcar si es clave, multivaluado…</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Alumno-Curso; Nota"></textarea><div class="bo-split" role="separator" aria-orientation="horizontal" aria-label="Tamaño del texto y del dibujo" tabindex="0" title="Arrastra para hacer más grande el texto o el dibujo · doble clic para restablecer"><span></span></div></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div><div class="minimap" hidden title="Minimapa: pincha o arrastra para moverte"><svg aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -364,6 +364,17 @@ class Editor{
     this.enT.addEventListener('input',()=>{const v=fixBullets(this.enT.value);if(v!==this.enT.value){const c=this.enT.selectionStart;this.enT.value=v;this.enT.setSelectionRange(c,c);}this.p.enun=v;this.app.touch(this.p);});
     this.boZ=el.querySelector('.bo-zone');this.boT=el.querySelector('#botxt');
     this.boT.addEventListener('input',()=>{if(this.ro)return;clearTimeout(this._boT);this._boT=setTimeout(()=>this.boFromText(this.boT.value),350);});
+    // Separador entre el texto y el dibujo del boceto: se arrastra (o flechas arriba/abajo); doble clic lo deja como estaba
+    {const sb=el.querySelector('.bo-split'),T=this.boT,cvc=el.querySelector('.ed-cvc');
+      const lim=h=>{const tot=cvc.getBoundingClientRect().height||600;return Math.round(Math.max(60,Math.min(tot-160,h)));};
+      const put=(h,save)=>{if(h==null){T.style.height='';if(save)Settings.set('boTxtH',0);return;}h=lim(h);T.style.height=h+'px';if(save)Settings.set('boTxtH',h);};
+      this._boH=()=>{const h=+Settings.get().boTxtH||0;put(h?h:null);};
+      let d=null;sb.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();d={y:e.clientY,h:T.getBoundingClientRect().height};sb.setPointerCapture(e.pointerId);sb.classList.add('drag');});
+      sb.addEventListener('pointermove',e=>{if(d)put(d.h+e.clientY-d.y);});
+      const end=()=>{if(!d)return;d=null;sb.classList.remove('drag');put(T.getBoundingClientRect().height,true);};
+      sb.addEventListener('pointerup',end);sb.addEventListener('pointercancel',end);
+      sb.addEventListener('dblclick',()=>put(null,true));
+      sb.addEventListener('keydown',e=>{if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();put(T.getBoundingClientRect().height+(e.key==='ArrowUp'?-30:30),true);});}
     this.boT.addEventListener('blur',()=>{clearTimeout(this._boT);if(this.isBo&&this.p&&!this.ro){this.boFromText(this.boT.value);this._boEd=false;this.boSync();}});
   }
   open(p,mode){
@@ -371,7 +382,7 @@ class Editor{
     if(this.p!==p){this.hist=[];this.redo=[];}
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
-    if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
+    if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';if(mode==='bo'&&this._boH)this._boH();this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
     this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');if(this._hlDraw)this._hlDraw();this.renderSide();
     this.renderTools();this.render();this.renderInsp();
     if(first){if(this.hasContent())this.fit(true);else this.centerView();}else this.applyView();
