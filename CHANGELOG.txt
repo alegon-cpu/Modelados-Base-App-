@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.2.0  (18/11/2026)
+--------------------
+- Lista de proyectos plana: cada proyecto es una linea (sin icono de carpeta ni pestanas desplegadas) y se abre en la pestana elegida en Ajustes.
+- Boceto: tipos tambien en los subatributos de los compuestos (dibujo y panel), y pasan al E-R.
+
 v4.1.2  (18/11/2026)
 --------------------
 - DED: si la FK es toda la PK de su tabla, el panel dice maximo 1 como el dibujo y avisa (falta la otra FK de la N:M).

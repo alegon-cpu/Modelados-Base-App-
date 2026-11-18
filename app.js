@@ -232,6 +232,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.2':['The list on the left no longer unfolds each project\'s tabs: each project is one line and clicking it opens it straight on the tab chosen in Settings › General (E-R by default).','In the sketch, the parts of a composite attribute have types too: click one (or use the panel) to mark it as key, unique, optional, multivalued or derived. It goes to the E-R like that.'],
   '4.1.2':['In the DSD, if the foreign key is the whole primary key of its table, the panel now says maximum 1 (like the drawing) and warns you: if it is the table of an N:M, it is missing the other foreign key in the primary key.'],
   '4.1.1':['Really fixed «Could not check» when looking for updates on networks like the school one (the plan B from 3.7.1 did not actually work).'],
   '4.1':['Short codes to pass exercises and activities: instead of the very long code you get one like «MB-K7P2QX» to type in Import code (internet needed). The long one is still below and still works offline.'],
@@ -248,6 +249,8 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.2: la lista de la izquierda ya no despliega las pestañas de cada proyecto: cada proyecto es una línea y al pincharlo se abre directo en la pestaña elegida en Ajustes › General (E-R por defecto).',
+  '4.2: en el boceto, los subatributos de un compuesto también tienen tipo: pincha uno (o usa el panel) para marcarlo como clave, único, opcional, multivaluado o derivado. Pasa así al E-R.',
   '4.1.2: en el DED, si la clave ajena es toda la clave primaria de su tabla, el panel ya dice máximo 1 (como el dibujo) y avisa: si es la tabla de una N:M, le falta la otra clave ajena en la clave primaria.',
   '4.1.1: arreglado de verdad el «No se ha podido comprobar» al buscar actualizaciones en redes como la del instituto (el plan B de la 3.7.1 no llegaba a funcionar).',
   '4.1: códigos cortos para pasar ejercicios y actividades: en vez del código larguísimo sale uno como «MB-K7P2QX» que se escribe en Importar código (hace falta internet). El largo sigue debajo y sigue valiendo sin internet.',
@@ -749,9 +752,9 @@ const App={
     const t=document.getElementById('tree');if(this.solo){t.innerHTML='';return;}
     const G=this.groups||[],GO=this.gopen(),hdr=`<div class="tree-h" data-gdrop=""><span>Mis proyectos</span><button class="tree-add" data-act="newgroup" title="Nueva carpeta para agrupar proyectos" aria-label="Nueva carpeta">${ICO.grp}<span>+</span></button></div>`;
     if(!this.projects.length&&!G.length){t.innerHTML=hdr+`<p class="in-p" style="padding:0 8px">Aún no tienes proyectos.</p>`;return;}
-    const proj=p=>{const op=this.open[p._id]??(this.cur===p);const c=this.counts(p),lk=this.locked.has(p.folder);
-      return `<div class="proj"><button class="pf${p._dirty?' dirty':''}" data-pid="${p._id}" draggable="true" aria-expanded="${op}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${ICO.chev}${p.icon?`<span class="picon">${esc(p.icon)}</span>`:ICO.folder}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button>
-      ${op?`<div class="sub">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="pi" data-pid="${p._id}" data-view="${v}" aria-current="${this.cur===p&&this.view===v}">${ICO[v]}<span>${l}</span><span class="cnt">${c[v]}</span></button>`).join('')}</div>`:''}</div>`;};
+    // 4.2: cada proyecto es una sola línea (sin desplegar sus pestañas): al pincharlo se abre en la pestaña elegida en Ajustes
+    const proj=p=>{const lk=this.locked.has(p.folder),cur=this.cur===p&&!this.home;
+      return `<div class="proj"><button class="pf flat${p._dirty?' dirty':''}" data-pid="${p._id}" draggable="true" aria-current="${cur}" title="${escA(p.name)}${lk?' · abierto en otra ventana':''}">${p.icon?`<span class="picon">${esc(p.icon)}</span>`:''}<span class="nm">${esc(p.name)}</span>${lk?'<span class="win-tag">ventana</span>':''}<span class="ddot" aria-label="sin guardar"></span></button></div>`;};
     const grp=g=>{const op=!!GO[g],kg=G.filter(x=>parOf(x)===g),kp=this.projects.filter(p=>parOf(p.folder)===g),n=this.projects.filter(p=>p.folder.startsWith(g+'/')).length,ed=this._gEdit===g;
       return `<div class="grp"><div class="gf" role="button" tabindex="0" data-g="${escA(g)}" data-gdrop="${escA(g)}" draggable="${!ed}" aria-expanded="${op}" title="${escA(g)}">${ICO.chev}${ICO.grp}${ed?`<input class="gname" value="${escA(leafOf(g))}" spellcheck="false" aria-label="Nombre de la carpeta">`:`<span class="nm">${esc(leafOf(g))}</span>`}<span class="cnt">${n||''}</span></div>
         ${op?`<div class="gsub">${kg.map(grp).join('')}${kp.map(proj).join('')}${!kg.length&&!kp.length?`<p class="gempty">Vacía. Arrastra proyectos aquí o usa el botón derecho.</p>`:''}</div>`:''}</div>`;};
@@ -935,7 +938,8 @@ const App={
   byId(id){return this.projects.find(x=>x._id===id);},
   onSide(e){
     const gf=e.target.closest('.gf');if(gf){if(e.target.closest('.gname'))return;const g=gf.dataset.g;this.setGOpen(g,gf.getAttribute('aria-expanded')!=='true');this.renderTree();return;}
-    const pf=e.target.closest('.pf');if(pf){const p=this.byId(pf.dataset.pid);const op=pf.getAttribute('aria-expanded')==='true';this.open[p._id]=!op;if(!op&&this.cur!==p){this.go(p,'er');return;}this.renderTree();return;}
+    const pf=e.target.closest('.pf');if(pf){const p=this.byId(pf.dataset.pid);if(!p)return;if(this.cur===p&&!this.home)return;
+      const v=Settings.get().openTab||'er';this.go(p,p.act&&!(p.act.show||[]).includes(v)?'enun':v);return;}
     const pi=e.target.closest('.pi');if(pi){this.go(this.byId(pi.dataset.pid),pi.dataset.view);return;}
     const b=e.target.closest('[data-act]');if(b)this.action(b);
   },
