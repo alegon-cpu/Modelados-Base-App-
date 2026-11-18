@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.7.1  (18/11/2026)
+--------------------
+- Buscar actualizaciones funciona aunque la API de GitHub no responda (pasaba en redes compartidas, como la del instituto).
+
 v3.7.0  (17/11/2026)
 --------------------
 - Version para macOS (Mac con chip Apple o Intel) y para Linux, ademas de Windows.

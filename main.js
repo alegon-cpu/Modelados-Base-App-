@@ -451,11 +451,27 @@ function canSelfUpdate() {
   const t = path.join(installDir(), '.mb-write-test');
   try { fs.writeFileSync(t, 'ok'); fs.unlinkSync(t); return true; } catch (e) { return false; }
 }
+// Plan B si la API de GitHub no responde (en redes compartidas, como la del instituto, se agota su límite
+// de 60 consultas por hora): la página web de «última versión» redirige a /releases/tag/vX.Y.Z,
+// y los nombres de los archivos se saben a partir de la versión.
+async function latestViaWeb() {
+  const r = await net.fetch(`https://github.com/${REPO}/releases/latest`, { method: 'HEAD', headers: { 'User-Agent': 'Modelado-Bases' } });
+  const m = /\/releases\/tag\/(v?\d+\.\d+\.\d+)/.exec(r.url || '');
+  if (!m) throw new Error('GitHub respondió ' + r.status);
+  const tag = m[1], v = tag.replace(/^v/, ''), base = `${DL_PREFIX}${tag}/`;
+  const names = [`Modelado-Bases-${v}-Windows.zip`, `Modelado-Bases-${v}-Mac.zip`, `Modelado-Bases-${v}-Linux.tar.gz`];
+  const assets = [];
+  for (const n of names) assets.push({ name: n, browser_download_url: base + n, size: 0 }, { name: n + '.sha256', browser_download_url: base + n + '.sha256', size: 0 });
+  return { tag_name: tag, name: 'Modelado Bases ' + v.replace(/\.0$/, ''), body: '', assets };
+}
 h('update:check', async () => {
-  const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { 'User-Agent': 'Modelado-Bases', Accept: 'application/vnd.github+json' } });
-  if (r.status === 404) return { current: app.getVersion(), tag: null, newer: false };
-  if (!r.ok) throw new Error('GitHub respondió ' + r.status);
-  const j = await r.json();
+  let j = null;
+  try {
+    const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { 'User-Agent': 'Modelado-Bases', Accept: 'application/vnd.github+json' } });
+    if (r.status === 404) return { current: app.getVersion(), tag: null, newer: false };
+    if (r.ok) j = await r.json();
+  } catch (e) {}
+  if (!j) j = await latestViaWeb();
   const want = process.platform === 'win32' ? /windows.*\.zip$/i : MAC ? /mac.*\.zip$/i : /linux.*\.tar\.gz$/i;
   const asset = (j.assets || []).find(a => want.test(a.name)) || null;
   // Desde la 3.4 cada Release lleva «<zip>.sha256»: se comprueba el zip antes de instalarlo

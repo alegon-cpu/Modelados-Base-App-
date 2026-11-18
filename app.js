@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.7.1: buscar actualizaciones funciona aunque la API de GitHub no responda (pasaba en redes compartidas como la del instituto).',
   '3.7: versión para macOS y Linux (además de Windows). En el examen: sala de espera (el profesor ve quién ha entrado antes de empezar), «Terminar ya» acaba al momento y el panel del profesor va más fluido. En el DED se pueden cambiar las cuatro cardinalidades de una relación (también el mínimo del lado de la tabla padre). Arreglado «Cambiar carpeta» cuando todavía no habías elegido ninguna.',
   '3.6.2: arreglado el error «Cannot find module ./fb» al actualizar a la 3.6.',
   '3.6.1: los fondos de temporada (hojas, nieve…) vienen apagados. Si los quieres, enciéndelos en Ajustes › Accesibilidad › «Fondos de temporada».',
