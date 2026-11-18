@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.1.2  (18/11/2026)
+--------------------
+- DED: si la FK es toda la PK de su tabla, el panel dice maximo 1 como el dibujo y avisa (falta la otra FK de la N:M).
+
 v4.1.1  (18/11/2026)
 --------------------
 - Arreglado el plan B de buscar actualizaciones (en Electron la direccion final de la redireccion llega vacia: ahora se lee la version de la pagina).

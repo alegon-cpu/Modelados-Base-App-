@@ -564,10 +564,16 @@ const EN={
 "Para abrir un código corto hace falta internet.":"You need internet to open a short code.",
 "Es demasiado grande para un código corto.":"It is too big for a short code.",
 "Firebase no deja (faltan las reglas de «compartir»).":"Firebase does not allow it (the «compartir» rules are missing).",
-"Ese texto no es un código de Modelado Bases. Empieza por MB- (corto) o MB1- (largo).":"That text is not a Modelado Bases code. It starts with MB- (short) or MB1- (long)."
+"Ese texto no es un código de Modelado Bases. Empieza por MB- (corto) o MB1- (largo).":"That text is not a Modelado Bases code. It starts with MB- (short) or MB1- (long).",
+// 4.0
+"toda":"the whole",
+"Es toda la clave primaria: no se puede repetir":"It is the whole primary key: it cannot be repeated"
 };
 // Textos con partes variables
 const EN_RX=[
+[/^«(.*)» es$/,"«$1» is"],
+[/^la clave primaria de «(.*)», así que no se puede repetir: cada «(.*)» sale como mucho una vez \(máximo 1\)\. Si «(.*)» es la tabla de una relación N:M, le falta la otra clave ajena dentro de la clave primaria\.$/,"primary key of «$1», so it cannot be repeated: each «$2» appears at most once (maximum 1). If «$3» is the table of an N:M relationship, it is missing the other foreign key inside the primary key."],
+
 [/^Código largo \(vale sin internet · ([\d.]+) caracteres\)$/,"Long code (works offline · $1 characters)"],
 [/^No existe ningún código (MB-\w+)\. Revisa que esté bien escrito\.$/,"There is no code $1. Check that it is typed correctly."],
 [/^(.*) Pasa el código largo\.$/,"$1 Send the long code."],
