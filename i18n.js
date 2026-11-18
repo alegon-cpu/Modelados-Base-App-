@@ -547,10 +547,31 @@ const EN={
 "Cueva":"Cave",
 "Solitario":"Solitaire",
 "Lo tuyo":"Your stuff",
-"Perfil":"Profile"
+"Perfil":"Profile",
+// 4.0
+"Generando un código corto…":"Generating a short code…",
+"Con este basta: se escribe en Importar código (hace falta internet para abrirlo).":"This one is enough: type it in Import code (internet is needed to open it).",
+"Sin código corto":"No short code",
+"Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo:":"Copy the code and send it to anyone (WhatsApp, email…). To open it:",
+"y pegarlo.":"and paste it.",
+"Código de la actividad":"Activity code",
+"Escribe o pega el código que te han pasado: el corto (":"Type or paste the code you were given: the short one (",
+") o el largo (":") or the long one (",
+"). Los proyectos se añaden a los tuyos; no se borra nada.":"). The projects are added to yours; nothing is deleted.",
+"MB-…  o  MB1-…":"MB-…  or  MB1-…",
+"MB-… o MB1-…":"MB-… or MB1-…",
+"Pásalo a tus compañeros. Cada uno lo pega en":"Give it to your classmates. Each one pastes it in",
+"Para abrir un código corto hace falta internet.":"You need internet to open a short code.",
+"Es demasiado grande para un código corto.":"It is too big for a short code.",
+"Firebase no deja (faltan las reglas de «compartir»).":"Firebase does not allow it (the «compartir» rules are missing).",
+"Ese texto no es un código de Modelado Bases. Empieza por MB- (corto) o MB1- (largo).":"That text is not a Modelado Bases code. It starts with MB- (short) or MB1- (long)."
 };
 // Textos con partes variables
 const EN_RX=[
+[/^Código largo \(vale sin internet · ([\d.]+) caracteres\)$/,"Long code (works offline · $1 characters)"],
+[/^No existe ningún código (MB-\w+)\. Revisa que esté bien escrito\.$/,"There is no code $1. Check that it is typed correctly."],
+[/^(.*) Pasa el código largo\.$/,"$1 Send the long code."],
+
 [/^Editar «(.*)»$/,"Edit «$1»"],
 [/^Mejor ronda: (\d+)\/(\d+)$/,"Best round: $1/$2"],
 [/^Mapas llenos: (\d+)$/,"Maps filled: $1"],

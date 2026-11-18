@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.1.0  (18/11/2026)
+--------------------
+- Codigos cortos (MB-XXXXXX) para pasar proyectos y actividades. Se guardan en Firebase; el codigo largo (MB1-) sigue valiendo sin internet.
+
 v4.0.0  (18/11/2026)
 --------------------
 - Entidades debiles completas: con relacion normal, dependencia en existencia (FK fuera de la clave); con identificadora, dependencia en identificacion (FK dentro de la clave). El SQL lleva ON UPDATE NO ACTION ON DELETE CASCADE (en Oracle solo ON DELETE CASCADE). En el relacional y el DED se cambia pinchando la linea. Se lee al importar SQL o Workbench.

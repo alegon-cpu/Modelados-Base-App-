@@ -70,7 +70,7 @@ async function token(role) {
 async function req(role, method, p, body) {
   if (role !== 'alumno' && role !== 'profe') throw new Error('Rol no válido.');
   p = String(p || ''); method = String(method || 'GET').toUpperCase();
-  if (!/^(examenes(\/[\w-]+)*(\?[\w.=&%-]*)?|:runQuery)$/.test(p) || !['GET', 'POST', 'PATCH', 'DELETE'].includes(method)) throw new Error('Petición no permitida.');
+  if (!/^((examenes|compartir)(\/[\w-]+)*(\?[\w.=&%-]*)?|:runQuery)$/.test(p) || !['GET', 'POST', 'PATCH', 'DELETE'].includes(method)) throw new Error('Petición no permitida.');
   const t = await token(role);
   let r;
   try { r = await net.fetch(DOCS + (p.startsWith(':') ? p : '/' + p), { method, headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: body == null ? undefined : JSON.stringify(body) }); }

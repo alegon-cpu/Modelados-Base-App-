@@ -97,10 +97,22 @@ async function toCode(list){
   const json=JSON.stringify({app:'modelado-bases',v:1,by:(()=>{try{const p=Juegos.profile();return p.nick||p.title?p:undefined;}catch(e){return undefined;}})(),proyectos:list.map(p=>{const q=plainProject(p);return{name:q.name,enun:q.enun,sql:q.sql,test:q.test,bo:q.bo,er:q.er,rel:q.rel,ded:q.ded};})});
   return 'MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
 }
+/* Códigos cortos (4.1): el código largo se guarda en Firebase (colección «compartir») y se pasa solo «MB-K7P2QX».
+   Si no hay internet o Firebase no deja, se usa el código largo de siempre (MB1-…), que sigue valiendo. */
+const SHORT_ABC='23456789ABCDEFGHJKMNPQRSTUVWXYZ',SHORT_RX=/^MB-?([2-9A-HJ-NP-Z]{6})$/i;
+async function shortCode(long){if(long.length>900000)throw new Error('Es demasiado grande para un código corto.');
+  for(let i=0;i<8;i++){let c='';const r=crypto.getRandomValues(new Uint8Array(6));r.forEach(x=>c+=SHORT_ABC[x%SHORT_ABC.length]);
+    const x=await window.api.fbReq('alumno','POST','compartir?documentId='+c,{fields:{d:{stringValue:long},t:{timestampValue:new Date().toISOString()}}});
+    if(x.status===200)return 'MB-'+c;if(x.status!==409)throw new Error(x.status===403?'Firebase no deja (faltan las reglas de «compartir»).':'Error '+x.status+' de Firebase.');}
+  throw new Error('No se encontró un código libre.');}
+async function fromShort(c){let x;try{x=await window.api.fbReq('alumno','GET','compartir/'+c.toUpperCase());}catch(e){throw new Error('Para abrir un código corto hace falta internet.');}
+  if(x.status===404)throw new Error('No existe ningún código '+('MB-'+c.toUpperCase())+'. Revisa que esté bien escrito.');
+  if(x.status!==200)throw new Error('No se pudo leer el código (error '+x.status+').');
+  const d=x.data&&x.data.fields&&x.data.fields.d&&x.data.fields.d.stringValue;if(!d)throw new Error('El código está vacío.');return d;}
 async function fromCode(txt){
-  const t=String(txt||'').trim();let json;
+  let t=String(txt||'').trim();let json;{const m=t.replace(/\s+/g,'').match(SHORT_RX);if(m)t=await fromShort(m[1]);}
   if(t.startsWith('{'))json=t;
-  else{const m=t.replace(/\s+/g,'');if(!m.startsWith('MB1-'))throw new Error('Ese texto no es un código de Modelado Bases. Debe empezar por MB1-');
+  else{const m=t.replace(/\s+/g,'');if(!m.startsWith('MB1-'))throw new Error('Ese texto no es un código de Modelado Bases. Empieza por MB- (corto) o MB1- (largo).');
     let bytes;try{bytes=b64u.dec(m.slice(4));json=new TextDecoder().decode(await pipeBytes(bytes,new DecompressionStream('deflate-raw')));}catch(e){throw new Error('El código está incompleto o dañado. Cópialo entero otra vez.');}}
   let d;try{d=JSON.parse(json);}catch(e){throw new Error('El código está incompleto o dañado. Cópialo entero otra vez.');}
   const list=(Array.isArray(d.proyectos)?d.proyectos:(d&&d.er?[d]:[])).filter(p=>p&&typeof p==='object');
@@ -220,6 +232,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.1':['Short codes to pass exercises and activities: instead of the very long code you get one like «MB-K7P2QX» to type in Import code (internet needed). The long one is still below and still works offline.'],
   '4.0':['Complete weak entities. With a normal relationship you get an existence dependency (the FK outside the key) and with an identifying one, an identification dependency (the FK inside the key). In both cases the SQL has ON UPDATE NO ACTION ON DELETE CASCADE, and in the relational model and the DSD you can change it by clicking the line («When a row of … is deleted»). It is also read when importing SQL or a Workbench model.',
     'New theory: «Weak entity: existence and identification», with the types of entities, attributes and relationships, an example with drawings, the SQL for each case and what ON DELETE CASCADE does.',
     'Fixed: converting to tables lost the minimum 1 of one side (for example, «each member has one card» came out as «0 or 1» in the DSD). Both minimums are kept now.',
@@ -233,6 +246,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.1: códigos cortos para pasar ejercicios y actividades: en vez del código larguísimo sale uno como «MB-K7P2QX» que se escribe en Importar código (hace falta internet). El largo sigue debajo y sigue valiendo sin internet.',
   '4.0: entidades débiles completas. Con una relación normal sale la dependencia en existencia (la FK fuera de la clave) y con la identificadora, la dependencia en identificación (la FK dentro de la clave). En los dos casos el SQL lleva ON UPDATE NO ACTION ON DELETE CASCADE, y en el relacional y el DED puedes cambiarlo pinchando la línea («Al borrar una fila de…»). Se lee también al importar un SQL o un modelo de Workbench.',
   '4.0: teoría nueva: «Entidad débil: existencia e identificación», con los tipos de entidades, atributos y relaciones, un ejemplo con dibujos, el SQL de cada caso y qué hace ON DELETE CASCADE.',
   '4.0: arreglado: al pasar a tablas se perdía el mínimo 1 de un lado (por ejemplo, «cada socio tiene una tarjeta» salía como «0 o 1» en el DED). Ahora se respetan los dos mínimos.',
@@ -613,7 +627,7 @@ const App={
       <div class="cmp-src"><label class="chk"><input type="radio" name="cmpsrc" value="proj" ${others.length?'checked':'disabled'}><span class="chk-t">Con otro de mis proyectos<small>${others.length?'':'No tienes otros proyectos.'}</small></span></label>
       ${others.length?`<select id="cmpproj" class="cmp-sel">${others.map(o=>`<option value="${o._id}">${esc(o.name)}</option>`).join('')}</select>`:''}
       <label class="chk"><input type="radio" name="cmpsrc" value="code" ${others.length?'':'checked'}><span class="chk-t">Con un código<small>El que sale en «Exportar código». Pégalo aquí:</small></span></label>
-      <textarea id="cmpcode" class="cmp-code" rows="3" spellcheck="false" placeholder="MB1-…"></textarea></div>
+      <textarea id="cmpcode" class="cmp-code" rows="3" spellcheck="false" placeholder="MB-… o MB1-…"></textarea></div>
       <div class="in-sub">Qué comparar</div><div class="cmp-parts">${[['bo','Boceto'],['er','E-R'],['rel','Relacional'],['ded','DED']].map(([v,l])=>`<label class="tg"><input type="checkbox" data-cmp="${v}" ${v!=='bo'?'checked':''}><span>${l}</span></label>`).join('')}</div>
       <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="cmp-go">Comparar</button></div>`);
     const code=document.getElementById('cmpcode');code.addEventListener('focus',()=>{const r=document.querySelector('input[name=cmpsrc][value=code]');if(r)r.checked=true;});},
@@ -809,9 +823,7 @@ const App={
     const pr={name:title,enun:q.enun};if(ref)['bo','er','rel','ded'].forEach(k=>{if(!parts.includes(k))pr[k]=q[k];});if(ref&&!parts.includes('sql'))pr.sql=q.sql;
     const json=JSON.stringify({app:'modelado-bases',v:1,act:{title,mins,parts,ref},proyectos:[pr]});
     const code='MB1-'+b64u.enc(await pipeBytes(json,new CompressionStream('deflate-raw')));
-    this.modal(`<h3>Código de la actividad</h3><p>Pásalo a tus compañeros. Cada uno lo pega en <b>Importar código</b>, y cuando estéis todos pulsáis <b>Empezar</b>: desde ahí cuentan ${mins} minutos.</p><textarea id="exptxt" readonly>${esc(code)}</textarea>
-      <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="copy">Copiar código</button></div>`);
-    const t=document.getElementById('exptxt');t.focus();t.select();},
+    this.codeModal('Código de la actividad',`Pásalo a tus compañeros. Cada uno lo pega en <b>Importar código</b>, y cuando estéis todos pulsáis <b>Empezar</b>: desde ahí cuentan ${mins} minutos.`,code);},
   async importActivity(act,src,names){const T={bo:'bo',er:'er',rel:'rel',ded:'ded',sql:'sql'};
     let name='Actividad · '+String(act.title||src.name||'').trim();if(names.has(name.toLowerCase())){let i=2;while(names.has((name+' ('+i+')').toLowerCase()))i++;name+=' ('+i+')';}
     const np=await this.run(()=>window.api.create(name));if(!np)return;
@@ -963,8 +975,8 @@ const App={
     if(!this.base){toast('Primero elige dónde guardar la carpeta Modelados BDD.');return;}
     if(a==='newproj'){await this.newProject('');return;}
     if(a==='newgroup'){await this.newGroup('');return;}
-    if(a==='import'){this.modal(`<h3>Importar código</h3><p>Pega el código que te han pasado (empieza por <code>MB1-</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
-      <textarea id="imptxt" spellcheck="false" placeholder="MB1-…"></textarea>
+    if(a==='import'){this.modal(`<h3>Importar código</h3><p>Escribe o pega el código que te han pasado: el corto (<code>MB-K7P2QX</code>) o el largo (<code>MB1-…</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
+      <textarea id="imptxt" spellcheck="false" placeholder="MB-…  o  MB1-…"></textarea>
       <div class="mrow"><button class="lnk mmeta" data-m="dir">o importar una carpeta de proyecto…</button><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="code">Importar</button></div>`);document.getElementById('imptxt').focus();return;}
     if(a==='captureall'){if(!this.projects.length){toast('No tienes proyectos.');return;}await this.flushAll();await this.captureMany(this.projects);return;}
     if(a==='exportall'){if(!this.projects.length){toast('No tienes proyectos que exportar.');return;}this.showCode(this.projects,'Código de todos tus proyectos ('+this.projects.length+')');return;}
@@ -1058,10 +1070,18 @@ const App={
   closeModal(){this.settingsOpen=false;const m=document.getElementById('modal');m.hidden=true;m.innerHTML='';try{Bienvenida.back();}catch(e){}},
   async showCode(list,title){
     let code;try{code=await toCode(list);}catch(e){toast('No se pudo generar el código: '+e.message);return;}
-    this.modal(`<h3>${esc(title)}</h3><p>Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo: <b>Importar código</b> y pegarlo.</p>
-      <textarea id="exptxt" readonly spellcheck="false">${esc(code)}</textarea>
-      <div class="mrow"><span class="mmeta">${code.length.toLocaleString('es-ES')} caracteres</span><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="copy">Copiar código</button></div>`);
-    const t=document.getElementById('exptxt');t.focus();t.select();
+    this.codeModal(title,'Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo: <b>Importar código</b> y pegarlo.',code);
+  },
+  // Código corto (si hay internet) y, desplegable, el largo de siempre
+  async codeModal(title,intro,code){
+    this.modal(`<h3>${esc(title)}</h3><p>${intro}</p>
+      <div class="sc-box" id="scbox"><span class="sc-code" id="sccode">…</span><small id="scmsg">Generando un código corto…</small></div>
+      <details class="sc-long" id="sclong"><summary>Código largo (vale sin internet · ${code.length.toLocaleString('es-ES')} caracteres)</summary><textarea id="exptxt" readonly spellcheck="false">${esc(code)}</textarea></details>
+      <div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="copy">Copiar código</button></div>`);
+    let sc=null,err='';try{sc=await shortCode(code);}catch(e){err=e.message;}
+    const box=document.getElementById('scbox');if(!box)return;
+    if(sc){document.getElementById('sccode').textContent=sc;document.getElementById('scmsg').textContent='Con este basta: se escribe en Importar código (hace falta internet para abrirlo).';box.dataset.code=sc;}
+    else{box.classList.add('off');document.getElementById('sccode').textContent='Sin código corto';document.getElementById('scmsg').textContent=err+' Pasa el código largo.';const d=document.getElementById('sclong');if(d)d.open=true;}
   },
   async captureMany(list){
     const done=[],empty=[];this.status('busy','Generando capturas…');
@@ -1157,8 +1177,8 @@ const App={
     if(k==='quit-save'){b.disabled=true;await this.flushAll();if(this.dirtyList().length){toast('No se pudo guardar todo. Revisa la barra de abajo.','warn');b.disabled=false;return;}GH.close().finally(()=>window.api.ready());return;}
     if(k==='quit-nosave'){GH.close().finally(()=>window.api.ready());return;}
     if(k==='code'){await this.importCode(document.getElementById('imptxt').value);return;}
-    if(k==='copy'){const t=document.getElementById('exptxt');
-      try{await navigator.clipboard.writeText(t.value);b.textContent='Copiado';}catch(err){t.focus();t.select();b.textContent='Pulsa Ctrl+C';}return;}
+    if(k==='copy'){const t=document.getElementById('exptxt'),bx=document.getElementById('scbox'),sl=document.getElementById('sclong'),v=bx&&bx.dataset.code&&!(sl&&sl.open)?bx.dataset.code:t.value;
+      try{await navigator.clipboard.writeText(v);b.textContent='Copiado';}catch(err){if(sl)sl.open=true;t.focus();t.select();b.textContent='Pulsa Ctrl+C';}return;}
     if(k==='showfile'){this.run(()=>window.api.showFile(b.dataset.f));this.closeModal();return;}
     if(k==='dir'){this.closeModal();
       const got=await this.run(()=>window.api.importDir());
