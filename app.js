@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.9: bienvenida de Alegon\'s Tek. Sale una sola vez (la primera vez que abres la app o al actualizar a esta versión): dónde se guarda, GitHub, ajustes básicos, cómo funciona todo el programa y cómo entrar en la clasificación de la clase. Se puede saltar, y volver a ver en Ajustes › Acerca de.',
   '3.8.1: en el boceto, la raya entre el texto y el dibujo se arrastra para hacer más grande uno u otro (doble clic: como estaba). Se recuerda.',
   '3.8: boceto con atributos. Cada entidad del boceto enseña sus atributos; pincha uno para marcar si es clave primaria, único, opcional, multivaluado, derivado o compuesto (también desde el panel de la derecha). Los atributos de una relación se escriben arriba como «Entidad1-Entidad2; atributo»: no se dibujan, pero al pasar al E-R sale la relación con su atributo, y los tipos marcados pasan también.',
   '3.7.1: buscar actualizaciones funciona aunque la API de GitHub no responda (pasaba en redes compartidas como la del instituto).',
@@ -400,14 +401,14 @@ const App={
     this.renderFoot();
     if(this.solo){await this.startSolo();return;}
     setTimeout(()=>this.archiveWarn(),900);
-    if(!this.base){this.showSetup();this.maybeNews();return;}
+    if(!this.base){this.showSetup();if(!Bienvenida.maybe())this.maybeNews();return;}
     try{this.locked=new Set(await window.api.windows());}catch(e){}
     try{if(await GH.start(this)){if(await Sync.load(true))this.afterSync(true);}}catch(e){}
     let back=null;try{back=JSON.parse(sessionStorage.getItem('mb:reopen')||'null');sessionStorage.removeItem('mb:reopen');}catch(e){}
     await this.reload(back&&back.f);if(back&&back.f&&this.cur&&VIEWS[back.v]){this.go(this.cur,back.v);if(back.set)this.showSettings(back.set);}
     else if(back&&back.home){this.home=back.home;this.renderMain();}
     else if(!this.cur&&Settings.get().startScreen==='last'){const r=Recent.get().map(x=>this.projects.find(p=>p.folder===x.f)).find(Boolean);if(r)this.go(r,Settings.get().openTab||'er');}
-    this.maybeNews();
+    if(!Bienvenida.maybe())this.maybeNews();
   },
   // Tras traer cambios de GitHub: volver a leer los proyectos del disco (no hay nada sin guardar: se guarda antes de sincronizar)
   async refreshFromDisk(){const f=this.cur&&this.cur.folder,v=this.view,home=this.home;this.projects=[];this.cur=null;await this.reload(f);if(!home&&this.cur&&v&&VIEWS[v])this.go(this.cur,v);else{this.renderTree();this.renderMain();}},
@@ -580,7 +581,8 @@ const App={
       h=`<div class="th-wrap"><div class="th-side"><input type="search" class="th-q" id="thq" placeholder="Buscar en la teoría" value="${escA(this._thq||'')}" aria-label="Buscar en la teoría">
         <div class="th-list">${list.map((t,i)=>`<button class="th-nb" data-th="${t.id}" aria-current="${t.id===this._th}"><span class="th-n">${TL.indexOf(t)+1}</span>${esc(t.t)}</button>`).join('')||'<p class="set-sub">Nada coincide.</p>'}</div></div>
         <article class="th-art" id="thart"><h3>${esc(cur.t)}</h3>${cur.h}</article></div>`;}
-    else if(sec==='acerca'){h=H('Acerca de')+`<div class="about"><div class="about-logo"><svg viewBox="0 0 18 18" width="40" height="40" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><div><b>Modelado Bases ${VERSION}</b><small>E-R, relacional, DED y SQL para ejercicios de bases de datos.</small></div></div>
+    else if(sec==='acerca'){h=H('Acerca de')+`<div class="about"><div class="about-logo"><svg viewBox="0 0 18 18" width="40" height="40" aria-hidden="true"><rect x="1" y="6" width="6" height="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M13 4.5 17 9l-4 4.5L9 9z" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M7 9h2" stroke="var(--accent)" stroke-width="1.6"/></svg><div><b>Modelado Bases ${VERSION}</b><small>De Alegon's Tek · E-R, relacional, DED y SQL para ejercicios de bases de datos.</small></div></div>
+        <div class="set-row"><div class="set-lab"><b>Bienvenida</b><small>La guía del principio: dónde se guarda, GitHub, ajustes, cómo funciona todo y la clasificación de la clase.</small></div><button class="ebtn" data-m="bv-again">Verla otra vez</button></div>
         <div class="set-row"><div class="set-lab"><b>Novedades y resumen</b></div><button class="ebtn" data-m="news">Ver novedades</button></div>
         <div class="set-row"><div class="set-lab"><b>Atajos de teclado</b></div><button class="ebtn" data-m="controls">Ver controles</button></div>
         <div class="set-row"><div class="set-lab"><b>Página del programa</b><small>Versiones publicadas en GitHub.</small></div><button class="ebtn" data-m="repo">Abrir</button></div>
@@ -1040,7 +1042,7 @@ const App={
     if(p.rel.t.length||p.ded.t.length)this.confirm('Dibujar desde el SQL','Se sustituirán las tablas del Relacional y del DED por las de este SQL. Tus notas se quedan, y puedes volver atrás con Ctrl+Z.','Dibujar',put);else put();
   },
   modal(html,cls=''){const m=document.getElementById('modal');m.innerHTML=`<div class="mbox ${cls}" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;(m.querySelector('.ebtn.pri')||m.querySelector('button'))?.focus({preventScroll:true});const bx=m.querySelector('.mbox');if(bx)bx.scrollTop=0;},
-  closeModal(){this.settingsOpen=false;const m=document.getElementById('modal');m.hidden=true;m.innerHTML='';},
+  closeModal(){this.settingsOpen=false;const m=document.getElementById('modal');m.hidden=true;m.innerHTML='';try{Bienvenida.back();}catch(e){}},
   async showCode(list,title){
     let code;try{code=await toCode(list);}catch(e){toast('No se pudo generar el código: '+e.message);return;}
     this.modal(`<h3>${esc(title)}</h3><p>Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo: <b>Importar código</b> y pegarlo.</p>
@@ -1092,6 +1094,7 @@ const App={
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this._capKey=null;this.closeModal();return;}
     if(k.startsWith('ex-')){await EX.m(k,b);return;}
+    if(k==='bv-again'){this.closeModal();this.settingsOpen=false;Bienvenida.open();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
     if(k==='ic'){const p=this._icP;this.closeModal();if(!p)return;if(b.dataset.ic)p.icon=b.dataset.ic;else delete p.icon;this.touch(p);this.renderTree();return;}
     if(k==='gh-claim'){this.closeModal();window.api.gitClaim().catch(()=>{});return;}

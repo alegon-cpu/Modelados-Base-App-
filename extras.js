@@ -1,5 +1,5 @@
 /* ===================== Ajustes ===================== */
-const SET_DEF={cardMode:'part',boTxtH:0,cbg:'',cbgStr:45,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
+const SET_DEF={bvDone:false,cardMode:'part',boTxtH:0,cbg:'',cbgStr:45,cbgBlur:false,uiScale:100,accent:'green',contrast:false,reduceMotion:false,thick:false,cb:false,focusAll:false,
   grid:true,snap:false,zoomSpeed:'normal',autoUpdate:true,winStart:'max',onTop:false,sqlDialect:'mysql',sampleRows:5,lang:'',
   lines:'straight',showIsa:true,projector:false,keys:{},
   boDiamond:true,startScreen:'home',openTab:'er',recentN:8,showEnun:true,pinInsp:false,easy:false,showType:true,showCardQ:true,sqlDrop:true,captureScale:2,svgFiles:true,season:false,loader:true,carryNotes:true,sidePane:'enun',minimap:true,guides:true};

@@ -1336,3 +1336,38 @@ html.os-darwin .titlebar{padding-left:80px}
 .bo-split{height:10px;margin:-4px 0 -6px;cursor:row-resize;touch-action:none;display:flex;align-items:center;justify-content:center;outline:none}
 .bo-split span{width:44px;height:4px;border-radius:99px;background:var(--line-2);transition:background .15s,width .15s}
 .bo-split:hover span,.bo-split:focus-visible span,.bo-split.drag span{background:var(--accent);width:64px}
+/* ---------- Bienvenida (Alegon's Tek) ---------- */
+.bv{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:24px;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(6px);animation:bvIn .25s ease}
+@keyframes bvIn{from{opacity:0}to{opacity:1}}
+.bv-card-main{position:relative;width:min(760px,100%);max-height:calc(100vh - 48px);overflow:auto;padding:30px 34px 22px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);box-shadow:0 24px 60px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:12px}
+.bv-card-main h1{margin:0;font-size:34px;letter-spacing:-.01em}
+.bv-card-main h2{margin:0;font-size:22px;display:flex;align-items:center;gap:8px}
+.bv-card-main p{margin:0;line-height:1.55;max-width:62ch}
+.bv-card-main .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bv-x{position:absolute;top:12px;right:12px;width:30px;height:30px;border:0;border-radius:99px;background:transparent;color:var(--muted);font-size:15px;cursor:pointer}
+.bv-x:hover{background:var(--hover);color:var(--ink)}
+.bv-hero{display:flex;flex-direction:column;gap:10px;padding:6px 0 10px}
+.bv-brand{display:flex;align-items:center;gap:10px;color:var(--accent)}
+.bv-co{font:700 18px var(--f-ui);letter-spacing:.04em}
+.bv-pre{color:var(--muted);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-top:8px!important}
+.bv-lead{font-size:16px;color:var(--ink)}
+.bv-step{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.bv-ok{color:var(--ok);font-weight:600}.bv-ok code{font-weight:400;color:var(--ink)}
+.bv-ol,.bv-txt ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.5}
+.bv-txt{display:flex;flex-direction:column;gap:10px}
+.bv-txt pre{margin:0;padding:8px 12px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-2);font:13px/1.6 var(--f-mono)}
+.bv-card-main kbd{font:11.5px var(--f-mono);padding:0 5px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;background:var(--surface)}
+.bv-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.bv-dots{display:flex;gap:6px}
+.bv-dots span{width:7px;height:7px;border-radius:99px;background:var(--line-2)}
+.bv-dots span.ok{background:color-mix(in srgb,var(--accent) 45%,var(--line-2))}
+.bv-dots span.on{background:var(--accent);width:20px}
+.bv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bv-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.bv-card:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.bv-card.seen{opacity:.7}.bv-card.seen b::after{content:' ✓';color:var(--ok)}
+.bv-ti{font-size:22px;line-height:1}
+.bv-set{display:flex;flex-direction:column;gap:12px}
+.bv-set>div{display:flex;flex-direction:column;gap:5px}
+.bv-set small{color:var(--muted)}
+.bv-set .seg{flex-wrap:wrap}

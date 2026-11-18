@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.9.0  (18/11/2026)
+--------------------
+- Bienvenida de Alegon's Tek: sale una sola vez (primera vez o al actualizar a la 3.9). Donde se guarda, GitHub, ajustes basicos, como funciona todo y como entrar en la clasificacion de la clase. Se puede saltar y volver a ver en Ajustes > Acerca de.
+
 v3.8.1  (18/11/2026)
 --------------------
 - Boceto: la raya entre el texto y el dibujo se arrastra para cambiar el tamano de cada zona (doble clic la deja como estaba).
