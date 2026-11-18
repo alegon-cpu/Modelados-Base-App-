@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.8.0  (18/11/2026)
+--------------------
+- Boceto: cada entidad muestra sus atributos. Pinchando un atributo (o desde el panel) se marca su tipo: clave primaria, unico, opcional, multivaluado, derivado o compuesto.
+- Atributos de una relacion en el boceto: "Entidad1-Entidad2; atributo". No se dibujan, pero al pasar al E-R sale la relacion con su atributo.
+- Al pasar al E-R tambien pasan los tipos de los atributos.
+- Las curvas de las lineas del E-R ya se guardan al cerrar.
+
 v3.7.1  (18/11/2026)
 --------------------
 - Buscar actualizaciones funciona aunque la API de GitHub no responda (pasaba en redes compartidas, como la del instituto).

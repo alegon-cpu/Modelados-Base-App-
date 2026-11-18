@@ -1318,3 +1318,17 @@ html.has-cbg .titlebar,html.has-cbg .statusbar{background:color-mix(in srgb,var(
 
 /* macOS: hueco para los tres botones de la ventana (a la izquierda) */
 html.os-darwin .titlebar{padding-left:80px}
+/* Boceto: atributos con su tipo (se pincha uno para cambiarlo) */
+.boat{cursor:pointer}
+.boat-bg{fill:transparent}
+.boat:hover .boat-bg{fill:color-mix(in srgb,var(--c-ent) 14%,transparent)}
+.bo-tag{fill:color-mix(in srgb,var(--c-ent) 16%,var(--panel));stroke:color-mix(in srgb,var(--c-ent) 55%,transparent);stroke-width:.8}
+.bo-tagt{font:600 9px var(--f-ui);fill:var(--ink)}
+.bo-der{font-style:italic}
+.bo-atl{display:flex;flex-direction:column;gap:6px}
+.bo-atr{display:flex;flex-direction:column;gap:3px}
+.bo-atr b{font-weight:600}.bo-atr b.u{text-decoration:underline}
+.bo-atr span{display:flex;flex-wrap:wrap;gap:3px}
+.bo-chip{font:inherit;font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line-2);background:var(--surface);color:var(--muted);cursor:pointer}
+.bo-chip:hover{color:var(--ink)}
+.bo-chip[aria-pressed="true"]{border-color:var(--c-ent);color:var(--ink);background:color-mix(in srgb,var(--c-ent) 16%,var(--surface))}

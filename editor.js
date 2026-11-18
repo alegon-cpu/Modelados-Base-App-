@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.7.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='3.8.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -24,7 +24,7 @@ const ICO={
 function toast(msg,kind){document.querySelectorAll('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),kind==='warn'?5200:3200);}
 const cleanNotes=v=>((v&&v.notes)||[]).map(n=>({id:n.id,k:'note',x:n.x,y:n.y,w:n.w||180,c:n.c||'y',text:String(n.text||''),...(n.lk?{lk:1}:{}),...(n.from?{from:String(n.from)}:{})}));
 // er y bo (boceto) comparten formato: nodos y líneas
-const cleanModel=(v,m)=>(m==='er'||m==='bo')?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null,...(l.sup?{sup:1}:{}),...(l.ea?{ea:l.ea}:{}),...(l.eb?{eb:l.eb}:{}),...(Array.isArray(l.at)&&l.at.length?{at:l.at.map(String)}:{})})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]]),...(t.lk?{lk:1}:{})})),notes:cleanNotes(v)};
+const cleanModel=(v,m)=>(m==='er'||m==='bo')?{nodes:((v&&v.nodes)||[]).map(n=>({id:n.id,k:n.k,n:n.n,x:n.x,y:n.y,f:n.f||{}})),links:((v&&v.links)||[]).map(l=>({id:l.id,a:l.a,b:l.b,c:l.c||null,mn:l.mn??null,mx:l.mx??null,...(l.sup?{sup:1}:{}),...(l.ea?{ea:l.ea}:{}),...(l.eb?{eb:l.eb}:{}),...(Array.isArray(l.at)&&l.at.length?{at:l.at.map(String)}:{}),...(typeof l.bend==='number'&&l.bend?{bend:l.bend}:{})})),notes:cleanNotes(v)}:{t:((v&&v.t)||[]).map(t=>({id:t.id,n:t.n,x:t.x,y:t.y,c:(t.c||[]).map(c=>[c[0],c[1],c[2]]),...(t.lk?{lk:1}:{})})),notes:cleanNotes(v)};
 const isNote=n=>!!n&&n.k==='note';
 const NOTE_COLORS={y:'Amarilla',b:'Azul',g:'Verde',p:'Rosa'};
 // Parte el texto de una nota en líneas que caben en su ancho
@@ -55,6 +55,10 @@ function guessType(name,f){
 // Boceto: línea curvada (bend = cuánto se separa el centro de la recta; el signo es estable aunque la línea vaya al revés)
 const boGeo=(a,b,bend)=>{const [p,q]=String(a.id)<String(b.id)?[a,b]:[b,a],dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy)||1,n=[-dy/len,dx/len],mid=[(a.x+b.x)/2,(a.y+b.y)/2];
   return{n,mid,M:[mid[0]+n[0]*bend,mid[1]+n[1]*bend],C:[mid[0]+n[0]*bend*2,mid[1]+n[1]*bend*2]};};
+// Boceto: tipo de cada atributo (clave, multivaluado…), guardado por nombre en n.f.aty para que el texto siga mandando
+const BO_TY=[['k','PK','Clave primaria'],['p','Parcial','Clave parcial (entidad débil)'],['u','Único','Único (UNIQUE)'],['o','Opcional','Opcional'],['m','Multi','Multivaluado'],['d','Derivado','Derivado'],['c','Compuesto','Compuesto']];
+const boTy=(n,a)=>(n.f&&n.f.aty&&n.f.aty[String(a).trim().toLowerCase()])||{};
+const boTags=t=>BO_TY.filter(([k])=>t[k]).map(([,l])=>l);
 const isEnt=n=>!!n&&(n.k==='ent'||n.k==='weak'), isRel=n=>!!n&&(n.k==='rel'||n.k==='idrel'), isAtt=n=>!!n&&n.k==='attr', isIsa=n=>!!n&&n.k==='isa';
 // Entidad asociativa: una relación (rombo) metida en un rectángulo, que a su vez puede relacionarse con otras entidades
 const isAssoc=n=>isRel(n)&&!!(n.f&&n.f.as);
@@ -330,7 +334,7 @@ class Editor{
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · solo los nombres: la clave, el tipo y las relaciones se hacen en el E-R</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Profesor; DNI, Nombre"></textarea></div>
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · atributos de una relación: <code>Entidad1-Entidad2; atributo</code> · pincha un atributo en el dibujo para marcar si es clave, multivaluado…</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Alumno-Curso; Nota"></textarea></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div><div class="minimap" hidden title="Minimapa: pincha o arrastra para moverte"><svg aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -434,7 +438,7 @@ class Editor{
   node(id){return (this.isER?this.m.nodes:this.m.t).find(n=>n.id===id)||this.notes.find(n=>n.id===id);}
   X(){return erIdx(this.m);}
   size(n,X){n.f=n.f||{};const nt=this.not;
-    if(isEnt(n)&&this.isBo){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;} // en el boceto solo el nombre: los atributos están en el texto de arriba
+    if(isEnt(n)&&this.isBo){const at=n.f.at||[];n.rows=null;n.w=Math.max(110,String(n.n).length*7.8+34,...at.map(a=>String(a).length*7+24+boTags(boTy(n,a)).reduce((w,t)=>w+t.length*5.6+14,0)));n.h=at.length?34+at.length*20+6:40;} // en el boceto: el nombre y sus atributos con su tipo (pincha uno para cambiarlo)
     else if(isEnt(n)){if(nt==='chen'){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;}
       else{const rows=this.rowsOf(n,X);n.rows=rows;n.w=Math.max(120,String(n.n).length*7.8+34,...rows.map(r=>r.t.length*6.9+(nt==='crow'?46:26)));n.h=30+Math.max(1,rows.length)*17+6;}}
     else if(isRel(n)){if(nt==='chen'){n.w=Math.max(96,String(n.n).length*7.6+40);n.h=48;n.rows=null;if(n.f.as){n.w+=28;n.h=70;}}
@@ -585,6 +589,7 @@ class Editor{
     const io=e.target.closest('[data-isa]');if(io){const i=this.single();if(!isIsa(i))return;this.snap();const k=io.dataset.isa,v=io.dataset.v;
       if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});}
       else i.f[k]=v==='1'?true:v==='0'?false:v;this.save();this.render();this.renderInsp();return;}
+    const bty=e.target.closest('[data-boty]');if(bty){const n=this.single(),[i,k]=bty.dataset.boty.split(':');if(n)this.boSetTy(n,(n.f.at||[])[+i],k);return;}
     const fs=e.target.closest('[data-fkset]');if(fs){this.fkSet(fs.dataset.fkset,fs.dataset.v==='1');return;}
     const fn=e.target.closest('[data-fkn]');if(fn){if(fn.dataset.fkn==='N'){const s=this.fkSel();toast(`Una clave ajena guarda un solo valor, así que el máximo es 1. Si los dos lados son N (N:M), hace falta una tabla intermedia: selecciona «${s?s.t.n:''}» y «${s?s.pa.n:''}» y pulsa «Relacionar las 2 (tabla intermedia)».`,'warn');}return;}
     const fa=e.target.closest('[data-fkact]');if(fa){this.fkAct(fa.dataset.fkact);return;}
@@ -777,6 +782,11 @@ class Editor{
     this.m.t.push(t);this.save();this.selIds=new Set([t.id]);this.render();this.renderInsp();toast(`Tabla «${t.n}» creada con la clave de las ${ts.length}.`);}
   /* ---------- Boceto: zona de texto «Entidad; atributo1, atributo2» ---------- */
   // Lo que muestra el texto: solo eso se puede borrar escribiendo (lo que se añade en el lienzo mientras escribes no se pierde)
+  boSetTy(n,a,k){if(!n||this.ro)return;this.snap();const key=String(a).trim().toLowerCase(),A=n.f.aty=n.f.aty||{},t=A[key]=A[key]||{};
+    if(t[k])delete t[k];else{t[k]=1;if(k==='k'){delete t.p;delete t.u;delete t.o;}if(k==='p'){delete t.k;delete t.u;delete t.o;}if(k==='u'||k==='o'){delete t.k;delete t.p;}}
+    if(!Object.keys(t).length)delete A[key];if(!Object.keys(A).length)delete n.f.aty;this.save();this.render();this.renderInsp();}
+  boAttrMenu(n,i,x,y){const a=n&&(n.f.at||[])[i];if(a==null)return;const t=boTy(n,a);
+    openCtx(x,y,BO_TY.filter(([k])=>k!=='p'||n.k==='weak'||t.p).map(([k,,l])=>({label:l,check:!!t[k],fn:()=>this.boSetTy(n,a,k)})));}
   boSync(){this.boT.value=this.boText();this._boKnown=new Set([...this.m.nodes.filter(n=>isEnt(n)||isRel(n)).map(n=>n.id),...this.m.links.map(l=>l.id)]);}
   boText(){const N={};this.m.nodes.forEach(n=>N[n.id]=n);
     return [...this.m.nodes.filter(isEnt).map(n=>n.n+((n.f.at||[]).length?'; '+n.f.at.join(', '):'')),
@@ -822,7 +832,8 @@ class Editor{
     const kill=new Set(gone.map(e=>e.id));this.m.nodes=this.m.nodes.filter(n=>!kill.has(n.id));this.m.links=this.m.links.filter(l=>!kill.has(l.a)&&!kill.has(l.b));
     const order=[];lines.forEach((ln,i)=>{let e=as[i];
       if(!e){const c=this.freeSpot(140,60);e={id:uid(),k:'ent',n:ln.name,x:c.x,y:c.y,f:{}};this.m.nodes.push(e);}
-      e.n=ln.name;if(ln.at.length)e.f.at=ln.at;else delete e.f.at;order.push(e);});
+      e.n=ln.name;if(ln.at.length)e.f.at=ln.at;else delete e.f.at;
+      if(e.f.aty){const keep=new Set(ln.at.map(x=>x.trim().toLowerCase()));Object.keys(e.f.aty).forEach(k=>{if(!keep.has(k))delete e.f.aty[k];});if(!Object.keys(e.f.aty).length)delete e.f.aty;}order.push(e);});
     const extra=this.m.nodes.filter(n=>isEnt(n)&&!known(n)&&!order.includes(n)),rest=this.m.nodes.filter(n=>!isEnt(n));this.m.nodes=[...order,...extra,...rest];
     { const lp2=linkPlan();const kill=new Set(lp2.kill);this.m.links=this.m.links.filter(l=>!kill.has(l));
       sp.rels.forEach((r,i)=>{let x=lp2.as2[i];if(!x)return;if(x.keep){if(K)K.add(x.keep.id);return;}if(x.A){const l={id:uid(),a:x.A.id,b:x.B.id,c:null,mn:null,mx:null};this.m.links.push(l);x=l;}
@@ -864,7 +875,10 @@ class Editor{
       er.nodes.push(r);es.forEach(e=>er.links.push({id:uid(),a:r.id,b:e.id,c:null,mn:null,mx:null}));nr++;relAt(r,h.f&&h.f.at);});
     ents.forEach(e=>{const t=map[e.id],have=new Set(erIdx(er).attrsOf(t).map(a=>lc(a.n)));
       (e.f.at||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
-        const nn={id:uid(),k:'attr',n,x:t.x,y:t.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;});});
+        const ty=boTy(e,n),f={};BO_TY.forEach(([k])=>{if(ty[k])f[k]=true;});
+        const nn={id:uid(),k:'attr',n,x:t.x,y:t.y,f};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;});
+      // los que ya estaban en el E-R reciben los tipos marcados en el boceto
+      erIdx(er).attrsOf(t).forEach(x=>{const ty=boTy(e,x.n);BO_TY.forEach(([k])=>{if(ty[k]&&!x.f[k]){x.f[k]=true;na+=0;}});});});
     const nn=carryNotes(bo,er,false);
     if(!ne&&!nr&&!na&&!nn){toast('Tu E-R ya tiene todo lo del boceto.');return;}
     this.hist.push({mode:'er',data:snapER});this.app.touch(this.p);if(this.p._views)delete this.p._views.er;this.app.go(this.p,'er');
@@ -923,7 +937,7 @@ class Editor{
       const add=n=>{if(!n||seen.has(n.id)||this.locked(n))return;seen.add(n.id);list.push({n,ox:n.x,oy:n.y});if(X&&!isAtt(n))X.attrsOf(n).forEach(add);if(X&&isAtt(n)&&n.f.c)X.attrsOf(n).forEach(add);};
       this.selIds.forEach(sid=>add(this.node(sid)));
       if(!list.length&&this.locked(this.node(id))&&!this._lockTold){this._lockTold=1;toast('Está bloqueado: no se mueve. Desbloquéalo con el botón derecho.');}
-      this.drag={x0:p.x,y0:p.y,list,moved:false,click:id,already};this.svg.setPointerCapture(e.pointerId);e.preventDefault();
+      const ba=this.isBo&&e.target.closest('[data-boat]');this.drag={x0:p.x,y0:p.y,list,moved:false,click:id,already,boat:ba?+ba.dataset.boat:null,cx:e.clientX,cy:e.clientY};this.svg.setPointerCapture(e.pointerId);e.preventDefault();
       if(!already){this.render();this.renderInsp();}return;}
     const fkl=e.target.closest('[data-fk]');if(fkl&&!this.isER){this.selIds=new Set();this.selLink=fkl.dataset.fk;this.pend=null;this.connect=false;this.from=null;this.render();this.renderInsp();return;}
     if(hl&&this.isER){this.selIds=new Set();this.selLink=hl.dataset.lid;this.pend=null;
@@ -972,7 +986,7 @@ class Editor{
   onUp(e){
     if(this.pan){const P=this.pan;this.pan=null;this.cv.classList.remove('panning');if(!P.moved&&P.btn===2&&e&&e.type==='pointerup')this.contextMenu(e,P);return;}
     if(this.bendDrag){const d=this.bendDrag;this.bendDrag=null;if(this._raf)this.render();if(d.moved){this.save();this.renderInsp();}return;}
-    if(this.drag){const d=this.drag;this.drag=null;if(this._raf||this._guides){this._guides=null;this.render();}if(d.moved)this.save();else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
+    if(this.drag){const d=this.drag;this.drag=null;if(this._raf||this._guides){this._guides=null;this.render();}if(d.moved)this.save();else if(d.boat!=null&&!this.ro){this.boAttrMenu(this.node(d.click),d.boat,d.cx,d.cy);}else if(d.already&&this.selIds.size>1){this.selIds=new Set([d.click]);this.render();this.renderInsp();}return;}
     if(this.band){const b=this.band;this.band=null;const x0=Math.min(b.x0,b.x1),x1=Math.max(b.x0,b.x1),y0=Math.min(b.y0,b.y1),y1=Math.max(b.y0,b.y1);
       if(x1-x0>4||y1-y0>4){const s=new Set(b.add?b.base:[]);this.items().forEach(n=>{const bb=this.boxOf(n);if(bb[0]<x1&&bb[2]>x0&&bb[1]<y1&&bb[3]>y0)s.add(n.id);});this.selIds=s;}
       this.render();this.renderInsp();}
@@ -1007,8 +1021,12 @@ class Editor{
         if(!crowTag&&(r.k||r.p)){const w=r.t.trim().length*CH;s+=`<line x1="${f1(tx)}" y1="${f1(y+2.5)}" x2="${f1(tx+w)}" y2="${f1(y+2.5)}" class="ul${r.p?' p':''}"/>`;}
         return s;}).join('');
       if(isEnt(n)){
-        if(false){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
-          n.f.at.forEach((a,i)=>{g+=`<text x="${f1(x0+10)}" y="${f1(y0+30+13+i*16)}" class="tx">${esc(a)}</text>`;});}
+        if(bo&&(n.f.at||[]).length){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+30)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+20)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
+          n.f.at.forEach((a,i)=>{const t=boTy(n,a),y=y0+34+i*20,tx=x0+10,w=String(a).length*CH;let bx=tx+w+8;
+            g+=`<g class="boat" data-boat="${i}"><rect x="${f1(x0+3)}" y="${f1(y)}" width="${f1(n.w-6)}" height="19" rx="3" class="boat-bg"/><text x="${f1(tx)}" y="${f1(y+14)}" class="tx${t.k||t.p?' txk':''}${t.d?' bo-der':''}">${esc(a)}</text>`;
+            if(t.k||t.p)g+=`<line x1="${f1(tx)}" y1="${f1(y+16.5)}" x2="${f1(tx+w)}" y2="${f1(y+16.5)}" class="ul${t.p?' p':''}"/>`;
+            boTags(t).forEach(l=>{const tw=l.length*5.6+8;g+=`<rect x="${f1(bx)}" y="${f1(y+3.5)}" width="${f1(tw)}" height="13" rx="6.5" class="bo-tag"/><text x="${f1(bx+tw/2)}" y="${f1(y+13)}" text-anchor="middle" class="bo-tagt">${l}</text>`;bx+=tw+4;});
+            g+='</g>';});}
         else if(!hide){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+4)}" y="${f1(y0+4)}" width="${f1(n.w-8)}" height="${n.h-8}" class="ent in${dup}"/>`;g+=`<text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;}
         else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?4:0}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+3)}" y="${f1(y0+3)}" width="${f1(n.w-6)}" height="${n.h-6}" rx="${nt==='crow'?3:0}" class="ent in${dup}"/>`;
           g+=`<path d="M${f1(x0)},${f1(y0+28)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+19)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
@@ -1141,8 +1159,8 @@ class Editor{
         `<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?one.f.at.map(a=>esc(a)).join(', '):'Escríbelos en el texto de arriba: <code>'+esc(es.map(e=>e.n).join('-'))+'; atributo</code>'}</p>`+lockChk(one)+
         `<p class="in-p">Al pulsar «Pasar al E-R» sale una sola relación${es.length===3?' ternaria':''} unida a las ${es.length}.</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(this.isBo&&one&&isEnt(one)){const X=this.X(),nb=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt);
-      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?(one.f.at.map(a=>esc(a)).join(', ')):'Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code>'}</p>`+lockChk(one)+
-        `<p class="in-p">El boceto es para escribir: entidades y sus atributos. Las relaciones las haces en el E-R; cuando lo tengas, pulsa «Pasar al E-R».</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
+      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div>${(one.f.at||[]).length?`<div class="bo-atl">${one.f.at.map((a,i)=>{const t=boTy(one,a);return `<div class="bo-atr"><b class="${t.k||t.p?'u':''}">${esc(a)}</b><span>${BO_TY.filter(([k])=>k!=='p'||one.k==='weak'||t.p).map(([k,l,ti])=>`<button class="bo-chip" data-boty="${i}:${k}" aria-pressed="${!!t[k]}" title="${escA(ti)}">${l}</button>`).join('')}</span></div>`;}).join('')}</div>`:'<p class="in-p">Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code></p>'}`+lockChk(one)+
+        `<p class="in-p">El tipo también se cambia pinchando el atributo en el dibujo. Los atributos de una relación se escriben arriba así: <code>Entidad1-Entidad2; atributo</code> (no se dibujan aquí; salen al pasar al E-R).</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(!this.isER&&this.selLink){const s=this.fkSel();if(!s){this.selLink=null;return this.renderInsp();}const ded=this.mode==='ded',has=k=>s.cols.every(c=>parseF(c[2])[k]);
       const tg=(k,txt,sub,ic)=>`<button class="opt" data-fkact="${k}" aria-pressed="${has(k)}"><b>${GL[ic]||''} ${txt}</b><small>${sub}</small></button>`;
       h+=head(ded?'Relación (DED)':'Flecha (relacional)')+`<p class="in-p"><b>${esc(s.t.n)}</b> → <b>${esc(s.pa.n)}</b></p>
