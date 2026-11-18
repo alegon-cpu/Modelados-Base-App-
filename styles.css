@@ -1386,3 +1386,11 @@ svg .bo-sub{fill:var(--muted)}
 .pf.flat[aria-current="true"]{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--ink);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
 .bo-atsub{margin-left:12px;padding-left:8px;border-left:1px solid var(--line-2)}
 .bo-atsub b{font-weight:500}
+/* Elegir proyectos (capturas / código) */
+.pk-top{display:flex;align-items:center;gap:12px;margin:2px 0 6px}.pk-top .mmeta{margin-left:auto}
+.pk-box{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r-md);padding:6px 8px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.pk-gh,.pk-p{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:var(--r-sm);cursor:pointer}
+.pk-gh:hover,.pk-p:hover{background:var(--hover)}
+.pk-gh small{color:var(--muted);margin-left:auto}
+.pk-g .pk-l{display:flex;flex-direction:column}
+.pk-gh+.pk-l{margin-left:18px;border-left:1px solid var(--line-2);padding-left:4px}

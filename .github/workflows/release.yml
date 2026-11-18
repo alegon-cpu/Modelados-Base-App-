@@ -39,7 +39,7 @@ jobs:
     needs: version
     if: needs.version.outputs.skip != 'true'
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - plat: win
@@ -47,8 +47,11 @@ jobs:
           - plat: linux
             os: ubuntu-latest
           - plat: mac
-            os: macos-latest
+            os: macos-14
     runs-on: ${{ matrix.os }}
+    # si el Mac no consigue máquina (a veces GitHub tarda o falla), se publica igual Windows y Linux
+    continue-on-error: ${{ matrix.plat == 'mac' }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,6 +82,7 @@ jobs:
 
   publicar:
     needs: [version, construir]
+    if: ${{ always() && needs.version.outputs.skip != 'true' && needs.version.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,6 +96,8 @@ jobs:
           V: ${{ needs.version.outputs.version }}
         run: |
           ls -la paquetes
+          # sin el paquete de Windows no se publica (es el que usan las actualizaciones automáticas)
+          ls paquetes/*-Windows.zip >/dev/null
           bash release-notes.sh > notes.md
           cat notes.md
           gh release create "v$V" paquetes/* --target "$GITHUB_SHA" \

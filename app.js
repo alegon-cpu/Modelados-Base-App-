@@ -232,6 +232,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.2.1':['«Images…» and «Code…» (bottom left) now let you choose which projects: by folders, with «All» and «None», and they remember what you ticked last.'],
   '4.2':['The list on the left no longer unfolds each project\'s tabs: each project is one line and clicking it opens it straight on the tab chosen in Settings › General (E-R by default).','In the sketch, the parts of a composite attribute have types too: click one (or use the panel) to mark it as key, unique, optional, multivalued or derived. It goes to the E-R like that.'],
   '4.1.2':['In the DSD, if the foreign key is the whole primary key of its table, the panel now says maximum 1 (like the drawing) and warns you: if it is the table of an N:M, it is missing the other foreign key in the primary key.'],
   '4.1.1':['Really fixed «Could not check» when looking for updates on networks like the school one (the plan B from 3.7.1 did not actually work).'],
@@ -249,6 +250,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.2.1: «Capturas…» y «Código…» (abajo a la izquierda) ahora te dejan elegir qué proyectos: por carpetas, con «Todos» y «Ninguno», y recuerdan lo último que marcaste.',
   '4.2: la lista de la izquierda ya no despliega las pestañas de cada proyecto: cada proyecto es una línea y al pincharlo se abre directo en la pestaña elegida en Ajustes › General (E-R por defecto).',
   '4.2: en el boceto, los subatributos de un compuesto también tienen tipo: pincha uno (o usa el panel) para marcarlo como clave, único, opcional, multivaluado o derivado. Pasa así al E-R.',
   '4.1.2: en el DED, si la clave ajena es toda la clave primaria de su tabla, el panel ya dice máximo 1 (como el dibujo) y avisa: si es la tabla de una N:M, le falta la otra clave ajena en la clave primaria.',
@@ -730,6 +732,8 @@ const App={
     document.getElementById('mainv').addEventListener('click',e=>this.onMain(e));
     document.getElementById('modal').addEventListener('click',e=>this.onModal(e));
     document.getElementById('modal').addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.set;if(k){Settings.set(k,e.target.checked);this.renderSettings();}});
+    // elegir proyectos: la casilla de una carpeta marca o desmarca todos los suyos
+    document.getElementById('modal').addEventListener('change',e=>{const t=e.target;if(!t.dataset)return;if(t.dataset.pkg!=null){const g=t.dataset.pkg;document.querySelectorAll('[data-pk]').forEach(x=>{if(parOf(x.dataset.pk)===g||x.dataset.pk.startsWith(g+'/'))x.checked=t.checked;});}if(t.dataset.pkg!=null||t.dataset.pk!=null)this.pickSync();});
     document.getElementById('titlebar').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)this.action(b);});
     document.addEventListener('keydown',e=>{
       const tg=e.target.tagName,typing=tg==='INPUT'||tg==='SELECT'||tg==='TEXTAREA',ctrl=e.ctrlKey||e.metaKey,modalOpen=!document.getElementById('modal').hidden;
@@ -986,8 +990,8 @@ const App={
     if(a==='import'){this.modal(`<h3>Importar código</h3><p>Escribe o pega el código que te han pasado: el corto (<code>MB-K7P2QX</code>) o el largo (<code>MB1-…</code>). Los proyectos se añaden a los tuyos; no se borra nada.</p>
       <textarea id="imptxt" spellcheck="false" placeholder="MB-…  o  MB1-…"></textarea>
       <div class="mrow"><button class="lnk mmeta" data-m="dir">o importar una carpeta de proyecto…</button><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="code">Importar</button></div>`);document.getElementById('imptxt').focus();return;}
-    if(a==='captureall'){if(!this.projects.length){toast('No tienes proyectos.');return;}await this.flushAll();await this.captureMany(this.projects);return;}
-    if(a==='exportall'){if(!this.projects.length){toast('No tienes proyectos que exportar.');return;}this.showCode(this.projects,'Código de todos tus proyectos ('+this.projects.length+')');return;}
+    // 4.2: antes de hacer capturas o el código, se eligen los proyectos (por carpetas, con «Todos» y «Ninguno»)
+    if(a==='captureall'||a==='exportall'){if(!this.projects.length){toast('No tienes proyectos.');return;}this.pickProjects(a==='captureall'?'cap':'code');return;}
     if(a==='basereveal'){this.run(()=>window.api.baseReveal());return;}
     if(a==='basechoose'){await this.flushAll();const keep=this.cur&&this.cur.folder;const nb=await this.run(()=>window.api.baseChoose());if(nb){this.base=nb;this.renderFoot();await this.reload(keep);toast('Carpeta movida. Tus proyectos están ahora en '+nb);}return;}
     if(!p)return;
@@ -1076,6 +1080,17 @@ const App={
   },
   modal(html,cls=''){const m=document.getElementById('modal');m.innerHTML=`<div class="mbox ${cls}" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;(m.querySelector('.ebtn.pri')||m.querySelector('button'))?.focus({preventScroll:true});const bx=m.querySelector('.mbox');if(bx)bx.scrollTop=0;},
   closeModal(){this.settingsOpen=false;const m=document.getElementById('modal');m.hidden=true;m.innerHTML='';try{Bienvenida.back();}catch(e){}},
+  pickProjects(kind){const P=this.projects,G=[...new Set(P.map(p=>parOf(p.folder)))].sort((a,b)=>a.localeCompare(b,'es')),pre=new Set(this._pick||(this.cur?[this.cur.folder]:[]));
+    const row=p=>`<label class="pk-p"><input type="checkbox" data-pk="${escA(p.folder)}" ${pre.has(p.folder)?'checked':''}><span>${p.icon?esc(p.icon)+' ':''}${esc(p.name)}</span></label>`;
+    const grp=g=>{const ps=P.filter(p=>parOf(p.folder)===g);return `<div class="pk-g">${g?`<label class="pk-gh"><input type="checkbox" data-pkg="${escA(g)}"><b>${esc(g.split('/').join(' › '))}</b><small>${ps.length}</small></label>`:''}<div class="pk-l">${ps.map(row).join('')}</div></div>`;};
+    this.modal(`<h3>${kind==='cap'?'Capturas: elige los proyectos':'Código: elige los proyectos'}</h3><p>${kind==='cap'?'Se guarda la imagen (E-R, relacional y DED) de cada proyecto marcado en su carpeta <b>Captura</b>.':'Los proyectos marcados se pasan juntos en un solo código.'}</p>
+      <div class="pk-top"><button class="lnk" data-m="pk-all">Todos</button><button class="lnk" data-m="pk-none">Ninguno</button><span class="mmeta" id="pkn"></span></div>
+      <div class="pk-box">${G.map(grp).join('')}</div>
+      <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="pk-go" data-kind="${kind}">${kind==='cap'?'Hacer las capturas':'Generar el código'}</button></div>`);
+    this.pickSync();},
+  pickSync(){const all=[...document.querySelectorAll('[data-pk]')],on=all.filter(x=>x.checked);
+    document.querySelectorAll('[data-pkg]').forEach(g=>{const ks=all.filter(x=>parOf(x.dataset.pk)===g.dataset.pkg||x.dataset.pk.startsWith(g.dataset.pkg+'/')),n=ks.filter(x=>x.checked).length;g.checked=n>0&&n===ks.length;g.indeterminate=n>0&&n<ks.length;});
+    const c=document.getElementById('pkn');if(c)c.textContent=on.length+' de '+all.length+' marcados';const go=document.querySelector('[data-m=pk-go]');if(go)go.disabled=!on.length;},
   async showCode(list,title){
     let code;try{code=await toCode(list);}catch(e){toast('No se pudo generar el código: '+e.message);return;}
     this.codeModal(title,'Copia el código y envíaselo a quien quieras (WhatsApp, correo…). Para abrirlo: <b>Importar código</b> y pegarlo.',code);
@@ -1134,6 +1149,9 @@ const App={
     const tn=e.target.closest('[data-th]');if(tn){this._th=tn.dataset.th;this.renderSettings();const a=document.getElementById('thart');if(a)a.scrollTop=0;return;}
     const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;
     if(k==='close'){this._capKey=null;this.closeModal();return;}
+    if(k==='pk-all'||k==='pk-none'){document.querySelectorAll('[data-pk]').forEach(x=>x.checked=k==='pk-all');this.pickSync();return;}
+    if(k==='pk-go'){const sel=[...document.querySelectorAll('[data-pk]:checked')].map(x=>x.dataset.pk),list=this.projects.filter(p=>sel.includes(p.folder));if(!list.length)return;this._pick=sel;
+      this.closeModal();if(b.dataset.kind==='cap'){await this.flushAll();await this.captureMany(list);}else this.showCode(list,list.length===1?'Código del proyecto «'+list[0].name+'»':'Código de '+list.length+' proyectos');return;}
     if(k.startsWith('ex-')){await EX.m(k,b);return;}
     if(k==='bv-again'){this.closeModal();this.settingsOpen=false;Bienvenida.open();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}

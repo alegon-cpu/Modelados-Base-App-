@@ -1,7 +1,7 @@
 {
   "name": "modelado-bases",
   "productName": "Modelado Bases",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "Diagramas E-R, relacionales y DED organizados en proyectos",
   "main": "main.js",
   "author": "Modelado Bases",

@@ -567,10 +567,28 @@ const EN={
 "Ese texto no es un código de Modelado Bases. Empieza por MB- (corto) o MB1- (largo).":"That text is not a Modelado Bases code. It starts with MB- (short) or MB1- (long).",
 // 4.0
 "toda":"the whole",
-"Es toda la clave primaria: no se puede repetir":"It is the whole primary key: it cannot be repeated"
+"Es toda la clave primaria: no se puede repetir":"It is the whole primary key: it cannot be repeated",
+// 4.0
+"Varios proyectos":"Several projects",
+"Capturas…":"Images…",
+"Código…":"Code…",
+"Elige proyectos y guarda la imagen (E-R, relacional y DED) de cada uno en su carpeta Captura":"Choose projects and save the image (E-R, relational and DSD) of each one in its Captura folder",
+"Elige proyectos y pásalos en un solo código":"Choose projects and pass them in a single code",
+"Capturas: elige los proyectos":"Images: choose the projects",
+"Código: elige los proyectos":"Code: choose the projects",
+"Se guarda la imagen (E-R, relacional y DED) de cada proyecto marcado en su carpeta":"The image (E-R, relational and DSD) of each ticked project is saved in its folder",
+"Los proyectos marcados se pasan juntos en un solo código.":"The ticked projects are passed together in a single code.",
+"Todos":"All",
+"Ninguno":"None",
+"Hacer las capturas":"Make the images",
+"Generar el código":"Generate the code",
+"No tienes proyectos.":"You have no projects."
 };
 // Textos con partes variables
 const EN_RX=[
+[/^(\d+) de (\d+) marcados$/,"$1 of $2 ticked"],
+[/^Código de (\d+) proyectos$/,"Code of $1 projects"],
+
 [/^«(.*)» es$/,"«$1» is"],
 [/^la clave primaria de «(.*)», así que no se puede repetir: cada «(.*)» sale como mucho una vez \(máximo 1\)\. Si «(.*)» es la tabla de una relación N:M, le falta la otra clave ajena dentro de la clave primaria\.$/,"primary key of «$1», so it cannot be repeated: each «$2» appears at most once (maximum 1). If «$3» is the table of an N:M relationship, it is missing the other foreign key inside the primary key."],
 
