@@ -232,6 +232,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.1.1':['Really fixed «Could not check» when looking for updates on networks like the school one (the plan B from 3.7.1 did not actually work).'],
   '4.1':['Short codes to pass exercises and activities: instead of the very long code you get one like «MB-K7P2QX» to type in Import code (internet needed). The long one is still below and still works offline.'],
   '4.0':['Complete weak entities. With a normal relationship you get an existence dependency (the FK outside the key) and with an identifying one, an identification dependency (the FK inside the key). In both cases the SQL has ON UPDATE NO ACTION ON DELETE CASCADE, and in the relational model and the DSD you can change it by clicking the line («When a row of … is deleted»). It is also read when importing SQL or a Workbench model.',
     'New theory: «Weak entity: existence and identification», with the types of entities, attributes and relationships, an example with drawings, the SQL for each case and what ON DELETE CASCADE does.',
@@ -246,6 +247,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.1.1: arreglado de verdad el «No se ha podido comprobar» al buscar actualizaciones en redes como la del instituto (el plan B de la 3.7.1 no llegaba a funcionar).',
   '4.1: códigos cortos para pasar ejercicios y actividades: en vez del código larguísimo sale uno como «MB-K7P2QX» que se escribe en Importar código (hace falta internet). El largo sigue debajo y sigue valiendo sin internet.',
   '4.0: entidades débiles completas. Con una relación normal sale la dependencia en existencia (la FK fuera de la clave) y con la identificadora, la dependencia en identificación (la FK dentro de la clave). En los dos casos el SQL lleva ON UPDATE NO ACTION ON DELETE CASCADE, y en el relacional y el DED puedes cambiarlo pinchando la línea («Al borrar una fila de…»). Se lee también al importar un SQL o un modelo de Workbench.',
   '4.0: teoría nueva: «Entidad débil: existencia e identificación», con los tipos de entidades, atributos y relaciones, un ejemplo con dibujos, el SQL de cada caso y qué hace ON DELETE CASCADE.',

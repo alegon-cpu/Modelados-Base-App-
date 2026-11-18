@@ -455,8 +455,10 @@ function canSelfUpdate() {
 // de 60 consultas por hora): la página web de «última versión» redirige a /releases/tag/vX.Y.Z,
 // y los nombres de los archivos se saben a partir de la versión.
 async function latestViaWeb() {
-  const r = await net.fetch(`https://github.com/${REPO}/releases/latest`, { method: 'HEAD', headers: { 'User-Agent': 'Modelado-Bases' } });
-  const m = /\/releases\/tag\/(v?\d+\.\d+\.\d+)/.exec(r.url || '');
+  // (en Electron, response.url llega vacío tras la redirección: se lee la versión del propio HTML de la página)
+  const r = await net.fetch(`https://github.com/${REPO}/releases/latest`, { headers: { 'User-Agent': 'Modelado-Bases' } });
+  const html = r.ok ? await r.text() : '';
+  const m = /\/releases\/tag\/(v?\d+\.\d+\.\d+)/.exec((r.url || '') + ' ' + html);
   if (!m) throw new Error('GitHub respondió ' + r.status);
   const tag = m[1], v = tag.replace(/^v/, ''), base = `${DL_PREFIX}${tag}/`;
   const names = [`Modelado-Bases-${v}-Windows.zip`, `Modelado-Bases-${v}-Mac.zip`, `Modelado-Bases-${v}-Linux.tar.gz`];
