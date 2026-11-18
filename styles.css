@@ -1374,3 +1374,4 @@ html.os-darwin .titlebar{padding-left:80px}
 svg .bo-subl{fill:none;stroke:var(--muted);stroke-width:1;opacity:.7}
 svg .bo-sub{fill:var(--muted)}
 .bo-subs{color:var(--muted);font-size:11.5px}
+.th-er{display:block;max-width:100%;height:auto;margin:8px 0;color:var(--ink)}

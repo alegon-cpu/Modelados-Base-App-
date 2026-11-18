@@ -89,7 +89,7 @@ function parseSQL(text){
   const pkRx=new RegExp('^(?:CONSTRAINT\\s+'+RX_NAME+'\\s+)?PRIMARY\\s+KEY\\s*(?:'+RX_NAME+'\\s*)?\\(([^)]*)\\)','i');
   const uqRx=new RegExp('^(?:CONSTRAINT\\s+'+RX_NAME+'\\s+)?UNIQUE(?:\\s+(?:KEY|INDEX))?\\s*(?:'+RX_NAME+'\\s*)?\\(([^)]*)\\)','i');
   const constraint=(tb,it)=>{let m;
-    if(m=it.match(fkRx)){tb.fks.push({cols:colList(m[1]),ref:lastPart(m[2])});return true;}
+    if(m=it.match(fkRx)){tb.fks.push({cols:colList(m[1]),ref:lastPart(m[2]),cas:/\bON\s+DELETE\s+CASCADE\b/i.test(it)});return true;}
     if(m=it.match(pkRx)){tb.pk.push(...colList(m[1]));return true;}
     if(m=it.match(uqRx)){const c=colList(m[1]);if(c.length===1)tb.uq.push(c[0]);return true;}
     if(/^(?:KEY|INDEX|FULLTEXT|SPATIAL|CHECK|CONSTRAINT)\b/i.test(it))return true;
@@ -107,7 +107,7 @@ function parseSQL(text){
         const type=ty?ty[1].toUpperCase().replace(/\s*\(\s*/,'(').replace(/\s*\)/,')').replace(/\s*,\s*/g,','):'';
         const up=rest.toUpperCase();
         tb.cols.push({n:cn,type,pk:/\bPRIMARY\s+KEY\b/.test(up),nn:/\bNOT\s+NULL\b/.test(up),uq:/\bUNIQUE\b/.test(up)});
-        const rf=rest.match(new RegExp('\\bREFERENCES\\s+('+RX_NAME+')','i'));if(rf)tb.fks.push({cols:[cn],ref:lastPart(rf[1])});});
+        const rf=rest.match(new RegExp('\\bREFERENCES\\s+('+RX_NAME+')','i'));if(rf)tb.fks.push({cols:[cn],ref:lastPart(rf[1]),cas:/\bON\s+DELETE\s+CASCADE\b/i.test(rest)});});
       if(get(name))warn.push(`La tabla «${name}» aparece dos veces: me quedo con la última.`);
       tables.push(tb);byName[lc(name)]=tb;continue;}
     m=st.match(new RegExp('^ALTER\\s+TABLE\\s+(?:ONLY\\s+)?((?:'+RX_NAME+'\\.)?'+RX_NAME+')\\s+([\\s\\S]*)$','i'));
@@ -116,12 +116,12 @@ function parseSQL(text){
   }
   if(!tables.length)throw new Error('No he encontrado ningún CREATE TABLE en el SQL.');
   const out=[...new Map(tables.map(t=>[lc(t.n),t])).values()].map(tb=>{
-    const pk=new Set(tb.pk.map(lc)),uq=new Set(tb.uq.map(lc)),fkOf={};
-    tb.fks.forEach(f=>{const ref=get(f.ref);if(!ref){warn.push(`${tb.n}: la clave ajena apunta a «${f.ref}», que no está en el SQL.`);return;}f.cols.forEach(c=>fkOf[lc(c)]=ref.n);});
+    const pk=new Set(tb.pk.map(lc)),uq=new Set(tb.uq.map(lc)),fkOf={},casOf={};
+    tb.fks.forEach(f=>{const ref=get(f.ref);if(!ref){warn.push(`${tb.n}: la clave ajena apunta a «${f.ref}», que no está en el SQL.`);return;}f.cols.forEach(c=>{fkOf[lc(c)]=ref.n;if(f.cas)casOf[lc(c)]=1;});});
     if(!tb.cols.length)warn.push(`La tabla «${tb.n}» no tiene columnas.`);
     if(!tb.cols.some(c=>c.pk||pk.has(lc(c.n))))warn.push(`La tabla «${tb.n}» no tiene clave primaria.`);
     return {id:uid(),n:tb.n,x:0,y:0,_par:[...new Set(Object.values(fkOf))].filter(n=>lc(n)!==lc(tb.n)),
-      c:tb.cols.map(c=>{const isPk=c.pk||pk.has(lc(c.n));return [c.n,c.type||'VARCHAR(45)',joinF({pk:isPk?1:0,nul:(!isPk&&!c.nn)?1:0,uq:(!isPk&&(c.uq||uq.has(lc(c.n))))?1:0,fk:fkOf[lc(c.n)]||null})];})};});
+      c:tb.cols.map(c=>{const isPk=c.pk||pk.has(lc(c.n));return [c.n,c.type||'VARCHAR(45)',joinF({pk:isPk?1:0,nul:(!isPk&&!c.nn)?1:0,uq:(!isPk&&(c.uq||uq.has(lc(c.n))))?1:0,fk:fkOf[lc(c.n)]||null,cas:casOf[lc(c.n)]||0})];})};});
   layoutSmart(out);out.forEach(t=>delete t._par);
   return {tables:out,warn:[...new Set(warn)]};
 }
@@ -158,7 +158,7 @@ function mwbToSQL(xml,file){
       if(val(ix,'isPrimary')==='1'||ty==='PRIMARY')lines.push(`  PRIMARY KEY (${cols.map(BT).join(', ')})`);
       else if(ty==='UNIQUE'||val(ix,'unique')==='1')lines.push(`  UNIQUE INDEX ${BT(val(ix,'name')||cols[0])} (${cols.map(BT).join(', ')})`);});
     objs(t,'foreignKeys').forEach(fk=>{const cols=objs(fk,'columns').map(l=>cName[l.textContent.trim()]).filter(Boolean),refc=objs(fk,'referencedColumns').map(l=>cName[l.textContent.trim()]).filter(Boolean),rt=tName[val(fk,'referencedTable')];
-      if(cols.length&&rt)lines.push(`  CONSTRAINT ${BT(val(fk,'name')||'fk')} FOREIGN KEY (${cols.map(BT).join(', ')}) REFERENCES ${BT(rt)} (${(refc.length?refc:cols).map(BT).join(', ')})`);});
+      if(cols.length&&rt)lines.push(`  CONSTRAINT ${BT(val(fk,'name')||'fk')} FOREIGN KEY (${cols.map(BT).join(', ')}) REFERENCES ${BT(rt)} (${(refc.length?refc:cols).map(BT).join(', ')})`+(/CASCADE/i.test(val(fk,'deleteRule')||'')?' ON DELETE CASCADE':''));});
     sql+=`CREATE TABLE ${BT(val(t,'name'))} (\n${lines.join(',\n')}\n) ENGINE = InnoDB;\n\n`;});
   // Dónde estaba cada tabla en el primer diagrama que la muestra
   const pos={};

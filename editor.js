@@ -1,11 +1,11 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.9.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.0.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
 let uidN=0; const uid=(p='n')=>p+Date.now().toString(36)+(uidN++).toString(36)+Math.random().toString(36).slice(2,6);
-const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x==='pmin')o.pmin=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
-const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&o.pmin&&'pmin',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
+const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x==='pmin')o.pmin=1;else if(x==='cas')o.cas=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
+const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&o.pmin&&'pmin',o.fk&&o.cas&&'cas',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
 const lc=s=>String(s||'').trim().toLowerCase();
 const VIEWS={enun:'Enunciado',bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
@@ -150,8 +150,11 @@ function erToTables(er,easy){
     skip.m.forEach(([o,a])=>{const parent=byEnt[o.id];if(!parent)return;const t={id:uid(),n:parent.n+'_'+a.n,x:0,y:0,c:[],_mid:[parent]};
       pkCols(parent).forEach(c=>t.c.push([c[0],c[1],joinF({pk:1,fk:parent.n})]));t.c.push([a.n,guessType(a.n,{}),joinF({pk:1})]);tables.push(t);});
     const rattrs0=r=>flat(r,{d:0,m:[]}).map(c=>[c[0],c[1],joinF({nul:parseF(c[2]).nul})]);
-    const addFK=(child,parent,{pk,uq,nul,suffix})=>{const pc=pkCols(parent);pc.forEach(c=>{let name=c[0];if(child.c.some(x=>lc(x[0])===lc(name)))name=uniqueCol(child,c[0]+'_'+(suffix||parent.n));
-      child.c.push([name,c[1],joinF({pk:pk?1:0,uq:(uq&&pc.length===1)?1:0,nul:nul?1:0,fk:parent.n})]);});};
+    // pmin: cada fila del padre tiene al menos una hija (mínimo 1 de ese lado); cas: entidad débil, al borrar el padre se borran sus filas (ON DELETE CASCADE)
+    const addFK=(child,parent,{pk,uq,nul,suffix,pmin,cas})=>{const pc=pkCols(parent);let at=0;pc.forEach(c=>{let name=c[0];if(child.c.some(x=>lc(x[0])===lc(name)))name=uniqueCol(child,c[0]+'_'+(suffix||parent.n));
+      const col=[name,c[1],joinF({pk:pk?1:0,uq:(uq&&pc.length===1)?1:0,nul:nul?1:0,fk:parent.n,pmin:pmin?1:0,cas:cas?1:0})];
+      // si la FK entra en la PK (identificación), va delante: PRIMARY KEY (CodNave, Numero)
+      if(pk&&cas)child.c.splice(at++,0,col);else child.c.push(col);});};
     er.nodes.filter(isRel).sort((a,b)=>isAssoc(b)-isAssoc(a)).forEach(r=>{
       const en=acrossEnds(X.ends(r).filter(x=>byEnt[x.e.id]));if(en.length<2)return;
       if(isAssoc(r)){ // entidad asociativa: siempre tabla propia con las claves de sus entidades
@@ -169,9 +172,13 @@ function erToTables(er,easy){
         let child,parent,childEnd,parentEnd;
         if(manyA!==manyB){child=manyA?TA:TB;parent=manyA?TB:TA;childEnd=manyA?A:B;parentEnd=manyA?B:A;}
         else{ // 1:1: la FK va a la tabla cuya participación es obligatoria
-          if(A.mn==='1'&&B.mn!=='1'){child=TB;parent=TA;parentEnd=A;}else{child=TA;parent=TB;parentEnd=B;}}
-        const weakChild=ident&&er.nodes.find(n=>n.id===(child===TA?A.e.id:B.e.id)&&n.k==='weak');
-        addFK(child,parent,{pk:!!weakChild,uq:manyA===manyB,nul:parentEnd.mn==='0'&&!weakChild,suffix:self?r.n:parent.n});
+          if(A.mn==='1'&&B.mn!=='1'){child=TB;parent=TA;parentEnd=A;childEnd=B;}else{child=TA;parent=TB;parentEnd=B;childEnd=A;}}
+        // entidad débil: con relación identificadora (rombo doble) la FK entra en la PK (dependencia en identificación);
+        // con una relación normal solo depende en existencia. En los dos casos, al borrar el padre se borran sus filas.
+        const childNode=er.nodes.find(n=>n.id===(child===TA?A.e.id:B.e.id));
+        const hasIdent=n=>X.linksOf(n.id).some(l=>{const o=X.other(l,n.id);return o&&o.k==='idrel';});
+        const weak=!self&&!!childNode&&childNode.k==='weak'&&(ident||!hasIdent(childNode)),weakChild=ident&&weak;
+        addFK(child,parent,{pk:!!weakChild,uq:manyA===manyB,nul:parentEnd.mn==='0'&&!weak,suffix:self?r.n:parent.n,pmin:childEnd&&childEnd.mn==='1',cas:weak});
         rattrs.forEach(c=>child.c.push([uniqueCol(child,c[0]),c[1],c[2]]));
       } else { // ternaria o más
         const t={id:uid(),n:r.n,x:0,y:0,c:[],_mid:en.map(x=>byEnt[x.e.id])};
@@ -1191,6 +1198,8 @@ class Editor{
           <div class="cq"><div class="in-q"><b class="qe">${esc(s.pa.n)}</b> ¿cuántas/os <b class="qe">${esc(s.t.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg">${sb('uq',1,uq,'1')}${sb('uq',0,!uq,'N')}</div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('pmin',0,!pmin,'0')}${sb('pmin',1,pmin,'1')}</div></div><div class="cres">junto a «${esc(s.t.n)}»: <b class="cd">(${pmin?'1':'0'},${uq?'1':'N'})</b></div></div>
           <div class="cq"><div class="in-q"><b class="qe">${esc(s.t.n)}</b> ¿cuántas/os <b class="qe">${esc(s.pa.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg"><button class="segb" aria-pressed="true" data-fkn="1">1</button><button class="segb" aria-pressed="false" data-fkn="N" title="Para N en los dos lados hace falta una tabla intermedia">N</button></div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('nul',1,nul,'0')}${sb('nul',0,!nul,'1')}</div></div><div class="cres">junto a «${esc(s.pa.n)}»: <b class="cd">(${nul?'0':'1'},1)</b></div></div>
           <div class="in-sub">Línea</div><div class="seg wide">${sb('pk',1,pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>Continua')}${sb('pk',0,!pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Discontinua')}</div><p class="in-p">${pk?'Identificadora: la FK forma parte de la PK.':'No identificadora: la FK es una columna normal.'}</p>`;})():'')+
+        (()=>{const cas=has('cas'),b=(v,on,t)=>`<button class="segb" data-fkset="cas" data-v="${v}" aria-pressed="${on}">${t}</button>`;
+          return `<div class="in-sub">Al borrar una fila de «${esc(s.pa.n)}»</div><div class="seg wide">${b(0,!cas,'No se deja si tiene filas')}${b(1,cas,'Se borran también (CASCADE)')}</div><p class="in-p">${cas?`Entidad débil: si se borra un «${esc(s.pa.n)}», se borran solos sus «${esc(s.t.n)}». En el SQL: <code>ON DELETE CASCADE</code>.`:'Lo normal. Márcalo en CASCADE si es una entidad débil.'}</p>`;})()+
         `<div class="in-actions"><button class="ebtn danger" data-fkact="del">${GL.clear||''}<span>Quitar la relación</span></button></div>`;}
     else if(this.isBo&&this.selLink&&(()=>{const l=this.m.links.find(x=>x.id===this.selLink),X=this.X();return l&&(isRel(X.N[l.a])||isRel(X.N[l.b]));})()){const l=this.m.links.find(x=>x.id===this.selLink),X=this.X(),hb=isRel(X.N[l.a])?X.N[l.a]:X.N[l.b],e=X.N[l.a]===hb?X.N[l.b]:X.N[l.a];
       h+=head('Línea (boceto)')+`<p class="in-p">Parte de la relación entre <b>${this.hubEnds(hb).map(x=>esc(x.n)).join(', ')}</b>. Llega a <b>${esc(e?e.n:'')}</b>.</p><p class="in-p">Las cardinalidades de una relación entre varias se ponen en el E-R.</p>`;}
@@ -1453,7 +1462,7 @@ class Editor{
       const xs=boxes.map(b=>b.x),ys=boxes.map(b=>b.y),cx=xs.length?(Math.min(...xs)+Math.max(...xs))/2:0,cy=ys.length?(Math.min(...ys)+Math.max(...ys))/2:0;
       let dx=W/2,dy=H/2;if(!wasEmpty&&er.nodes.length){const ex=er.nodes.map(n=>n.x),ey=er.nodes.map(n=>n.y);dx=(Math.min(...ex)+Math.max(...ex))/2;dy=Math.max(...ey)+320+(ys.length?(Math.max(...ys)-Math.min(...ys))*0.8:0);}
       const addAttr=(o,c,fl)=>{const X=erIdx(er);if(X.attrsOf(o).some(a=>lc(a.n)===lc(c.n)))return;const nn={id:uid(),k:'attr',n:c.n,x:o.x,y:o.y,f:fl};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:o.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(o);if(!wasEmpty)ed2.placeAttr(o,nn);na++;};
-      boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk);let e=eBy[lc(t.n)];
+      boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=(pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk))||cs.some(c=>c.f.fk&&c.f.cas);let e=eBy[lc(t.n)];
         if(!e){e={id:uid(),k:weak?'weak':'ent',n:t.n,x:Math.round(dx+(x-cx)*1.6),y:Math.round(dy+(y-cy)*1.6),f:{}};er.nodes.push(e);eBy[lc(t.n)]=e;ne++;}
         cs.filter(c=>!c.f.fk).forEach(c=>{const fl={};if(c.f.pk){if(weak)fl.p=1;else fl.k=1;}if(c.f.nul&&!c.f.pk)fl.o=1;if(c.f.uq&&!c.f.pk)fl.u=1;addAttr(e,c,fl);});});
       const relNames=er.nodes.filter(isRel).map(r=>r.n),has=(A,B)=>{const X=erIdx(er);return er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());};

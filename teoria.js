@@ -1,6 +1,11 @@
 /* ===================== Teoría ===================== */
 // Cada tema: id, título, palabras para el buscador y contenido.
 const TH=(ic,t)=>`<span class="th-sym">${ic}<span>${t}</span></span>`;
+// Dibujo pequeño de Chen para la teoría: A —(rombo)— B, con B débil si hace falta y el rombo doble si es identificadora
+const thER=(a,rel,b,o)=>{o=o||{};const w=520,h=110,E=(x,n,dbl)=>`<rect x="${x}" y="40" width="120" height="34" rx="2" fill="none" stroke="var(--c-ent)" stroke-width="1.6"/>${dbl?`<rect x="${x+4}" y="44" width="112" height="26" rx="1" fill="none" stroke="var(--c-ent)" stroke-width="1.2"/>`:''}<text x="${x+60}" y="62" text-anchor="middle" font-size="13" fill="currentColor">${n}</text>`;
+  const R=(x,n,dbl)=>`<path d="M${x} 57 l46 -22 l46 22 l-46 22z" fill="none" stroke="var(--c-rel)" stroke-width="1.6"/>${dbl?`<path d="M${x+8} 57 l38 -17 l38 17 l-38 17z" fill="none" stroke="var(--c-rel)" stroke-width="1.1"/>`:''}<text x="${x+46}" y="61" text-anchor="middle" font-size="12" fill="currentColor">${n}</text>`;
+  const C=(x,t)=>`<text x="${x}" y="32" text-anchor="middle" font-size="11.5" fill="var(--muted)">${t}</text>`;
+  return `<svg class="th-er" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${a} ${rel} ${b}"><line x1="130" y1="57" x2="214" y2="57" stroke="currentColor"/><line x1="306" y1="57" x2="390" y2="57" stroke="currentColor"/>${E(10,a)}${R(214,rel,o.id)}${E(390,b,o.weak)}${C(165,o.ca||'(1,N)')}${C(350,o.cb||'(1,1)')}</svg>`;};
 const TEORIA=[
 {id:'intro',t:'Cómo se hace un ejercicio',k:'pasos enunciado proceso',h:`
 <p>Un ejercicio de bases de datos se resuelve en cuatro pasos. Cada uno sale del anterior:</p>
@@ -17,17 +22,49 @@ const TEORIA=[
 <li>Palabras como <i>cada, puede, al menos, varios, solo uno</i> → <b>cardinalidades</b>.</li>
 <li>Lo que «identifica» o «no se puede repetir» (DNI, código, matrícula) → <b>clave primaria</b>.</li></ul>`},
 
-{id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades lineas relacionar empezar',h:`
-<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo. En el dibujo solo hay <b>entidades</b> y <b>líneas</b> entre ellas con marcas de cero, uno o muchos; los atributos se escriben en la zona de texto de arriba (solo los nombres). Ni rombos ni nombres de relación.</p>
-<ol><li>Lee el enunciado y pon una entidad por cada sustantivo importante (Alumno, Curso, Profesor…).</li><li>Une con una línea las que se relacionan (Mayús + clic, o «Unir»).</li><li>En la zona de arriba escribe cada entidad con sus atributos: <code>Alumno; DNI, Nombre, FechaNac</code>. Solo los nombres: la clave y el tipo los decides en el E-R.</li><li>Pulsa una línea y elige, junto a cada entidad, cuántas puede haber: <b>○</b> cero, <b>|</b> uno, <b>pata</b> muchos (es opcional).</li><li>Pulsa <b>Pasar al E-R</b>: se crean las entidades que falten con sus atributos y un rombo por cada línea con sus cardinalidades. Allí marcas las claves y le pones el verbo a cada relación.</li></ol>
-<p class="th-tip">Si una entidad no tiene ninguna línea, quizá sobra, o es un atributo de otra.</p>`},
+{id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades atributos compuesto relacion empezar',h:`
+<p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo: escribes y el dibujo sale solo, con cada entidad y sus atributos.</p>
+<ol><li>Lee el enunciado y escribe arriba <b>una entidad por línea</b> con sus atributos: <code>Alumno; DNI, Nombre, FechaNac</code>.</li>
+<li>Un atributo <b>compuesto</b> lleva sus partes entre paréntesis: <code>Alumno; DNI, Direccion (Calle, Numero, CP)</code>.</li>
+<li>Los atributos de una <b>relación</b> se escriben con las dos entidades unidas por un guion: <code>Alumno-Curso; Nota</code>. No se dibujan aquí, pero salen en el E-R.</li>
+<li><b>Pincha un atributo</b> en el dibujo (o en el panel de la derecha) para marcar si es clave primaria, único, opcional, multivaluado o derivado.</li>
+<li>Pulsa <b>Pasar al E-R</b>: se crean las entidades con sus atributos y sus tipos, los compuestos con sus partes y una relación por cada línea <code>A-B</code>. Allí pones las cardinalidades y el verbo de cada relación.</li></ol>
+<p class="th-tip">Si una entidad no se relaciona con ninguna, quizá sobra, o es un atributo de otra.</p>`},
 {id:'entidades',t:'Entidades',k:'entidad fuerte debil rectangulo doble',h:`
 <p>Una <b>entidad</b> es algo de lo que queremos guardar información y que se puede distinguir de los demás: un alumno, un libro, un pedido.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.ent,'Entidad (fuerte)')}<p>Rectángulo. Tiene su propia clave primaria: se identifica sola. Ejemplo: <i>Alumno</i> se identifica por su DNI.</p></div>
-<div class="th-card">${TH(GL.weak,'Entidad débil')}<p>Doble rectángulo. <b>No se puede identificar sola</b>: necesita a otra entidad (la fuerte). Va unida a ella con una <b>relación identificadora</b> (doble rombo) y tiene una <b>clave parcial</b> (subrayado discontinuo).</p></div></div>
+<div class="th-card">${TH(GL.weak,'Entidad débil')}<p>Doble rectángulo. <b>No puede existir sin</b> otra entidad (la fuerte). Si además <b>no se puede identificar sola</b>, va unida con una <b>relación identificadora</b> (doble rombo) y tiene una <b>clave parcial</b> (subrayado discontinuo). Mira el tema «Entidad débil: existencia e identificación».</p></div></div>
 <div class="th-ex"><b>Ejemplo de débil:</b> la <i>Habitación 12</i> existe en muchos hoteles. Solo sabes cuál es si dices de qué hotel es. Habitación es débil de Hotel, y su clave completa es (CodHotel, NumHabitación).</div>
 <div class="th-tip">Pregúntate: «¿puedo saber cuál es sin decir de quién es?». Si la respuesta es no, es débil.</div>`},
 
+{id:'debil',t:'Entidad débil: existencia e identificación',k:'debil existencia identificacion dependencia cascade on delete cascade relacion debil regular rombo doble tipos de entidades tipos de atributos tipos de relaciones calculado',h:`
+<p>Antes de nada, un repaso de los <b>tipos</b> que hay, porque aquí se juntan varios:</p>
+<div class="th-grid"><div class="th-card"><h4>Tipos de entidades</h4><p><b>Regular</b> (fuerte): existe por sí misma. <b>Débil</b>: solo tiene sentido si existe otra. <b>Asociativa</b>: una relación N:M que tratamos como entidad para relacionarla con otra. <b>Supertipo / subtipo</b>: jerarquías (ISA).</p></div>
+<div class="th-card"><h4>Tipos de atributos</h4><p>Clave primaria · opcional u obligatorio · derivado (se calcula) o almacenado · multivaluado o univaluado · compuesto o simple. La <b>FK</b> no existe en el E-R: aparece al pasar a tablas. Un <b>calculado</b> no lleva dibujo especial: decides si lo guardas o no (si lo guardas, hay que mantenerlo al día, por ejemplo con un trigger).</p></div>
+<div class="th-card"><h4>Tipos de relaciones</h4><p><b>Regular</b>: une dos entidades regulares. <b>Débil</b>: une una regular con una débil. La débil puede ser de dos clases: con <b>dependencia en existencia</b> o con <b>dependencia en identificación</b>.</p></div></div>
+<h4>La idea en una frase</h4>
+<p>Una entidad es <b>débil</b> cuando sus filas <b>no pueden existir sin</b> la fila de otra entidad. Si se borra la «madre», se tienen que borrar sus «hijas». Casi siempre es una relación 1:N (una madre, muchas hijas).</p>
+<p>La pregunta que decide de qué clase es: <b>¿la hija se puede reconocer sola, o solo diciendo de qué madre es?</b></p>
+<h4>Ejemplo: edificios y aulas</h4>
+<div class="th-ex">Un instituto guarda sus <b>edificios</b> (código, nombre) y sus <b>aulas</b> (número, capacidad). Un aula no tiene sentido si el edificio desaparece.</div>
+<h4>1) Dependencia en existencia</h4>
+<p>Cada aula tiene un <b>número único en todo el instituto</b> (la 101, la 102, la 205…). Se reconoce sola, pero no puede existir sin su edificio.</p>
+${thER('Edificio','tiene','Aula',{weak:1,ca:'(0,N)',cb:'(1,1)'})}
+<ul><li>Aula se dibuja con <b>doble rectángulo</b>; el rombo es <b>normal</b>.</li><li>Se pasa a tablas como un 1:N normal: la FK <code>CodEdif</code> va en Aula, <b>fuera</b> de la clave primaria.</li><li>Lo único que cambia: al borrar un edificio se borran solas sus aulas → <code>ON DELETE CASCADE</code>.</li></ul>
+<pre class="th-code">CREATE TABLE Aula (<br>&nbsp;&nbsp;NumAula INT NOT NULL,<br>&nbsp;&nbsp;Capacidad TINYINT NOT NULL,<br>&nbsp;&nbsp;CodEdif INT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (NumAula),<br>&nbsp;&nbsp;FOREIGN KEY (CodEdif) REFERENCES Edificio (CodEdif)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</pre>
+<h4>2) Dependencia en identificación</h4>
+<p>Ahora las aulas se numeran <b>dentro de cada edificio</b>: el edificio A tiene su aula 1, el B también tiene su aula 1… «El aula 1» no dice nada si no dices de qué edificio. Se identifica con <b>el código del edificio + su número</b>.</p>
+${thER('Edificio','tiene','Aula',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
+<ul><li>Doble rectángulo y además <b>rombo doble</b> (relación identificadora). El número del aula es una <b>clave parcial</b> (subrayado discontinuo).</li><li>Al pasar a tablas la FK <b>forma parte de la clave primaria</b>: <code>PRIMARY KEY (CodEdif, NumAula)</code>.</li><li>Y también <code>ON DELETE CASCADE</code>.</li></ul>
+<pre class="th-code">CREATE TABLE Aula (<br>&nbsp;&nbsp;CodEdif INT NOT NULL,<br>&nbsp;&nbsp;NumAula INT NOT NULL,<br>&nbsp;&nbsp;Capacidad TINYINT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (CodEdif, NumAula),<br>&nbsp;&nbsp;FOREIGN KEY (CodEdif) REFERENCES Edificio (CodEdif)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</pre>
+<table class="th-tab"><tr><th></th><th>Existencia</th><th>Identificación</th></tr>
+<tr><td>La hija se reconoce…</td><td>sola (número único)</td><td>solo con la madre</td></tr>
+<tr><td>Dibujo</td><td>doble rectángulo + rombo normal</td><td>doble rectángulo + rombo doble + clave parcial</td></tr>
+<tr><td>FK en la tabla hija</td><td>fuera de la PK, NOT NULL</td><td>dentro de la PK</td></tr>
+<tr><td>Al borrar la madre</td><td colspan="2"><code>ON DELETE CASCADE</code>: se borran sus hijas</td></tr></table>
+<h4>Qué hace ON DELETE CASCADE</h4>
+<p>Con datos de ejemplo: si el edificio 1 tiene las aulas 1 y 2 y haces <code>DELETE FROM Edificio WHERE CodEdif = 1;</code>, la base de datos borra sola esas dos aulas. Sin CASCADE, ese DELETE daría error porque hay aulas que apuntan al edificio. <code>ON UPDATE NO ACTION</code> dice que no se deja cambiar el código de un edificio que tenga aulas. En Oracle solo se escribe <code>ON DELETE CASCADE</code>.</p>
+<div class="th-tip"><b>En la app:</b> pon la entidad como <b>débil</b> (doble rectángulo). Si la relación es normal, al pasar a tablas sale como dependencia en existencia; si la marcas como <b>identificadora</b> (rombo doble) y su clave como <b>clave parcial</b>, sale como dependencia en identificación. En los dos casos el SQL lleva el CASCADE. En el relacional o el DED, al pinchar la línea de una FK puedes cambiarlo en «Al borrar una fila de…».</div>`},
 {id:'atributos',t:'Atributos',k:'atributo clave primaria parcial opcional derivado multivaluado compuesto elipse',h:`
 <p>Los <b>atributos</b> son los datos de una entidad o de una relación. Se dibujan como elipses unidas a su dueño.</p>
 <table class="th-tab"><tr><th>Tipo</th><th>Cómo se dibuja</th><th>Para qué</th></tr>
@@ -188,15 +225,48 @@ const TEORIA_EN=[
 <ul><li>Important <b>nouns</b> (student, course, order) → possible <b>entities</b>.</li><li><b>Data</b> about each thing (name, date, price) → <b>attributes</b>.</li>
 <li><b>Verbs</b> joining two things (a student <i>enrols in</i> courses) → <b>relationships</b>.</li><li>Words like <i>each, can, at least, several, only one</i> → <b>cardinalities</b>.</li>
 <li>Whatever «identifies» or «cannot repeat» (ID number, code, plate) → <b>primary key</b>.</li></ul>`},
-{id:'boceto',t:'Sketch: think before the E-R',k:'sketch draft entities lines relate start',h:`
-<p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R. It only has <b>entities</b> (with their attribute names, without types) and <b>lines</b> between them with zero, one or many marks. No diamonds or relationship names.</p>
-<ol><li>Read the brief and add an entity for each important noun (Student, Course, Teacher…).</li><li>Join with a line the ones that are related (Shift + click, or «Connect»).</li><li>In the box above write each entity with its attributes: <code>Student; DNI, Name</code>. Just the names: keys and types are decided in the E-R.</li><li>Click a line and choose, next to each entity, how many there can be: <b>○</b> zero, <b>|</b> one, <b>foot</b> many (optional).</li><li>Click <b>To the E-R</b>: the missing entities with their attributes and one diamond per line with its cardinalities are created there.</li></ol>`},
+{id:'boceto',t:'Sketch: think before the E-R',k:'sketch draft entities attributes composite relationship start',h:`
+<p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R: you type and the drawing appears by itself, with each entity and its attributes.</p>
+<ol><li>Read the brief and write above <b>one entity per line</b> with its attributes: <code>Student; DNI, Name, BirthDate</code>.</li>
+<li>A <b>composite</b> attribute has its parts in brackets: <code>Student; DNI, Address (Street, Number, ZIP)</code>.</li>
+<li>Attributes of a <b>relationship</b> are written with both entities joined by a dash: <code>Student-Course; Grade</code>. They are not drawn here, but they appear in the E-R.</li>
+<li><b>Click an attribute</b> in the drawing (or in the right panel) to mark it as primary key, unique, optional, multivalued or derived.</li>
+<li>Click <b>To the E-R</b>: the entities are created with their attributes and types, composites with their parts and one relationship for each <code>A-B</code> line. There you add the cardinalities and each relationship's verb.</li></ol>
+<p class="th-tip">If an entity is not related to any other, maybe it is not needed, or it is an attribute of another one.</p>`},
 {id:'entidades',t:'Entities',k:'entity strong weak rectangle double',h:`
 <p>An <b>entity</b> is something we want to store information about and that can be told apart from the rest: a student, a book, an order.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.ent,'Entity (strong)')}<p>Rectangle. It has its own primary key: it identifies itself. Example: <i>Student</i> is identified by their ID number.</p></div>
-<div class="th-card">${TH(GL.weak,'Weak entity')}<p>Double rectangle. <b>It cannot be identified on its own</b>: it needs another entity (the strong one). It is joined to it with an <b>identifying relationship</b> (double diamond) and has a <b>partial key</b> (dashed underline).</p></div></div>
+<div class="th-card">${TH(GL.weak,'Weak entity')}<p>Double rectangle. <b>It cannot exist without</b> another entity (the strong one). If it also <b>cannot be identified on its own</b>, it is joined with an <b>identifying relationship</b> (double diamond) and has a <b>partial key</b> (dashed underline). See «Weak entity: existence and identification».</p></div></div>
 <div class="th-ex"><b>Weak example:</b> <i>Room 12</i> exists in many hotels. You only know which one it is if you say which hotel. Room is weak of Hotel, and its full key is (HotelCode, RoomNumber).</div>
 <div class="th-tip">Ask yourself: «can I tell which one it is without saying whose it is?». If not, it is weak.</div>`},
+{id:'debil',t:'Weak entity: existence and identification',k:'weak existence identification dependency cascade on delete cascade weak relationship regular double diamond entity types attribute types relationship types calculated',h:`
+<p>First, a quick review of the <b>types</b> involved:</p>
+<div class="th-grid"><div class="th-card"><h4>Entity types</h4><p><b>Regular</b> (strong): exists on its own. <b>Weak</b>: only makes sense if another one exists. <b>Associative</b>: an N:M relationship we treat as an entity to relate it to another one. <b>Supertype / subtype</b>: hierarchies (ISA).</p></div>
+<div class="th-card"><h4>Attribute types</h4><p>Primary key · optional or mandatory · derived (calculated) or stored · multivalued or single-valued · composite or simple. The <b>FK</b> does not exist in the E-R: it appears when converting to tables. A <b>calculated</b> one has no special notation: you decide whether to store it (if you do, it must be kept up to date, for example with a trigger).</p></div>
+<div class="th-card"><h4>Relationship types</h4><p><b>Regular</b>: joins two regular entities. <b>Weak</b>: joins a regular entity with a weak one. It can be of two kinds: with <b>existence dependency</b> or with <b>identification dependency</b>.</p></div></div>
+<h4>The idea in one sentence</h4>
+<p>An entity is <b>weak</b> when its rows <b>cannot exist without</b> a row of another entity. If the «parent» is deleted, its «children» must be deleted too. It is almost always a 1:N relationship.</p>
+<p>The question that decides which kind it is: <b>can the child be recognised on its own, or only by saying whose it is?</b></p>
+<h4>Example: buildings and classrooms</h4>
+<div class="th-ex">A school stores its <b>buildings</b> (code, name) and its <b>classrooms</b> (number, capacity). A classroom makes no sense if the building disappears.</div>
+<h4>1) Existence dependency</h4>
+<p>Each classroom has a <b>number that is unique in the whole school</b> (101, 102, 205…). It can be recognised on its own, but it cannot exist without its building.</p>
+${thER('Building','has','Classroom',{weak:1,ca:'(0,N)',cb:'(1,1)'})}
+<ul><li>Classroom is drawn as a <b>double rectangle</b>; the diamond is <b>normal</b>.</li><li>It becomes tables like a normal 1:N: the FK <code>BuildCode</code> goes in Classroom, <b>outside</b> the primary key.</li><li>The only change: deleting a building deletes its classrooms → <code>ON DELETE CASCADE</code>.</li></ul>
+<pre class="th-code">CREATE TABLE Classroom (<br>&nbsp;&nbsp;RoomNum INT NOT NULL,<br>&nbsp;&nbsp;Capacity TINYINT NOT NULL,<br>&nbsp;&nbsp;BuildCode INT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (RoomNum),<br>&nbsp;&nbsp;FOREIGN KEY (BuildCode) REFERENCES Building (BuildCode)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</pre>
+<h4>2) Identification dependency</h4>
+<p>Now classrooms are numbered <b>inside each building</b>: building A has its room 1, building B also has a room 1… «Room 1» means nothing unless you say which building. It is identified by <b>the building code + its number</b>.</p>
+${thER('Building','has','Classroom',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
+<ul><li>Double rectangle plus a <b>double diamond</b> (identifying relationship). The room number is a <b>partial key</b> (dashed underline).</li><li>In the tables the FK <b>is part of the primary key</b>: <code>PRIMARY KEY (BuildCode, RoomNum)</code>.</li><li>And also <code>ON DELETE CASCADE</code>.</li></ul>
+<pre class="th-code">CREATE TABLE Classroom (<br>&nbsp;&nbsp;BuildCode INT NOT NULL,<br>&nbsp;&nbsp;RoomNum INT NOT NULL,<br>&nbsp;&nbsp;Capacity TINYINT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (BuildCode, RoomNum),<br>&nbsp;&nbsp;FOREIGN KEY (BuildCode) REFERENCES Building (BuildCode)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</pre>
+<table class="th-tab"><tr><th></th><th>Existence</th><th>Identification</th></tr>
+<tr><td>The child is recognised…</td><td>on its own (unique number)</td><td>only with the parent</td></tr>
+<tr><td>Drawing</td><td>double rectangle + normal diamond</td><td>double rectangle + double diamond + partial key</td></tr>
+<tr><td>FK in the child table</td><td>outside the PK, NOT NULL</td><td>inside the PK</td></tr>
+<tr><td>Deleting the parent</td><td colspan="2"><code>ON DELETE CASCADE</code>: its children are deleted</td></tr></table>
+<h4>What ON DELETE CASCADE does</h4>
+<p>With sample data: if building 1 has rooms 1 and 2 and you run <code>DELETE FROM Building WHERE BuildCode = 1;</code>, the database deletes those two rooms by itself. Without CASCADE that DELETE would fail because some rooms point to the building. <code>ON UPDATE NO ACTION</code> means the code of a building that has rooms cannot be changed. In Oracle you only write <code>ON DELETE CASCADE</code>.</p>
+<div class="th-tip"><b>In the app:</b> make the entity <b>weak</b> (double rectangle). If the relationship is normal, converting to tables gives an existence dependency; if you mark it as <b>identifying</b> (double diamond) and its key as a <b>partial key</b>, you get an identification dependency. In both cases the SQL has the CASCADE. In the relational model or the DSD, click the line of an FK to change it under «When a row of … is deleted».</div>`},
 {id:'atributos',t:'Attributes',k:'attribute primary partial optional derived multivalued composite ellipse',h:`
 <p><b>Attributes</b> are the data of an entity or a relationship. They are drawn as ellipses joined to their owner.</p>
 <table class="th-tab"><tr><th>Type</th><th>How it is drawn</th><th>What for</th></tr>

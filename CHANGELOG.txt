@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.0.0  (18/11/2026)
+--------------------
+- Entidades debiles completas: con relacion normal, dependencia en existencia (FK fuera de la clave); con identificadora, dependencia en identificacion (FK dentro de la clave). El SQL lleva ON UPDATE NO ACTION ON DELETE CASCADE (en Oracle solo ON DELETE CASCADE). En el relacional y el DED se cambia pinchando la linea. Se lee al importar SQL o Workbench.
+- Teoria nueva: "Entidad debil: existencia e identificacion" (tipos de entidades, atributos y relaciones, ejemplo, SQL y ON DELETE CASCADE). Boceto de la teoria al dia.
+- Arreglado: al pasar a tablas se perdia el minimo 1 de un lado (Tarjeta-Socio salia 0..1 en el DED).
+- Toda la app en ingles: bienvenida, examen, boceto, ajustes, juegos y novedades.
+
 v3.9.1  (18/11/2026)
 --------------------
 - Boceto: atributos compuestos con "Entidad; Direccion (Calle, Numero, CP)". Se dibujan con sus subatributos y pasan al E-R como compuesto con sus subatributos (y al reves).

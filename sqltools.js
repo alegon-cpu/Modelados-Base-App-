@@ -27,13 +27,13 @@ function schemaOf(src,fromRel){
   if(tableDups({t:src.map(t=>({n:t.n,c:t.c}))}))throw new Error('Hay nombres repetidos (en rojo). Cámbialos antes de generar el SQL.');
   const T={};src.forEach(t=>T[lc(t.n)]=t);
   const colsOf=t=>t.c.filter(c=>String(c[0]).trim()).map(c=>{const f=parseF(c[2]);let ty=String(c[1]||'').trim();
-    if(fromRel&&(!ty||ty==='VARCHAR(45)'))ty=guessType(c[0],f);return {n:String(c[0]).trim(),ty:ty||guessType(c[0],f),pk:!!f.pk,nn:!!f.pk||!f.nul,uq:!!f.uq,fk:f.fk||null};});
+    if(fromRel&&(!ty||ty==='VARCHAR(45)'))ty=guessType(c[0],f);return {n:String(c[0]).trim(),ty:ty||guessType(c[0],f),pk:!!f.pk,nn:!!f.pk||!f.nul,uq:!!f.uq,fk:f.fk||null,cas:!!f.cas};});
   const S={};src.forEach(t=>{const cs=colsOf(t);S[lc(t.n)]={n:t.n,cols:cs,pk:cs.filter(c=>c.pk).map(c=>c.n),fks:[]};});
   Object.values(S).forEach(t=>{const groups={};t.cols.forEach(c=>{if(c.fk){const k=lc(c.fk);(groups[k]=groups[k]||[]).push(c);}});
     Object.entries(groups).forEach(([k,g])=>{const par=S[k];if(!par){warn.push(`${t.n}: la FK apunta a «${g[0].fk}», que no existe.`);return;}
       const pk=par.cols.filter(c=>c.pk);if(!pk.length){warn.push(`${t.n}: «${par.n}» no tiene clave primaria a la que apuntar.`);return;}
-      if(g.length===pk.length&&pk.length>1)t.fks.push({cs:g.map(c=>c.n),par,ref:pk.map(c=>c.n)});
-      else g.forEach(c=>{const same=pk.find(x=>lc(x.n)===lc(c.n))||pk.find(x=>lc(c.n).startsWith(lc(x.n)))||pk[0];t.fks.push({cs:[c.n],par,ref:[same.n]});});});});
+      if(g.length===pk.length&&pk.length>1)t.fks.push({cs:g.map(c=>c.n),par,ref:pk.map(c=>c.n),cas:g.some(c=>c.cas)});
+      else g.forEach(c=>{const same=pk.find(x=>lc(x.n)===lc(c.n))||pk.find(x=>lc(c.n).startsWith(lc(x.n)))||pk[0];t.fks.push({cs:[c.n],par,ref:[same.n],cas:c.cas});});});});
   const order=[],state={};
   const visit=t=>{const k=lc(t.n);if(state[k])return;state[k]=1;t.fks.forEach(f=>{if(f.par!==t&&!state[lc(f.par.n)])visit(f.par);});state[k]=2;order.push(t);};
   Object.values(S).forEach(visit);
@@ -46,7 +46,8 @@ function ddl(sc,d,opt={}){
   sc.order.forEach(t=>{const lines=t.cols.map(c=>`  ${Q(c.n)} ${mapType(c.ty,d)}${c.nn?' NOT NULL':' NULL'}`);
     if(t.pk.length)lines.push(`  PRIMARY KEY (${t.pk.map(Q).join(', ')})`);
     t.cols.filter(c=>c.uq&&!(c.pk&&t.pk.length===1)).forEach(c=>lines.push(`  UNIQUE (${Q(c.n)})`));
-    t.fks.forEach(f=>{const fk=`FOREIGN KEY (${f.cs.map(Q).join(', ')}) REFERENCES ${Q(f.par.n)} (${f.ref.map(Q).join(', ')})`;
+    // entidad débil: al borrar la fila del padre se borran las suyas (Oracle no tiene ON UPDATE)
+    t.fks.forEach(f=>{const fk=`FOREIGN KEY (${f.cs.map(Q).join(', ')}) REFERENCES ${Q(f.par.n)} (${f.ref.map(Q).join(', ')})`+(f.cas?(d==='oracle'?' ON DELETE CASCADE':' ON UPDATE NO ACTION ON DELETE CASCADE'):'');
       if(d==='sqlite'||f.par===t||done.has(lc(f.par.n)))lines.push('  '+fk);else late.push(`ALTER TABLE ${Q(t.n)} ADD ${fk};`);});
     body+=`CREATE TABLE ${Q(t.n)} (\n${lines.join(',\n')}\n)${d==='mysql'?' ENGINE=InnoDB':''};\n\n`;done.add(lc(t.n));});
   if(d==='sqlite')return body;
