@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v3.9.1  (18/11/2026)
+--------------------
+- Boceto: atributos compuestos con "Entidad; Direccion (Calle, Numero, CP)". Se dibujan con sus subatributos y pasan al E-R como compuesto con sus subatributos (y al reves).
+
 v3.9.0  (18/11/2026)
 --------------------
 - Bienvenida de Alegon's Tek: sale una sola vez (primera vez o al actualizar a la 3.9). Donde se guarda, GitHub, ajustes basicos, como funciona todo y como entrar en la clasificacion de la clase. Se puede saltar y volver a ver en Ajustes > Acerca de.

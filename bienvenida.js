@@ -9,10 +9,10 @@ const BV_TOPICS=[
   ['enun','Enunciado','enun',`<p>Pega el enunciado del ejercicio en la pestaña <b>Enunciado</b>.</p>
     <ul><li>Subraya con colores lo que son entidades, relaciones y atributos: selecciona el texto y pulsa <i>Ent.</i>, <i>Rel.</i> o <i>Atr.</i></li><li>Mientras dibujas, el enunciado puede quedarse en un panel <b>al lado</b> del diagrama.</li></ul>`],
   ['bo','Boceto','bo',`<p>Para pensar antes de dibujar: escribe una entidad por línea.</p>
-    <pre>Alumno; DNI, Nombre, Telefonos
+    <pre>Alumno; DNI, Nombre, Telefonos, Direccion (Calle, Numero, CP)
 Curso; Codigo, Nombre
 Alumno-Curso; Nota</pre>
-    <ul><li>La última línea es un atributo de la relación entre Alumno y Curso: no se dibuja, pero sale al pasar al E-R.</li><li>Pincha un atributo en el dibujo para marcar si es clave, multivaluado, derivado…</li><li>La raya entre el texto y el dibujo se arrastra para dar más sitio a uno u otro.</li><li>Cuando lo tengas, <b>Pasar al E-R</b>.</li></ul>`],
+    <ul><li><code>Direccion (Calle, Numero, CP)</code> es un atributo compuesto: entre paréntesis van sus subatributos.</li><li>La última línea es un atributo de la relación entre Alumno y Curso: no se dibuja, pero sale al pasar al E-R.</li><li>Pincha un atributo en el dibujo para marcar si es clave, multivaluado, derivado…</li><li>La raya entre el texto y el dibujo se arrastra para dar más sitio a uno u otro.</li><li>Cuando lo tengas, <b>Pasar al E-R</b>.</li></ul>`],
   ['er','Modelo E-R','er',`<p>El diagrama entidad-relación de Chen.</p>
     <ul><li>Pulsa <b>Entidad</b>, <b>Relación</b>, <b>Atributo</b> o <b>Jerarquía</b> en la barra de arriba (o arrástralos hasta donde los quieras).</li><li>Une dos cosas con <kbd>Mayús</kbd>+clic, o selecciona dos entidades y pulsa «Crear una relación».</li>
     <li>Pincha una línea para poner la cardinalidad (mínimo y máximo) con preguntas sencillas; el tipo 1:1, 1:N o N:M sale solo. Arrastra la línea para curvarla.</li>

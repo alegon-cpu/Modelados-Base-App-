@@ -1371,3 +1371,6 @@ html.os-darwin .titlebar{padding-left:80px}
 .bv-set>div{display:flex;flex-direction:column;gap:5px}
 .bv-set small{color:var(--muted)}
 .bv-set .seg{flex-wrap:wrap}
+svg .bo-subl{fill:none;stroke:var(--muted);stroke-width:1;opacity:.7}
+svg .bo-sub{fill:var(--muted)}
+.bo-subs{color:var(--muted);font-size:11.5px}

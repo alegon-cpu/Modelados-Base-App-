@@ -225,6 +225,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '3.9.1: atributos compuestos en el boceto: «Entidad; Direccion (Calle, Numero, CP)». Se dibujan con sus subatributos debajo y al pasar al E-R sale el compuesto con sus subatributos (también al revés, y en los atributos de una relación).',
   '3.9: bienvenida de Alegon\'s Tek. Sale una sola vez (la primera vez que abres la app o al actualizar a esta versión): dónde se guarda, GitHub, ajustes básicos, cómo funciona todo el programa y cómo entrar en la clasificación de la clase. Se puede saltar, y volver a ver en Ajustes › Acerca de.',
   '3.8.1: en el boceto, la raya entre el texto y el dibujo se arrastra para hacer más grande uno u otro (doble clic: como estaba). Se recuerda.',
   '3.8: boceto con atributos. Cada entidad del boceto enseña sus atributos; pincha uno para marcar si es clave primaria, único, opcional, multivaluado, derivado o compuesto (también desde el panel de la derecha). Los atributos de una relación se escriben arriba como «Entidad1-Entidad2; atributo»: no se dibujan, pero al pasar al E-R sale la relación con su atributo, y los tipos marcados pasan también.',

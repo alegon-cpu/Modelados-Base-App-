@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='3.9.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='3.9.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -57,8 +57,14 @@ const boGeo=(a,b,bend)=>{const [p,q]=String(a.id)<String(b.id)?[a,b]:[b,a],dx=q.
   return{n,mid,M:[mid[0]+n[0]*bend,mid[1]+n[1]*bend],C:[mid[0]+n[0]*bend*2,mid[1]+n[1]*bend*2]};};
 // Boceto: tipo de cada atributo (clave, multivaluado…), guardado por nombre en n.f.aty para que el texto siga mandando
 const BO_TY=[['k','PK','Clave primaria'],['p','Parcial','Clave parcial (entidad débil)'],['u','Único','Único (UNIQUE)'],['o','Opcional','Opcional'],['m','Multi','Multivaluado'],['d','Derivado','Derivado'],['c','Compuesto','Compuesto']];
-const boTy=(n,a)=>(n.f&&n.f.aty&&n.f.aty[String(a).trim().toLowerCase()])||{};
-const boTags=t=>BO_TY.filter(([k])=>t[k]).map(([,l])=>l);
+// Compuestos en el boceto: «Direccion (Calle, Numero, CP)»: el nombre y, entre paréntesis, sus subatributos
+const atNm=a=>String(a).replace(/\(.*$/,'').trim();
+const atSub=a=>{const m=/\(([^)]*)\)?\s*$/.exec(String(a));return m?m[1].split(',').map(x=>x.trim()).filter(Boolean):[];};
+const atFix=a=>{const n=atNm(a),sb=atSub(a);return /\(/.test(a)?(sb.length?n+' ('+sb.join(', ')+')':n):String(a).trim();};
+// separa por comas, pero no las de dentro de un paréntesis
+const splitAt=s=>{const out=[];let d=0,cur='';for(const ch of String(s)){if(ch==='(')d++;else if(ch===')')d=Math.max(0,d-1);if(ch===','&&!d){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out.map(x=>x.trim()).filter(Boolean);};
+const boTy=(n,a)=>(n.f&&n.f.aty&&n.f.aty[atNm(a).toLowerCase()])||{};
+const boTags=(t,a)=>BO_TY.filter(([k])=>t[k]||(k==='c'&&a!=null&&atSub(a).length)).map(([,l])=>l);
 const isEnt=n=>!!n&&(n.k==='ent'||n.k==='weak'), isRel=n=>!!n&&(n.k==='rel'||n.k==='idrel'), isAtt=n=>!!n&&n.k==='attr', isIsa=n=>!!n&&n.k==='isa';
 // Entidad asociativa: una relación (rombo) metida en un rectángulo, que a su vez puede relacionarse con otras entidades
 const isAssoc=n=>isRel(n)&&!!(n.f&&n.f.as);
@@ -334,7 +340,7 @@ class Editor{
     const sp=(n,lab)=>`<div class="split" data-split="${n}" role="separator" aria-orientation="vertical" aria-label="${lab}" tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>`;
     el.innerHTML=`<div class="ed-tools"></div>
       <div class="ed-main"><div class="ed-en"><div class="en-head"><label class="lbl" for="sidesel">Al lado</label><select id="sidesel" class="side-sel" aria-label="Qué ver al lado del diagrama"></select></div><div class="en-enun">${hlBar(false)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="sideenun" placeholder="Escribe o pega aquí el enunciado del ejercicio."></textarea></div></div><div class="side-view" hidden></div></div>${sp('en','Ancho del enunciado')}
-      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · atributos de una relación: <code>Entidad1-Entidad2; atributo</code> · pincha un atributo en el dibujo para marcar si es clave, multivaluado…</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, FechaNac&#10;Curso; Codigo, Nombre&#10;Alumno-Curso; Nota"></textarea><div class="bo-split" role="separator" aria-orientation="horizontal" aria-label="Tamaño del texto y del dibujo" tabindex="0" title="Arrastra para hacer más grande el texto o el dibujo · doble clic para restablecer"><span></span></div></div>
+      <div class="ed-cvc"><div class="bo-zone" hidden><label class="lbl" for="botxt">Una entidad por línea: <code>Entidad; atributo1, atributo2…</code> · compuestos: <code>atributo (sub1, sub2)</code> · atributos de una relación: <code>Entidad1-Entidad2; atributo</code> · pincha un atributo en el dibujo para marcar si es clave, multivaluado…</label><textarea id="botxt" class="bo-txt" spellcheck="false" placeholder="Alumno; DNI, Nombre, Direccion (Calle, Numero, CP)&#10;Curso; Codigo, Nombre&#10;Alumno-Curso; Nota"></textarea><div class="bo-split" role="separator" aria-orientation="horizontal" aria-label="Tamaño del texto y del dibujo" tabindex="0" title="Arrastra para hacer más grande el texto o el dibujo · doble clic para restablecer"><span></span></div></div>
       <div class="ed-cv"><svg role="img" aria-label="Lienzo"></svg><div class="zoombar" role="group" aria-label="Zoom"><button class="zb" data-zoom="out" title="Alejar" aria-label="Alejar">−</button><button class="zb zpct" data-zoom="reset" title="Volver al 100 %">100 %</button><button class="zb" data-zoom="in" title="Acercar" aria-label="Acercar">+</button><button class="zb" data-zoom="fit" title="Ver todo el diagrama">Ajustar</button></div><div class="minimap" hidden title="Minimapa: pincha o arrastra para moverte"><svg aria-hidden="true" preserveAspectRatio="xMidYMid meet"></svg></div></div></div>${sp('in','Ancho del panel')}<div class="ed-in"></div></div>
       <datalist id="types">${TYPES.map(t=>`<option value="${t}">`).join('')}</datalist>`;
     this.el=el;this.tools=el.querySelector('.ed-tools');this.main=el.querySelector('.ed-main');
@@ -449,7 +455,7 @@ class Editor{
   node(id){return (this.isER?this.m.nodes:this.m.t).find(n=>n.id===id)||this.notes.find(n=>n.id===id);}
   X(){return erIdx(this.m);}
   size(n,X){n.f=n.f||{};const nt=this.not;
-    if(isEnt(n)&&this.isBo){const at=n.f.at||[];n.rows=null;n.w=Math.max(110,String(n.n).length*7.8+34,...at.map(a=>String(a).length*7+24+boTags(boTy(n,a)).reduce((w,t)=>w+t.length*5.6+14,0)));n.h=at.length?34+at.length*20+6:40;} // en el boceto: el nombre y sus atributos con su tipo (pincha uno para cambiarlo)
+    if(isEnt(n)&&this.isBo){const at=n.f.at||[];n.rows=null;const nr=at.reduce((k,a)=>k+1+atSub(a).length,0);n.w=Math.max(110,String(n.n).length*7.8+34,...at.map(a=>atNm(a).length*7+24+boTags(boTy(n,a),a).reduce((w,t)=>w+t.length*5.6+14,0)),...at.flatMap(a=>atSub(a).map(x=>x.length*6.6+44)));n.h=at.length?34+nr*20+6:40;} // en el boceto: el nombre y sus atributos con su tipo (pincha uno para cambiarlo)
     else if(isEnt(n)){if(nt==='chen'){n.w=Math.max(110,String(n.n).length*7.8+34);n.h=40;n.rows=null;}
       else{const rows=this.rowsOf(n,X);n.rows=rows;n.w=Math.max(120,String(n.n).length*7.8+34,...rows.map(r=>r.t.length*6.9+(nt==='crow'?46:26)));n.h=30+Math.max(1,rows.length)*17+6;}}
     else if(isRel(n)){if(nt==='chen'){n.w=Math.max(96,String(n.n).length*7.6+40);n.h=48;n.rows=null;if(n.f.as){n.w+=28;n.h=70;}}
@@ -793,7 +799,7 @@ class Editor{
     this.m.t.push(t);this.save();this.selIds=new Set([t.id]);this.render();this.renderInsp();toast(`Tabla «${t.n}» creada con la clave de las ${ts.length}.`);}
   /* ---------- Boceto: zona de texto «Entidad; atributo1, atributo2» ---------- */
   // Lo que muestra el texto: solo eso se puede borrar escribiendo (lo que se añade en el lienzo mientras escribes no se pierde)
-  boSetTy(n,a,k){if(!n||this.ro)return;this.snap();const key=String(a).trim().toLowerCase(),A=n.f.aty=n.f.aty||{},t=A[key]=A[key]||{};
+  boSetTy(n,a,k){if(!n||this.ro)return;this.snap();const key=atNm(a).toLowerCase(),A=n.f.aty=n.f.aty||{},t=A[key]=A[key]||{};
     if(t[k])delete t[k];else{t[k]=1;if(k==='k'){delete t.p;delete t.u;delete t.o;}if(k==='p'){delete t.k;delete t.u;delete t.o;}if(k==='u'||k==='o'){delete t.k;delete t.p;}}
     if(!Object.keys(t).length)delete A[key];if(!Object.keys(A).length)delete n.f.aty;this.save();this.render();this.renderInsp();}
   boAttrMenu(n,i,x,y){const a=n&&(n.f.at||[])[i];if(a==null)return;const t=boTy(n,a);
@@ -812,7 +818,7 @@ class Editor{
     for(let r=60;r<400;r+=40)for(let a=0;a<8;a++){const x=h.x+Math.cos(a*Math.PI/4+Math.PI/2)*r,y=h.y+Math.sin(a*Math.PI/4+Math.PI/2)*r;if(free(x,y)){h.x=Math.round(x);h.y=Math.round(y);return;}}}
   hubEnds(h){const N={};this.m.nodes.forEach(n=>N[n.id]=n);return this.m.links.filter(l=>l.a===h.id||l.b===h.id).map(l=>N[l.a===h.id?l.b:l.a]).filter(isEnt);}
   boParse(txt){return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^([^;:]*)[;:]?(.*)$/);
-    return{name:m[1].trim(),at:m[2].split(',').map(x=>x.trim()).filter(Boolean)};}).filter(x=>x.name);}
+    return{name:m[1].trim(),at:splitAt(m[2]).map(atFix).filter(x=>atNm(x))};}).filter(x=>x.name);}
   boSplit(lines){const ents=[],rels=[];const isRelLine=ln=>{const i=ln.name.indexOf('-');if(i<1)return null;return{a:ln.name.slice(0,i).trim(),b:ln.name.slice(i+1).trim()};};
     const names=new Set(lines.filter(ln=>!isRelLine(ln)).map(ln=>lc(ln.name)));
     const nary=[];lines.forEach(ln=>{const r=isRelLine(ln);if(!r||!names.has(lc(r.a))){ents.push(ln);return;}const ps=ln.name.split('-').map(x=>x.trim());
@@ -844,7 +850,7 @@ class Editor{
     const order=[];lines.forEach((ln,i)=>{let e=as[i];
       if(!e){const c=this.freeSpot(140,60);e={id:uid(),k:'ent',n:ln.name,x:c.x,y:c.y,f:{}};this.m.nodes.push(e);}
       e.n=ln.name;if(ln.at.length)e.f.at=ln.at;else delete e.f.at;
-      if(e.f.aty){const keep=new Set(ln.at.map(x=>x.trim().toLowerCase()));Object.keys(e.f.aty).forEach(k=>{if(!keep.has(k))delete e.f.aty[k];});if(!Object.keys(e.f.aty).length)delete e.f.aty;}order.push(e);});
+      if(e.f.aty){const keep=new Set(ln.at.map(x=>atNm(x).toLowerCase()));Object.keys(e.f.aty).forEach(k=>{if(!keep.has(k))delete e.f.aty[k];});if(!Object.keys(e.f.aty).length)delete e.f.aty;}order.push(e);});
     const extra=this.m.nodes.filter(n=>isEnt(n)&&!known(n)&&!order.includes(n)),rest=this.m.nodes.filter(n=>!isEnt(n));this.m.nodes=[...order,...extra,...rest];
     { const lp2=linkPlan();const kill=new Set(lp2.kill);this.m.links=this.m.links.filter(l=>!kill.has(l));
       sp.rels.forEach((r,i)=>{let x=lp2.as2[i];if(!x)return;if(x.keep){if(K)K.add(x.keep.id);return;}if(x.A){const l={id:uid(),a:x.A.id,b:x.B.id,c:null,mn:null,mx:null};this.m.links.push(l);x=l;}
@@ -868,8 +874,9 @@ class Editor{
     const map={};let ne=0,nr=0,na=0;
     ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)*1.8),y:Math.round(dy+(e.y-cy)*1.8),f:{}};er.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;});
     const X=erIdx(er),relNames=er.nodes.filter(isRel).map(x=>x.n),card=v=>v?{mn:v[0]==='?'?null:v[0],mx:v[1]}:{mn:null,mx:null};
-    const relAt=(r,list)=>{const have=new Set(erIdx(er).attrsOf(r).map(a=>lc(a.n)));(list||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
-      const nn={id:uid(),k:'attr',n,x:r.x,y:r.y,f:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:r.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(r);ed2.placeAttr(r,nn);na++;});};
+    const relAt=(r,list)=>{const have=new Set(erIdx(er).attrsOf(r).map(a=>lc(a.n)));(list||[]).forEach(a=>{const n=atNm(a),sb=atSub(a);if(!n||have.has(lc(n)))return;have.add(lc(n));
+      const nn={id:uid(),k:'attr',n,x:r.x,y:r.y,f:sb.length?{c:true}:{}};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:r.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(r);ed2.placeAttr(r,nn);na++;
+      sb.forEach(x=>{const ch={id:uid(),k:'attr',n:x,x:nn.x,y:nn.y,f:{}};ed2.size(ch);er.nodes.push(ch);er.links.push({id:uid(),a:nn.id,b:ch.id,c:null,mn:null,mx:null});ed2.placeAttr(nn,ch);na++;});});};
     const usedR=new Set(),bN={};bo.nodes.forEach(n=>bN[n.id]=n);
     bo.links.forEach(l=>{const A=map[l.a],B=map[l.b];if(!A||!B)return;
       const old=er.nodes.find(r=>isRel(r)&&!usedR.has(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());
@@ -885,9 +892,10 @@ class Editor{
       if(er.nodes.some(n=>Math.hypot(n.x-r.x,n.y-r.y)<60))r.y+=110;
       er.nodes.push(r);es.forEach(e=>er.links.push({id:uid(),a:r.id,b:e.id,c:null,mn:null,mx:null}));nr++;relAt(r,h.f&&h.f.at);});
     ents.forEach(e=>{const t=map[e.id],have=new Set(erIdx(er).attrsOf(t).map(a=>lc(a.n)));
-      (e.f.at||[]).forEach(a=>{const n=String(a).trim();if(!n||have.has(lc(n)))return;have.add(lc(n));
-        const ty=boTy(e,n),f={};BO_TY.forEach(([k])=>{if(ty[k])f[k]=true;});
-        const nn={id:uid(),k:'attr',n,x:t.x,y:t.y,f};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;});
+      (e.f.at||[]).forEach(a=>{const n=atNm(a);if(!n||have.has(lc(n)))return;have.add(lc(n));
+        const ty=boTy(e,n),f={};BO_TY.forEach(([k])=>{if(ty[k])f[k]=true;});const sb=atSub(a);if(sb.length)f.c=true;
+        const nn={id:uid(),k:'attr',n:atNm(n),x:t.x,y:t.y,f};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:t.id,b:nn.id,c:null,mn:null,mx:null});ed2.placeAttr(t,nn);na++;
+        sb.forEach(x=>{const ch={id:uid(),k:'attr',n:x,x:nn.x,y:nn.y,f:{}};ed2.size(ch);er.nodes.push(ch);er.links.push({id:uid(),a:nn.id,b:ch.id,c:null,mn:null,mx:null});ed2.placeAttr(nn,ch);na++;});});
       // los que ya estaban en el E-R reciben los tipos marcados en el boceto
       erIdx(er).attrsOf(t).forEach(x=>{const ty=boTy(e,x.n);BO_TY.forEach(([k])=>{if(ty[k]&&!x.f[k]){x.f[k]=true;na+=0;}});});});
     const nn=carryNotes(bo,er,false);
@@ -1033,10 +1041,11 @@ class Editor{
         return s;}).join('');
       if(isEnt(n)){
         if(bo&&(n.f.at||[]).length){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+30)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+20)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
-          n.f.at.forEach((a,i)=>{const t=boTy(n,a),y=y0+34+i*20,tx=x0+10,w=String(a).length*CH;let bx=tx+w+8;
-            g+=`<g class="boat" data-boat="${i}"><rect x="${f1(x0+3)}" y="${f1(y)}" width="${f1(n.w-6)}" height="19" rx="3" class="boat-bg"/><text x="${f1(tx)}" y="${f1(y+14)}" class="tx${t.k||t.p?' txk':''}${t.d?' bo-der':''}">${esc(a)}</text>`;
+          let row=0;n.f.at.forEach((a,i)=>{const t=boTy(n,a),nm=atNm(a),sb=atSub(a),y=y0+34+row*20,tx=x0+10,w=nm.length*CH;let bx=tx+w+8;row+=1+sb.length;
+            g+=`<g class="boat" data-boat="${i}"><rect x="${f1(x0+3)}" y="${f1(y)}" width="${f1(n.w-6)}" height="${19+sb.length*20}" rx="3" class="boat-bg"/><text x="${f1(tx)}" y="${f1(y+14)}" class="tx${t.k||t.p?' txk':''}${t.d?' bo-der':''}">${esc(nm)}</text>`;
+            sb.forEach((x,j)=>{const yy=y+20*(j+1);g+=`<path d="M${f1(tx+4)},${f1(yy-6)} V${f1(yy+9)} H${f1(tx+14)}" class="bo-subl"/><text x="${f1(tx+18)}" y="${f1(yy+13)}" class="tx bo-sub">${esc(x)}</text>`;});
             if(t.k||t.p)g+=`<line x1="${f1(tx)}" y1="${f1(y+16.5)}" x2="${f1(tx+w)}" y2="${f1(y+16.5)}" class="ul${t.p?' p':''}"/>`;
-            boTags(t).forEach(l=>{const tw=l.length*5.6+8;g+=`<rect x="${f1(bx)}" y="${f1(y+3.5)}" width="${f1(tw)}" height="13" rx="6.5" class="bo-tag"/><text x="${f1(bx+tw/2)}" y="${f1(y+13)}" text-anchor="middle" class="bo-tagt">${l}</text>`;bx+=tw+4;});
+            boTags(t,a).forEach(l=>{const tw=l.length*5.6+8;g+=`<rect x="${f1(bx)}" y="${f1(y+3.5)}" width="${f1(tw)}" height="13" rx="6.5" class="bo-tag"/><text x="${f1(bx+tw/2)}" y="${f1(y+13)}" text-anchor="middle" class="bo-tagt">${l}</text>`;bx+=tw+4;});
             g+='</g>';});}
         else if(!hide){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+4)}" y="${f1(y0+4)}" width="${f1(n.w-8)}" height="${n.h-8}" class="ent in${dup}"/>`;g+=`<text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;}
         else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?4:0}" class="ent${dup}"/>`;if(n.k==='weak')g+=`<rect x="${f1(x0+3)}" y="${f1(y0+3)}" width="${f1(n.w-6)}" height="${n.h-6}" rx="${nt==='crow'?3:0}" class="ent in${dup}"/>`;
@@ -1170,7 +1179,7 @@ class Editor{
         `<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div><p class="in-p">${(one.f.at||[]).length?one.f.at.map(a=>esc(a)).join(', '):'Escríbelos en el texto de arriba: <code>'+esc(es.map(e=>e.n).join('-'))+'; atributo</code>'}</p>`+lockChk(one)+
         `<p class="in-p">Al pulsar «Pasar al E-R» sale una sola relación${es.length===3?' ternaria':''} unida a las ${es.length}.</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(this.isBo&&one&&isEnt(one)){const X=this.X(),nb=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt);
-      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div>${(one.f.at||[]).length?`<div class="bo-atl">${one.f.at.map((a,i)=>{const t=boTy(one,a);return `<div class="bo-atr"><b class="${t.k||t.p?'u':''}">${esc(a)}</b><span>${BO_TY.filter(([k])=>k!=='p'||one.k==='weak'||t.p).map(([k,l,ti])=>`<button class="bo-chip" data-boty="${i}:${k}" aria-pressed="${!!t[k]}" title="${escA(ti)}">${l}</button>`).join('')}</span></div>`;}).join('')}</div>`:'<p class="in-p">Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code></p>'}`+lockChk(one)+
+      h+=head('Entidad (boceto)')+nameF('name',one.n,'Nombre')+`<div class="in-sub">Atributos <span class="cnt">${(one.f.at||[]).length}</span></div>${(one.f.at||[]).length?`<div class="bo-atl">${one.f.at.map((a,i)=>{const t=boTy(one,a);return `<div class="bo-atr"><b class="${t.k||t.p?'u':''}">${esc(atNm(a))}</b>${atSub(a).length?`<small class="bo-subs">Compuesto: ${esc(atSub(a).join(', '))}</small>`:''}<span>${BO_TY.filter(([k])=>k!=='p'||one.k==='weak'||t.p).map(([k,l,ti])=>`<button class="bo-chip" data-boty="${i}:${k}" aria-pressed="${!!t[k]}" title="${escA(ti)}">${l}</button>`).join('')}</span></div>`;}).join('')}</div>`:'<p class="in-p">Escríbelos en la zona de arriba: <code>'+esc(one.n)+'; atributo1, atributo2</code></p>'}`+lockChk(one)+
         `<p class="in-p">El tipo también se cambia pinchando el atributo en el dibujo. Los atributos de una relación se escriben arriba así: <code>Entidad1-Entidad2; atributo</code> (no se dibujan aquí; salen al pasar al E-R).</p><div class="in-actions"><button class="ebtn" data-act="bo2er">${GL.fromer}<span>Pasar al E-R</span></button></div>`;}
     else if(!this.isER&&this.selLink){const s=this.fkSel();if(!s){this.selLink=null;return this.renderInsp();}const ded=this.mode==='ded',has=k=>s.cols.every(c=>parseF(c[2])[k]);
       const tg=(k,txt,sub,ic)=>`<button class="opt" data-fkact="${k}" aria-pressed="${has(k)}"><b>${GL[ic]||''} ${txt}</b><small>${sub}</small></button>`;
@@ -1412,20 +1421,20 @@ class Editor{
     const snapBo=JSON.stringify(cleanModel(bo,'bo')),byName={},bents=bo.nodes.filter(isEnt);bents.forEach(e=>byName[lc(e.n)]=e);
     const bx=ents.map(e=>e.x),by=ents.map(e=>e.y),cx=(Math.min(...bx)+Math.max(...bx))/2,cy=(Math.min(...by)+Math.max(...by))/2;
     let dx=W/2,dy=H/2;if(bents.length){dx=(Math.min(...bents.map(n=>n.x))+Math.max(...bents.map(n=>n.x)))/2;dy=Math.max(...bents.map(n=>n.y))+180+(Math.max(...by)-Math.min(...by))/3.6;}
-    const map={},names=o=>X.attrsOf(o).map(a=>String(a.n||'').trim()).filter(Boolean);let ne=0,na=0,nl=0,skip=0;
+    const map={},names=o=>X.attrsOf(o).filter(a=>String(a.n||'').trim()).map(a=>{const n=String(a.n).trim(),sb=a.f&&a.f.c?X.attrsOf(a).map(x=>String(x.n||'').trim()).filter(Boolean):[];return sb.length?n+' ('+sb.join(', ')+')':n;});let ne=0,na=0,nl=0,skip=0;
     ents.forEach(e=>{let t=byName[lc(e.n)];if(!t){t={id:uid(),k:'ent',n:e.n,x:Math.round(dx+(e.x-cx)/1.8),y:Math.round(dy+(e.y-cy)/1.8),f:{}};bo.nodes.push(t);byName[lc(e.n)]=t;ne++;}map[e.id]=t;
-      t.f=t.f||{};const at=t.f.at||[];names(e).forEach(n=>{if(!at.some(x=>lc(x)===lc(n))){at.push(n);na++;}});if(at.length)t.f.at=at;});
+      t.f=t.f||{};const at=t.f.at||[];names(e).forEach(n=>{const i=at.findIndex(x=>lc(atNm(x))===lc(atNm(n)));if(i<0){at.push(n);na++;}else if(atSub(n).length&&!atSub(at[i]).length)at[i]=n;});if(at.length)t.f.at=at;});
     const mark=x=>x&&x.mx?(x.mn||'?')+x.mx:null,used=new Set();
     er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r);if(en.length>2){const es=[...new Set(en.map(x=>map[x.e.id]).filter(Boolean))];if(es.length<3){skip++;return;}
         const key=es.map(e=>e.id).sort().join('|');let h=bo.nodes.find(n=>isRel(n)&&bo.links.filter(l=>l.a===n.id||l.b===n.id).map(l=>l.a===n.id?l.b:l.a).sort().join('|')===key);
         if(!h){h={id:uid(),k:'rel',n:'',x:Math.round(es.reduce((s,e)=>s+e.x,0)/es.length),y:Math.round(es.reduce((s,e)=>s+e.y,0)/es.length),f:{}};this.hubSpot(h,bo);bo.nodes.push(h);es.forEach(e=>bo.links.push({id:uid(),a:h.id,b:e.id,c:null,mn:null,mx:null}));nl++;}
-        const ra=names(r);if(ra.length){h.f.at=h.f.at||[];ra.forEach(n=>{if(!h.f.at.some(x=>lc(x)===lc(n))){h.f.at.push(n);na++;}});}return;}
+        const ra=names(r);if(ra.length){h.f.at=h.f.at||[];ra.forEach(n=>{if(!h.f.at.some(x=>lc(atNm(x))===lc(atNm(n)))){h.f.at.push(n);na++;}});}return;}
       if(en.length!==2)return;
       const A=map[en[0].e.id],B=map[en[1].e.id];if(!A||!B)return;
       let l=bo.links.find(l=>!used.has(l)&&((l.a===A.id&&l.b===B.id)||(l.a===B.id&&l.b===A.id)));
       if(!l){l={id:uid(),a:A.id,b:B.id};bo.links.push(l);nl++;}
       used.add(l);if(!l.ea&&!l.eb){const fw=l.a===A.id,ea=mark(fw?en[0]:en[1]),eb=mark(fw?en[1]:en[0]);if(ea)l.ea=ea;if(eb)l.eb=eb;}
-      const ra=names(r);if(ra.length){l.at=l.at||[];ra.forEach(n=>{if(!l.at.some(x=>lc(x)===lc(n))){l.at.push(n);na++;}});}});
+      const ra=names(r);if(ra.length){l.at=l.at||[];ra.forEach(n=>{if(!l.at.some(x=>lc(atNm(x))===lc(atNm(n)))){l.at.push(n);na++;}});}});
     const nn=carryNotes(er,bo,false);
     if(!ne&&!na&&!nl&&!nn){toast('Tu boceto ya tiene todo lo del E-R.');return;}
     this.hist.push({mode:'bo',data:snapBo});this.app.touch(p);if(p._views)delete p._views.bo;this.app.go(p,'bo');
