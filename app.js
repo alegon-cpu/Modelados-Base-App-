@@ -233,6 +233,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.3.1':['Exam: the teacher can sign in with the username or with the email of an existing teacher account.'],
   '4.3':['Versions of the same exercise: «Duplicate › Make another version» creates version 2 (3, 4…) inside the same project. Each version has its own folder (Version 1, Version 2…) with its statement, E-R, relational, DSD and SQL. Switch between them with the buttons above the tabs and write what changes in each one.',
     '«Copy the E-R (or sketch, relational, DSD, SQL, statement) to another version»: it asks first and then you change by hand whatever is different. If two versions have exactly the same statement, the app warns you.',
     'Exam: the teacher signs in with a username instead of an email. The teacher can also take the exam as a student («Take it as a student»): the submission is saved like the others, and from the exam bar you can go back to the teacher panel.'],
@@ -254,6 +255,7 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.3.1: examen: el profesor puede entrar con su usuario o con el correo de su cuenta de siempre.',
   '4.3: versiones del mismo ejercicio: «Duplicar › Hacer otra versión» crea la versión 2 (3, 4…) dentro del mismo proyecto. Cada versión tiene su carpeta (Version 1, Version 2…) con su enunciado, E-R, relacional, DED y SQL. Se cambia de una a otra con los botones encima de las pestañas y se escribe qué cambia en cada una.',
   '4.3: «Pasar el E-R (o el boceto, el relacional, el DED, el SQL o el enunciado) a otra versión»: pregunta antes y luego cambias a mano lo que sea distinto. Si dos versiones tienen exactamente el mismo enunciado, la app te avisa.',
   '4.3: examen: el profesor entra con un usuario en vez de un correo. Además puede hacer el examen como alumno («Hacerlo como alumno»): su entrega se guarda igual que las demás, y desde la barra del examen puede volver al panel del profesor.',

@@ -56,9 +56,9 @@ const exp = s => Date.now() + (Math.max(60, +s || 3600) - 120) * 1000;
 async function anon() { const j = await post(AUTH + 'signUp?key=' + KEY, { returnSecureToken: true }); st.alumno = { uid: j.localId, refresh: j.refreshToken, idToken: j.idToken, exp: exp(j.expiresIn) }; save(); }
 async function login(user, pass) {
   load(); user = String(user || '').trim(); if (!user || !pass) throw new Error('Escribe el usuario y la contraseña.');
-  if (user.includes('@')) throw new Error('Escribe el usuario del profesor, no un correo.');
-  if (!USER_RX.test(user)) throw new Error('Usuario o contraseña incorrectos.');
-  const email = user.toLowerCase() + DOM;
+  // vale un usuario (se convierte en …@modeladosbdd.firebaseapp.com) o el correo de una cuenta de profesor que ya existía
+  if (!user.includes('@') && !USER_RX.test(user)) throw new Error('Usuario o contraseña incorrectos.');
+  const email = user.includes('@') ? user : user.toLowerCase() + DOM;
   const j = await post(AUTH + 'signInWithPassword?key=' + KEY, { email, password: String(pass), returnSecureToken: true });
   st.profe = { uid: j.localId, email: j.email || email, refresh: j.refreshToken, idToken: j.idToken, exp: exp(j.expiresIn) }; save();
   return { uid: st.profe.uid, user: userOf(st.profe.email) };

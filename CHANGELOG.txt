@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.3.1  (19/11/2026)
+--------------------
+- Examen: el profesor entra con su usuario o con el correo de su cuenta de siempre.
+
 v4.3.0  (19/11/2026)
 --------------------
 - Versiones del mismo ejercicio: Duplicar > Hacer otra version. Cada version en su carpeta (Version 1, Version 2...) con su enunciado, E-R, relacional, DED y SQL; selector encima de las pestanas y nota de que cambia en cada una.
