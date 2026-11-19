@@ -62,12 +62,13 @@ function captureSVG(p){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W2}" height="${H2}" viewBox="0 0 ${W2} ${H2}"><style>${SVG_CSS}.h1{font:600 24px 'Segoe UI',Arial,sans-serif;fill:#22211F}.h2{font:14px 'Segoe UI',Arial,sans-serif;fill:#6B6A64}.h3{font:600 16px 'Segoe UI',Arial,sans-serif;fill:#22211F}.sep{stroke:#22211F;stroke-width:1.2}.frame{fill:#FFFFFF;stroke:#E2E0DB}</style><rect width="${W2}" height="${H2}" fill="#F6F5F2"/>${body}</svg>`;
   return {svg,w:W2,h:H2};
 }
+const VSEND={enun:['el enunciado','el enunciado','el enunciado'],bo:['el boceto','el boceto','el boceto'],er:['el E-R','el E-R','el E-R'],rel:['el relacional','el relacional','el relacional'],ded:['el DED','el DED','el DED'],sql:['el SQL','el SQL','el SQL']};
 async function captureProject(p){
   const c=captureSVG(p);if(!c)return null;
   const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(c.svg);await img.decode();
   const sc=Math.min(+Settings.get().captureScale||2,12000/Math.max(c.w,c.h));const cv=document.createElement('canvas');cv.width=Math.round(c.w*sc);cv.height=Math.round(c.h*sc);
   const x=cv.getContext('2d');x.scale(sc,sc);x.drawImage(img,0,0,c.w,c.h);
-  return window.api.saveCapture(p.folder,p.name,cv.toDataURL('image/png').split(',')[1]);
+  return window.api.saveCapture(p.folder,p.name+(Array.isArray(p.vers)&&p.vers.length>1?' (versión '+((p.vcur||0)+1)+')':''),cv.toDataURL('image/png').split(',')[1]);
 }
 
 /* ===================== Exportar a ERDPlus ===================== */
@@ -232,6 +233,9 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.3':['Versions of the same exercise: «Duplicate › Make another version» creates version 2 (3, 4…) inside the same project. Each version has its own folder (Version 1, Version 2…) with its statement, E-R, relational, DSD and SQL. Switch between them with the buttons above the tabs and write what changes in each one.',
+    '«Copy the E-R (or sketch, relational, DSD, SQL, statement) to another version»: it asks first and then you change by hand whatever is different. If two versions have exactly the same statement, the app warns you.',
+    'Exam: the teacher signs in with a username instead of an email. The teacher can also take the exam as a student («Take it as a student»): the submission is saved like the others, and from the exam bar you can go back to the teacher panel.'],
   '4.2.1':['«Images…» and «Code…» (bottom left) now let you choose which projects: by folders, with «All» and «None», and they remember what you ticked last.'],
   '4.2':['The list on the left no longer unfolds each project\'s tabs: each project is one line and clicking it opens it straight on the tab chosen in Settings › General (E-R by default).','In the sketch, the parts of a composite attribute have types too: click one (or use the panel) to mark it as key, unique, optional, multivalued or derived. It goes to the E-R like that.'],
   '4.1.2':['In the DSD, if the foreign key is the whole primary key of its table, the panel now says maximum 1 (like the drawing) and warns you: if it is the table of an N:M, it is missing the other foreign key in the primary key.'],
@@ -250,6 +254,9 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.3: versiones del mismo ejercicio: «Duplicar › Hacer otra versión» crea la versión 2 (3, 4…) dentro del mismo proyecto. Cada versión tiene su carpeta (Version 1, Version 2…) con su enunciado, E-R, relacional, DED y SQL. Se cambia de una a otra con los botones encima de las pestañas y se escribe qué cambia en cada una.',
+  '4.3: «Pasar el E-R (o el boceto, el relacional, el DED, el SQL o el enunciado) a otra versión»: pregunta antes y luego cambias a mano lo que sea distinto. Si dos versiones tienen exactamente el mismo enunciado, la app te avisa.',
+  '4.3: examen: el profesor entra con un usuario en vez de un correo. Además puede hacer el examen como alumno («Hacerlo como alumno»): su entrega se guarda igual que las demás, y desde la barra del examen puede volver al panel del profesor.',
   '4.2.1: «Capturas…» y «Código…» (abajo a la izquierda) ahora te dejan elegir qué proyectos: por carpetas, con «Todos» y «Ninguno», y recuerdan lo último que marcaste.',
   '4.2: la lista de la izquierda ya no despliega las pestañas de cada proyecto: cada proyecto es una línea y al pincharlo se abre directo en la pestaña elegida en Ajustes › General (E-R por defecto).',
   '4.2: en el boceto, los subatributos de un compuesto también tienen tipo: pincha uno (o usa el panel) para marcarlo como clave, único, opcional, multivaluado o derivado. Pasa así al E-R.',
@@ -850,7 +857,7 @@ const App={
   // Durante un examen online (esperando o en marcha) solo se puede usar el proyecto del examen
   examLock(){return (this.projects||[]).find(x=>x.act&&x.act.online&&(x.act.state==='run'||x.act.state==='ready'))||null;},
   lockMsg(){toast('Durante el examen solo puedes usar el examen: nada de otros proyectos, teoría, juegos ni ajustes.','warn');},
-  showHome(k){const L=this.examLock();if(L){this.lockMsg();if(this.cur!==L||this.home)this.go(L,'enun');return;}this.home=k||'inicio';if(k==='teoria'&&!this._thc)this._thc='er';this.renderTree();this.renderMain();document.getElementById('mainv').scrollTop=0;},
+  showHome(k){const L=this.examLock();if(L&&!(k==='examen'&&EX.P.who&&EX.P.who.profe)){this.lockMsg();if(this.cur!==L||this.home)this.go(L,'enun');return;}this.home=k||'inicio';if(k==='teoria'&&!this._thc)this._thc='er';this.renderTree();this.renderMain();document.getElementById('mainv').scrollTop=0;},
   // Miniatura de un proyecto: su E-R, o si no su DED o su relacional
   thumb(p){const key=p.folder+':'+(p.updated||0);this._th=this._th||{};if(this._th[key]!=null)return this._th[key];let h='';
     try{const parts=svgParts(p),k=['er','ded','rel'].find(x=>parts[x]);if(k){const {inner,b}=parts[k],pd=30;h=`<svg viewBox="${f1(b[0]-pd)} ${f1(b[1]-pd)} ${f1(b[2]-b[0]+2*pd)} ${f1(b[3]-b[1]+2*pd)}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;}}catch(e){}
@@ -896,9 +903,10 @@ const App={
     mv.innerHTML=`<header class="ph">
       <input class="pname" id="pname" value="${escA(p.name)}" aria-label="Nombre del proyecto" spellcheck="false">
       ${this.solo||p.act?'':`<button class="ph-win" data-act="window" title="Abrir solo este proyecto en una ventana nueva, a pantalla completa" aria-label="Abrir en ventana"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3.5" width="10" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8.5 1.5h6v6M14.5 1.5 8 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>`}
-      ${p.act?this.actBar(p):`<div class="ph-acts"><div class="ph-grp" role="group" aria-label="Exportar"><span class="ph-lab">Exportar</span>${B('capture','Ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Código','','Genera un código para pasar el proyecto a otra persona')}</div><div class="ph-grp" role="group" aria-label="Proyecto">${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}${this.solo?'':B('dup','Duplicar')}${B('reveal','Abrir carpeta')}</div><div class="ph-grp" role="group" aria-label="Borrar">${B('clearproj','Vaciar','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></div>`}</header>
+      ${p.act?this.actBar(p):`<div class="ph-acts"><div class="ph-grp" role="group" aria-label="Exportar"><span class="ph-lab">Exportar</span>${B('capture','Ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Código','','Genera un código para pasar el proyecto a otra persona')}</div><div class="ph-grp" role="group" aria-label="Proyecto">${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}${B('dup','Duplicar','','Duplicar el proyecto o hacer otra versión del mismo ejercicio')}${B('reveal','Abrir carpeta')}</div><div class="ph-grp" role="group" aria-label="Borrar">${B('clearproj','Vaciar','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></div>`}</header>${this.verBar(p)}
       <div class="vtabs" role="tablist">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
       <div class="view" id="view"></div>`;
+    const vn=document.getElementById('vnota');if(vn)vn.addEventListener('input',e=>{p.vers[p.vcur||0].nota=e.target.value;this.touch(p);});
     document.getElementById('pname').addEventListener('input',e=>{p.name=e.target.value.trim()||'Sin nombre';const nm=document.querySelector(`.pf[data-pid="${p._id}"] .nm`);if(nm)nm.textContent=p.name;const tp=document.getElementById('tbproj');if(tp)tp.textContent=p.name;if(this.solo)document.title=p.name+' · Modelado Bases';this.renameSoon(p);});
     const v=document.getElementById('view');
     if(p.act&&!(p.act.show||[]).includes(this.view)){this.view='enun';return this.renderMain();}
@@ -907,13 +915,14 @@ const App={
       if(!ro){const t=document.getElementById('sqltxt');t.addEventListener('input',e=>{p.sql=e.target.value;this.touch(p);});t.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end');p.sql=t.value;this.touch(p);}});}
       return;}
     if(this.view==='enun'){
-      v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en Enunciado.txt</p>${hlBar(true)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div><div class="hlchips" id="hlchips"></div></div>`;
+      v.innerHTML=`<div class="enview"><p class="lbl">Enunciado · se guarda en ${Array.isArray(p.vers)?'Version '+((p.vcur||0)+1)+'/':''}Enunciado.txt</p>${Array.isArray(p.vers)?'<p class="vwarn" id="vwarn" hidden></p>':''}${hlBar(true)}<div class="hlwrap"><div class="hlback" aria-hidden="true"></div><textarea class="notes" id="enun" spellcheck="true" placeholder="Pega o escribe aquí el enunciado del ejercicio. También lo puedes ver al lado del lienzo con el botón «Enunciado».">${esc(p.enun||'')}</textarea></div><div class="hlchips" id="hlchips"></div></div>`;
       const et=document.getElementById('enun');if(et.value!==fixBullets(et.value))et.value=fixBullets(et.value);
       const chips=()=>{const el=document.getElementById('hlchips');if(!el)return;const txt=et.value,L=hlHits(txt,hlList(p));
         el.innerHTML=L.length?Object.keys(HL_K).map(k=>{const g=new Map();L.filter(m=>m.k===k).forEach(m=>{const key=lc(m.t.trim().replace(/\s+/g,' '));g.set(key,(g.get(key)||{t:m.t.trim(),n:0}));g.get(key).n++;});
           return g.size?`<div class="hlrow"><span class="hlk hl-${k}">${{ent:'Entidades',rel:'Relaciones',att:'Atributos'}[k]}</span>${[...g.entries()].map(([key,o])=>`<span class="hlchip hl-${k}">${esc(o.t)}${o.n>1?` <small>×${o.n}</small>`:''}<button data-hlx="${escA(key)}" data-hlk="${k}" aria-label="Quitar ${escA(o.t)}">✕</button></span>`).join('')}</div>`:'';}).join(''):
           `<p class="tnote">Elige un rotulador (<b>Entidad</b> para sustantivos como alumno o curso, <b>Relación</b> para verbos como matricula o imparte, <b>Atributo</b> para datos como nombre o DNI) y arrastra el ratón sobre las palabras para subrayarlas. Con la <b>Goma</b> lo quitas. Luego «Pasar al Boceto».</p>`;};
       const draw=hlWire(et,v.querySelector('.hlback'),()=>p,()=>{this.touch(p);chips();});chips();
+      const vw=document.getElementById('vwarn');if(vw){const upd=()=>{const same=this.sameEnun({enun:et.value,vens:p.vens});vw.hidden=!same.length;vw.textContent=same.length?`Este enunciado es exactamente igual que el de la versión ${same.map(j=>j+1).join(', ')}. Cada versión tiene que tener algo distinto: cambia lo que sea diferente en esta.`:'';document.querySelectorAll('.vb-c[data-i]').forEach(c=>{const j=+c.dataset.i,w=c.querySelector('.vb-w');if(same.includes(j)&&!w)c.insertAdjacentHTML('beforeend','<i class="vb-w" title="Mismo enunciado">!</i>');if(!same.includes(j)&&w)w.remove();});};upd();et.addEventListener('input',upd);}
       hlBind(v.querySelector('.hlbar'),et,()=>p,w=>{if(w==='tobo'){this.hlToBoceto(p);return;}this.touch(p);draw();chips();});
       v.querySelector('#hlchips').addEventListener('click',e=>{const x=e.target.closest('[data-hlx]');if(!x)return;const txt=et.value;p.hl=hlList(p).filter(m=>!(m.k===x.dataset.hlk&&lc(txt.slice(m.s,m.e).trim().replace(/\s+/g,' '))===x.dataset.hlx));this.touch(p);draw();chips();});
       if(p.act)et.readOnly=true;else et.addEventListener('input',e=>{const t=e.target,v=fixBullets(t.value);if(v!==t.value){const c=t.selectionStart;t.value=v;t.setSelectionRange(c,c);}p.enun=v;this.touch(p);});
@@ -953,13 +962,33 @@ const App={
     const rc=e.target.closest('.home .rc[data-pid]');if(rc){this.go(this.byId(rc.dataset.pid),Settings.get().openTab||'er');return;}
     const tc=e.target.closest('[data-thc]');if(tc&&this.home){this._thc=tc.dataset.thc;this._ths=tc.dataset.ths||null;this.home='teoria';if(!tc.dataset.ths)this._thq=this._thq||'';this.renderMain();if(!tc.dataset.ths){const a=document.getElementById('thart2');if(a)a.scrollTop=0;}return;}
     const hb=e.target.closest('.home [data-act], .home-th [data-act], .ex-v [data-act], .ph [data-act=home]');if(hb){this.action(hb);return;}
-    const b=e.target.closest('.ph [data-act], .welcome [data-act]')||((this.view==='sql'||this.view==='test')&&e.target.closest('#view [data-act]'));if(b)this.action(b);
+    const b=e.target.closest('.ph [data-act], .vbar [data-act], .welcome [data-act]')||((this.view==='sql'||this.view==='test')&&e.target.closest('#view [data-act]'));if(b)this.action(b);
   },
   async run(fn,okMsg){try{const r=await fn();if(okMsg&&r!==null&&r!==undefined)toast(typeof okMsg==='function'?okMsg(r):okMsg);return r;}catch(e){toast(e.message,'warn');this.status('bad',e.message);return null;}},
+  // ---- Versiones del mismo ejercicio (Version 1, Version 2… dentro del proyecto) ----
+  verBar(p){
+    if(!Array.isArray(p.vers)||p.act)return '';
+    const i=p.vcur||0,k=VSEND[this.view],same=this.sameEnun(p);
+    return `<div class="vbar" role="group" aria-label="Versiones"><span class="vb-lab">Versión</span><div class="vb-chips">${p.vers.map((v,j)=>`<button class="vb-c${j===i?' on':''}" data-act="vset" data-i="${j}" aria-pressed="${j===i}" title="${escA(v.nota?'Versión '+(j+1)+': '+v.nota:'Versión '+(j+1))}">${j+1}${same.includes(j)?'<i class="vb-w" title="Mismo enunciado">!</i>':''}</button>`).join('')}<button class="vb-c vb-add" data-act="vadd" title="Hacer otra versión (copia de la que está abierta)">+</button></div>
+      <input class="vb-nota" id="vnota" value="${escA(p.vers[i].nota||'')}" placeholder="Qué cambia en la versión ${i+1}…" aria-label="Qué cambia en la versión ${i+1}" spellcheck="true">
+      ${k&&p.vers.length>1?`<button class="ebtn" data-act="vsend" title="Copia ${k[1]} de esta versión a otra; luego lo cambias a mano">Pasar ${k[0]} a otra versión</button>`:''}${p.vers.length>1?`<button class="ebtn danger" data-act="vdel" title="Borrar esta versión">Borrar versión</button>`:''}</div>`;},
+  // otras versiones con exactamente el mismo enunciado que la abierta
+  sameEnun(p){const t=String(p.enun||'').trim();if(!Array.isArray(p.vens)||!t)return [];return p.vens.map((e,j)=>e!=null&&String(e).trim()===t?j:-1).filter(j=>j>=0);},
+  swapProj(old,np){np._id=old._id;const ix=this.projects.indexOf(old);if(ix>=0)this.projects[ix]=np;else this.projects.push(np);if(this.cur===old)this.cur=np;this.go(np,this.view);this.renderTree();},
+  async setVer(p,i){if(i===(p.vcur||0))return;await this.flushAll();const np=await this.run(()=>window.api.verSet(p.folder,i));if(np)this.swapProj(p,np);},
+  async addVer(p){await this.flushAll();const np=await this.run(()=>window.api.verAdd(p.folder));if(!np)return;this.swapProj(p,np);
+    toast(`Versión ${np.vcur+1} creada. Cambia el enunciado y escribe arriba qué cambia en esta versión.`);},
+  sendVerAsk(p,k,to){const L=VSEND[k];if(!L||!Array.isArray(p.vers))return;const i=p.vcur||0,others=p.vers.map((v,j)=>j).filter(j=>j!==i);
+    if(to==null){if(others.length===1)to=others[0];
+      else{this.modal(`<h3>Pasar ${L[0]} a otra versión</h3><p>¿A qué versión?</p><div class="dupopts">${others.map(j=>`<button class="dupo" data-m="vsend-to" data-k="${k}" data-i="${j}"><b>Versión ${j+1}</b>${p.vers[j].nota?`<small>${esc(p.vers[j].nota)}</small>`:''}</button>`).join('')}</div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);return;}}
+    this.confirm(`Pasar ${L[0]} a la versión ${to+1}`,`¿Seguro? ${L[1][0].toUpperCase()+L[1].slice(1)} de la versión ${i+1} sustituye ${L[2]} que tenga la versión ${to+1}. Después puedes cambiar a mano lo que sea distinto.`,'Sí, pasarlo',async()=>{
+      await this.flushAll();const data=k==='enun'?p.enun||'':k==='sql'?p.sql||'':plainProject(p)[k];
+      if(await this.run(()=>window.api.verSend(p.folder,k,to,data))){if(k==='enun'&&Array.isArray(p.vens))p.vens[to]=data;toast(`${L[0][0].toUpperCase()+L[0].slice(1)} pasado a la versión ${to+1}.`);if(k==='enun')this.renderMain();}});},
   confirm(title,text,btn,cb,extra=''){this._cf=cb;this.modal(`<h3>${esc(title)}</h3><p>${esc(text)}</p>${extra}<div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="cf-ok">${esc(btn)}</button></div>`);},
   async action(b){
     const a=b.dataset.act,p=this.cur;
     if(a&&a.startsWith('ex-')){await EX.action(a,b);return;}
+    if(a==='home'&&this.examLock()&&this.home==='examen'){const L=this.examLock();this.go(L,(L.act.show||[]).includes(this.view)?this.view:'enun');return;}
     if(a&&this.examLock()&&!a.startsWith('act-')&&!['save','controls','news'].includes(a)){this.lockMsg();return;}
     if(a==='controls'){this.showControls();return;}
     if(a==='settings'){this.showSettings();return;}
@@ -1011,7 +1040,12 @@ const App={
       const f=await this.run(()=>window.api.saveERDPlus(p.folder,p.name,txt));
       if(f)this.modal(`<h3>Archivo para ERDPlus guardado</h3><p>Para abrirlo: entra en <b>erdplus.com</b>, crea o abre un diagrama y usa <b>Open</b> (o <b>Import</b>) para elegir este archivo:</p><div class="folder-demo" style="margin:0">${esc(f)}</div><div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
       return;}
-    if(a==='dup'){await this.flushAll();const c=await this.run(()=>window.api.dup(p.folder));if(!c)return;c._id=uid('p');this.projects.push(c);this.go(c,this.view);toast('Proyecto duplicado.');return;}
+    if(a==='dup'){this.modal(`<h3>Duplicar «${esc(p.name)}»</h3><div class="dupopts">${this.solo?'':`<button class="dupo" data-m="dup-proj"><b>Duplicar el proyecto</b><small>Una copia aparte, con otro nombre, en la misma carpeta.</small></button>`}<button class="dupo" data-m="dup-ver"><b>Hacer otra versión</b><small>Dentro de este mismo ejercicio: se crea la versión ${(p.vers?p.vers.length:1)+1} copiando la que tienes abierta. Cada versión va en su carpeta (Version 1, Version 2…) con su enunciado, E-R, relacional, DED y SQL.</small></button></div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);return;}
+    if(a==='vset'){await this.setVer(p,+b.dataset.i);return;}
+    if(a==='vadd'){await this.addVer(p);return;}
+    if(a==='vsend'){this.sendVerAsk(p,this.view);return;}
+    if(a==='vdel'){const i=p.vcur||0;this.confirm('Borrar la versión '+(i+1),`Se borra la carpeta «Version ${i+1}» (va a la papelera) con su enunciado y sus diagramas.${p.vers.length>i+1?' Las versiones de después se renumeran.':''}`,'Borrar',async()=>{await this.flushAll();const np=await this.run(()=>window.api.verDrop(p.folder,i));if(np){this.swapProj(p,np);toast('Versión '+(i+1)+' borrada.');}});return;}
+    if(a==='dupproj'){await this.flushAll();const c=await this.run(()=>window.api.dup(p.folder));if(!c)return;c._id=uid('p');this.projects.push(c);this.go(c,this.view);toast('Proyecto duplicado.');return;}
     if(a==='clearproj'){this.confirm('Vaciar proyecto',`Se borrarán el E-R, el relacional, el DED y el SQL de «${p.name}». El proyecto y su carpeta se quedan.`,'Continuar…',()=>{
         setTimeout(()=>this.modal(`<h3>¿Seguro que quieres vaciarlo?</h3><p>Esto no se puede deshacer con Ctrl+Z.</p><label class="chk"><input type="checkbox" id="cl-enun"><span class="chk-ic">${GL.enun}</span><span class="chk-t">Vaciar también el enunciado</span><span class="sw"></span></label>
           <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri danger-pri" data-m="clear-go">Sí, vaciar</button></div>`),0);});return;}
@@ -1153,6 +1187,9 @@ const App={
     if(k==='pk-go'){const sel=[...document.querySelectorAll('[data-pk]:checked')].map(x=>x.dataset.pk),list=this.projects.filter(p=>sel.includes(p.folder));if(!list.length)return;this._pick=sel;
       this.closeModal();if(b.dataset.kind==='cap'){await this.flushAll();await this.captureMany(list);}else this.showCode(list,list.length===1?'Código del proyecto «'+list[0].name+'»':'Código de '+list.length+' proyectos');return;}
     if(k.startsWith('ex-')){await EX.m(k,b);return;}
+    if(k==='dup-proj'){this.closeModal();await this.action({dataset:{act:'dupproj'}});return;}
+    if(k==='dup-ver'){this.closeModal();if(this.cur)await this.addVer(this.cur);return;}
+    if(k==='vsend-to'){const p=this.cur;this.closeModal();if(p)this.sendVerAsk(p,b.dataset.k,+b.dataset.i);return;}
     if(k==='bv-again'){this.closeModal();this.settingsOpen=false;Bienvenida.open();return;}
     if(k==='set-keys'){this._sec='atajos';this.showSettings();return;}
     if(k==='ic'){const p=this._icP;this.closeModal();if(!p)return;if(b.dataset.ic)p.icon=b.dataset.ic;else delete p.icon;this.touch(p);this.renderTree();return;}

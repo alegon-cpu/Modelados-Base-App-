@@ -33,8 +33,8 @@ function save() {
 }
 
 const MSG = {
-  INVALID_LOGIN_CREDENTIALS: 'Correo o contraseña incorrectos.', INVALID_PASSWORD: 'Correo o contraseña incorrectos.', EMAIL_NOT_FOUND: 'Correo o contraseña incorrectos.',
-  INVALID_EMAIL: 'Ese correo no es válido.', USER_DISABLED: 'Esa cuenta está desactivada.', TOO_MANY_ATTEMPTS_TRY_LATER: 'Demasiados intentos. Espera un poco y vuelve a probar.',
+  INVALID_LOGIN_CREDENTIALS: 'Usuario o contraseña incorrectos.', INVALID_PASSWORD: 'Usuario o contraseña incorrectos.', EMAIL_NOT_FOUND: 'Usuario o contraseña incorrectos.',
+  INVALID_EMAIL: 'Usuario o contraseña incorrectos.', USER_DISABLED: 'Esa cuenta está desactivada.', TOO_MANY_ATTEMPTS_TRY_LATER: 'Demasiados intentos. Espera un poco y vuelve a probar.',
   ADMIN_ONLY_OPERATION: 'El acceso anónimo no está activado en Firebase.', OPERATION_NOT_ALLOWED: 'Ese tipo de acceso no está activado en Firebase.',
   TOKEN_EXPIRED: 'La sesión ha caducado. Vuelve a entrar.', INVALID_REFRESH_TOKEN: 'La sesión ha caducado. Vuelve a entrar.', USER_NOT_FOUND: 'La sesión ya no vale. Vuelve a entrar.'
 };
@@ -46,17 +46,25 @@ async function post(url, body, form) {
   if (!r.ok) { const m = String((j.error && j.error.message) || r.status).split(/[ :]/)[0]; throw new Error(MSG[m] || 'Error de Firebase: ' + m); }
   return j;
 }
+// El profesor entra con un usuario, no con un correo. Firebase necesita un correo detrás: se forma con el usuario
+// y el dominio del propio proyecto (no es un buzón real). Ejemplo: «EvaBDD_Daw1» → evabdd_daw1@modeladosbdd.firebaseapp.com
+const DOM = '@' + PROJ + '.firebaseapp.com';
+const USER_RX = /^[A-Za-z0-9._-]{3,40}$/;
+const userOf = email => String(email || '').toLowerCase().endsWith(DOM) ? String(email).slice(0, -DOM.length) : String(email || '');
 const exp = s => Date.now() + (Math.max(60, +s || 3600) - 120) * 1000;
 
 async function anon() { const j = await post(AUTH + 'signUp?key=' + KEY, { returnSecureToken: true }); st.alumno = { uid: j.localId, refresh: j.refreshToken, idToken: j.idToken, exp: exp(j.expiresIn) }; save(); }
-async function login(email, pass) {
-  load(); email = String(email || '').trim(); if (!email || !pass) throw new Error('Escribe el correo y la contraseña.');
+async function login(user, pass) {
+  load(); user = String(user || '').trim(); if (!user || !pass) throw new Error('Escribe el usuario y la contraseña.');
+  if (user.includes('@')) throw new Error('Escribe el usuario del profesor, no un correo.');
+  if (!USER_RX.test(user)) throw new Error('Usuario o contraseña incorrectos.');
+  const email = user.toLowerCase() + DOM;
   const j = await post(AUTH + 'signInWithPassword?key=' + KEY, { email, password: String(pass), returnSecureToken: true });
   st.profe = { uid: j.localId, email: j.email || email, refresh: j.refreshToken, idToken: j.idToken, exp: exp(j.expiresIn) }; save();
-  return { uid: st.profe.uid, email: st.profe.email };
+  return { uid: st.profe.uid, user: userOf(st.profe.email) };
 }
 function logout() { load(); st.profe = null; save(); return true; }
-function who() { load(); return { profe: st.profe ? { uid: st.profe.uid, email: st.profe.email } : null, alumno: st.alumno ? st.alumno.uid : null }; }
+function who() { load(); return { profe: st.profe ? { uid: st.profe.uid, user: userOf(st.profe.email) } : null, alumno: st.alumno ? st.alumno.uid : null }; }
 async function token(role) {
   load(); let s = st[role];
   if (!s) { if (role !== 'alumno') throw new Error('Primero inicia sesión como profesor.'); await anon(); return st.alumno.idToken; }

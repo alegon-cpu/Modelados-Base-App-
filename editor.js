@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='4.2.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.3.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -37,7 +37,7 @@ function noteSVG(n,cls=''){noteSize(n);const x=n.x,y=n.y,w=n.w,h=n.h,f=12;
   const tape=typeof document!=='undefined'&&document.documentElement.classList.contains('nt-cinta')?`<rect x="${x+w/2-28}" y="${y-9}" width="56" height="18" rx="2" class="note-tape" transform="rotate(-4 ${x+w/2} ${y})"/>`:'';
   return `<path d="M${x},${y} H${x+w-f} L${x+w},${y+f} V${y+h} H${x} Z" class="note nc-${n.c||'y'}${cls}"/>`+tape+`<path d="M${x+w-f},${y} V${y+f} H${x+w}" class="note-fold nc-${n.c||'y'}"/>`+
     n.lines.map((l,i)=>`<text x="${x+10}" y="${y+21+i*16}" class="note-tx">${esc(l)}</text>`).join('');}
-const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),...(p.hl&&p.hl.length?{hl:p.hl}:{}),...(p.icon?{icon:p.icon}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
+const plainProject=p=>({folder:p.folder,name:p.name,created:p.created,updated:p.updated,...(p.act?{act:p.act}:{}),...(p.hl&&p.hl.length?{hl:p.hl}:{}),...(p.icon?{icon:p.icon}:{}),...(Array.isArray(p.vers)?{vers:p.vers.map(v=>({nota:v.nota||''})),vcur:p.vcur||0}:{}),enun:p.enun||'',sql:p.sql||'',test:p.test||'',er:cleanModel(p.er,'er'),rel:cleanModel(p.rel,'rel'),ded:cleanModel(p.ded,'ded'),bo:cleanModel(p.bo,'bo')});
 function guessType(name,f){
   const s=lc(name);
   if(f&&(f.pk||f.fk))return /^(dni|nif|nie)/.test(s)?'CHAR(9)':/^(mat|isbn|iata|cod[a-z]*str)/.test(s)?'VARCHAR(20)':'INT';

@@ -1394,3 +1394,17 @@ svg .bo-sub{fill:var(--muted)}
 .pk-gh small{color:var(--muted);margin-left:auto}
 .pk-g .pk-l{display:flex;flex-direction:column}
 .pk-gh+.pk-l{margin-left:18px;border-left:1px solid var(--line-2);padding-left:4px}
+/* Versiones del mismo ejercicio */
+.vbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.vb-lab{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.vb-chips{display:flex;gap:4px}
+.vb-c{position:relative;min-width:30px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:600;cursor:pointer}
+.vb-c.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.vb-add{color:var(--muted);font-size:16px}
+.vb-w{position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:var(--warn);color:#fff;font:700 10px/14px sans-serif;font-style:normal;text-align:center}
+.vb-nota{flex:1;min-width:180px;height:28px;padding:0 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.vwarn{margin:4px 0 8px;padding:7px 10px;border-radius:8px;border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);font-size:13px}
+.dupopts{display:grid;gap:8px;margin:10px 0}
+.dupo{display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.dupo:hover{border-color:var(--accent)}
+.dupo small{color:var(--muted);font-size:12.5px;line-height:1.4}

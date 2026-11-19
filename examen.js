@@ -14,7 +14,7 @@ const FBV={
 const mmss=ms=>{ms=Math.max(0,ms);const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');};
 const hhmm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
 
-const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
+const EX={off:0,_offs:[],_rt:{},uid:null,
   P:{who:null,list:null,sel:null,ent:null,last:0,busy:false,err:''},
   now(){return Date.now()+this.off;},
   rt(p){return this._rt[p.folder]||(this._rt[p.folder]={});},
@@ -29,12 +29,12 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
   partsTxt(req,opt){return (req.length?'Obligatorio: '+req.map(k=>EXP_N[k]).join(', '):'')+(opt.length?(req.length?' · ':'')+'Opcional: '+opt.map(k=>EXP_N[k]).join(', '):'');},
 
   /* ---------------- Alumno ---------------- */
-  joinModal(){let nm='';try{nm=localStorage.getItem('mb-ex-nombre')||'';}catch(e){}
+  joinModal(code){let nm='';try{nm=localStorage.getItem('mb-ex-nombre')||'';}catch(e){}
     App.modal(`<h3>Entrar a un examen</h3><p>Escribe el código que te ha dado el profesor y tu nombre, tal como quieres que lo vea.</p>
-      <label class="fld">Código del examen<input type="text" id="exc" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off" spellcheck="false" class="ex-codein"></label>
+      <label class="fld">Código del examen<input type="text" id="exc" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off" spellcheck="false" class="ex-codein" value="${escA(code||'')}"></label>${code?'<p class="tnote">Lo haces como un alumno más: la app se bloquea igual que a ellos y tu entrega aparece en la lista con las demás. Desde la barra del examen puedes volver al panel del profesor para empezarlo o terminarlo.</p>':''}
       <label class="fld">Nombre y apellidos<input type="text" id="exn" maxlength="60" value="${escA(nm)}" placeholder="Por ejemplo: Lucía Pérez Gómez" spellcheck="false"></label>
       <div class="mrow"><button class="ebtn" data-m="close">Cancelar</button><button class="ebtn pri" data-m="ex-join">Entrar</button></div>`);
-    setTimeout(()=>{const c=document.getElementById('exc');if(c)c.focus();},30);},
+    setTimeout(()=>{const c=document.getElementById(code?'exn':'exc');if(c)c.focus();},30);},
   async join(btn){const code=(document.getElementById('exc').value||'').replace(/\D/g,''),nombre=(document.getElementById('exn').value||'').trim().replace(/\s+/g,' ');
     if(code.length!==4){toast('El código tiene 4 cifras.','warn');return;}if(nombre.length<3){toast('Escribe tu nombre y apellidos.','warn');return;}
     if(btn){btn.disabled=true;btn.textContent='Conectando…';}
@@ -106,7 +106,7 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
       :a.state==='ready'?`<span class="act-clock wait" id="actclock">${o.ini<EX_NUNCA&&o.ini>now?'Empieza en '+mmss(o.ini-now):'Esperando a que el profesor empiece…'}</span>`
       :`<span class="act-clock over">${o.borrado?'Examen borrado':'Se acabó el tiempo'}${o.final?' · entregado ✓':''}</span>`;
     return `<div class="actbar exbar ${a.state}"><span class="act-tag">Examen ${esc(o.code)}</span><span class="act-t"><b>${esc(a.title||'Examen')}</b> · ${esc(this.partsTxt(a.req||a.parts,a.opt||[]))} · ${esc(o.nombre)}${a.state==='run'?`<small id="exsent">${esc(this.sentTxt(p))}</small>`:''}</span>
-      ${clock}${a.state==='run'?`<button class="ebtn pri" data-act="ex-deliver">Entregar</button>`:`<button class="ebtn" data-act="act-exit">Salir del modo examen</button>`}</div>`;},
+      ${clock}${this.P.who&&this.P.who.profe?`<button class="ebtn" data-act="ex-profe" title="Panel del profesor: empezar, +5 minutos, terminar…">Panel del profesor</button>`:''}${a.state==='run'?`<button class="ebtn pri" data-act="ex-deliver">Entregar</button>`:`<button class="ebtn" data-act="act-exit">Salir del modo examen</button>`}</div>`;},
 
   /* ---------------- Profesor ---------------- */
   open(){App.showHome('examen');this.loadProfe();},
@@ -132,21 +132,21 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
   stTxt(x){const n=this.now(),s=this.st(x);return s==='wait'?'Sin empezar':s==='soon'?'Empieza en '+mmss(x.inicio-n):s==='run'?'En marcha · quedan '+mmss(x.fin-n):'Terminado a las '+hhmm(x.fin-this.off);},
   render(mv){const P=this.P,w=P.who;let body;
     if(!w)body='<p class="tnote">Conectando…</p>';
-    else if(!w.profe)body=`<section class="ex-card ex-login"><h3>Entrar como profesor</h3><p>Usa el correo y la contraseña de la cuenta de profesor (la de Firebase › Authentication). La contraseña no se guarda: solo se recuerda la sesión en este ordenador.</p>
-      <label class="fld">Correo<input type="email" id="exmail" autocomplete="username" spellcheck="false" value="${escA(P.mail||'')}"></label>
+    else if(!w.profe)body=`<section class="ex-card ex-login"><h3>Entrar como profesor</h3><p>Escribe el usuario y la contraseña del profesor. La contraseña no se guarda: solo se recuerda la sesión en este ordenador.</p>
+      <label class="fld">Usuario<input type="text" id="exmail" autocomplete="username" spellcheck="false" autocapitalize="off" value="${escA(P.mail||'')}"></label>
       <label class="fld">Contraseña<input type="password" id="expass" autocomplete="current-password"></label>
       <div class="row"><button class="ebtn pri" data-act="ex-login">Entrar</button></div>${P.err?`<p class="in-p warn">${esc(P.err)}</p>`:''}</section>`;
     else{const sel=(P.list||[]).find(x=>x.code===P.sel);
-      body=`<div class="ex-top"><span class="tnote">Sesión: <b>${esc(w.profe.email)}</b></span>${w.profe.uid!==this.PROFE?'<span class="in-p warn">Esta cuenta no es la del profesor: Firebase no te dejará crear exámenes.</span>':''}<span class="tspace"></span><button class="ebtn" data-act="ex-logout">Cerrar sesión</button><button class="ebtn pri" data-act="ex-new">Nuevo examen</button></div>
+      body=`<div class="ex-top"><span class="tnote">Sesión: <b>${esc(w.profe.user||w.profe.email||'')}</b></span><span class="tspace"></span><button class="ebtn" data-act="ex-logout">Cerrar sesión</button><button class="ebtn pri" data-act="ex-new">Nuevo examen</button></div>
       ${P.err?`<p class="in-p warn">${esc(P.err)}</p>`:''}
       <div class="ex-cols"><section class="ex-list"><h3>Tus exámenes</h3>${P.list==null?'<p class="tnote">Cargando…</p>':P.list.length?P.list.map(x=>`<button class="ex-it st-${this.st(x)}" data-act="ex-sel" data-code="${x.code}" aria-pressed="${x.code===P.sel}"><b class="ex-code">${x.code}</b><span><b>${esc(x.titulo||'Sin título')}</b><small data-exclock="${x.code}">${esc(this.stTxt(x))}</small></span></button>`).join(''):'<p class="tnote">Todavía no has creado ninguno. Pulsa «Nuevo examen».</p>'}</section>
       <section class="ex-det">${sel?this.detail(sel):'<p class="tnote">Elige un examen de la lista para verlo y controlarlo.</p>'}</section></div>`;}
-    mv.innerHTML=`<header class="ph"><span class="pname static">Examen · profesor</span><div class="ph-acts"><button class="ebtn" data-act="home">← Inicio</button></div></header><div class="view ex-v">${body}</div>`;},
+    mv.innerHTML=`<header class="ph"><span class="pname static">Examen · profesor</span><div class="ph-acts"><button class="ebtn" data-act="home">${App.examLock()?'← Volver a mi examen':'← Inicio'}</button></div></header><div class="view ex-v">${body}</div>`;},
   detail(x){const s=this.st(x),E=this.P.ent||[],done=E.filter(e=>e.estado==='entregada').length;
     const has=(e,k)=>{try{const pr=JSON.parse(e.proyecto||'{}'),v=pr[k];return k==='sql'?!!String(v||'').trim():v&&((v.nodes&&v.nodes.length)||(v.t&&v.t.length));}catch(err){return false;}};
     return `<div class="ex-head"><div><div class="ex-big">${x.code}</div><button class="ebtn sm" data-act="ex-copy" data-code="${x.code}">Copiar código</button></div>
       <div class="ex-info"><h3>${esc(x.titulo||'Sin título')}</h3><p>${esc(this.partsTxt(x.req,x.opt))} · ${x.mins} min</p><p class="ex-st st-${s}" data-exclock="${x.code}">${esc(this.stTxt(x))}</p></div></div>
-      <div class="row ex-ctl">${s==='wait'?`<button class="ebtn pri" data-act="ex-start">Empezar ahora</button>`:''}${s==='soon'||s==='run'?`<button class="ebtn" data-act="ex-plus">+5 minutos</button><button class="ebtn" data-act="ex-end">Terminar ya</button>`:''}${s==='over'&&E.some(e=>e.estado!=='sala')?`<button class="ebtn pri" data-act="ex-openall">Abrir todas en la app</button>`:''}<span class="tspace"></span><button class="ebtn danger" data-act="ex-del">Borrar examen</button></div>
+      <div class="row ex-ctl">${s==='wait'?`<button class="ebtn pri" data-act="ex-start">Empezar ahora</button>`:''}${s==='soon'||s==='run'?`<button class="ebtn" data-act="ex-plus">+5 minutos</button><button class="ebtn" data-act="ex-end">Terminar ya</button>`:''}${s!=='over'?`<button class="ebtn" data-act="ex-asalumno" data-code="${x.code}" title="Entras con el código como un alumno más: tu entrega se guarda igual que las demás">Hacerlo como alumno</button>`:''}${s==='over'&&E.some(e=>e.estado!=='sala')?`<button class="ebtn pri" data-act="ex-openall">Abrir todas en la app</button>`:''}<span class="tspace"></span><button class="ebtn danger" data-act="ex-del">Borrar examen</button></div>
       <h4>Alumnos <small>${E.length} conectados · ${done} entregadas</small></h4>
       ${E.length?`<div class="ex-tw"><table class="ex-t"><thead><tr><th>Alumno</th><th>Estado</th><th>Última vez</th>${[...x.req,...x.opt].map(k=>`<th>${EXP_N[k]}</th>`).join('')}<th></th></tr></thead><tbody>
         ${E.map(e=>`<tr><td>${esc(e.nombre||'?')}</td><td><span class="ex-pill${e.estado==='entregada'?' st-ok':''}">${e.estado==='entregada'?'Entregada':e.estado==='sala'?(s==='wait'||s==='soon'?'Esperando':'Sin enviar aún'):'Trabajando'}</span></td><td>${e.hora?hhmm(e.hora):'—'}</td>${[...x.req,...x.opt].map(k=>`<td>${has(e,k)?'✓':'·'}</td>`).join('')}<td>${e.estado==='sala'?'':`<button class="ebtn sm" data-act="ex-openone" data-uid="${escA(e.uid)}">Abrir</button>`}</td></tr>`).join('')}</tbody></table></div>`
@@ -192,6 +192,7 @@ const EX={PROFE:'18rE9rYdWiaji91O7gxa1QbNmOH2',off:0,_offs:[],_rt:{},uid:null,
   /* ---------------- Clics ---------------- */
   async action(a,b){const P=this.P,p=App.cur,x=(P.list||[]).find(e=>e.code===P.sel);
     if(a==='ex-join'){this.joinModal();return;}
+    if(a==='ex-asalumno'){this.joinModal(b.dataset.code);return;}
     if(a==='ex-profe'){this.open();return;}
     if(a==='ex-deliver'){if(p&&p.act&&p.act.online)await this.deliver(p);return;}
     if(a==='ex-login'){const m=P.mail=document.getElementById('exmail').value,pw=document.getElementById('expass');b.disabled=true;b.textContent='Entrando…';

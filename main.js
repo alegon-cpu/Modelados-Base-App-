@@ -390,6 +390,14 @@ h('proj:rename', (folder, name, e) => {
 });
 h('proj:delete', folder => shell.trashItem(S.inside(base(), folder)));
 h('proj:dup', folder => S.duplicate(base(), folder));
+h('ver:add', folder => S.addVersion(base(), folder));
+h('ver:set', (folder, i) => S.setVersion(base(), folder, i));
+h('ver:send', (folder, k, i, data) => S.sendToVersion(base(), folder, k, i, data));
+h('ver:drop', async (folder, i) => {
+  const r = S.dropVersion(base(), folder, i);
+  try { await shell.trashItem(r.tmp); } catch (e) { fs.rmSync(r.tmp, { recursive: true, force: true }); }
+  return r.p;
+});
 h('proj:reveal', folder => shell.openPath(S.inside(base(), folder)));
 h('proj:importDir', async (e) => {
   const r = await dialog.showOpenDialog(winOf(e) || win, { title: T('Importar carpeta de proyecto'), properties: ['openDirectory'] });
