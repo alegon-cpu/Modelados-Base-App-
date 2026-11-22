@@ -25,7 +25,7 @@ function layoutSmart(tables,opt={}){
   const E=[],seen=new Set();
   tables.forEach((t,i)=>(t.c||[]).forEach(c=>{const f=parseF(c[2]).fk;if(!f)return;const j=idx[lc(f)];if(j==null||j===i)return;const k=Math.min(i,j)+'-'+Math.max(i,j);if(seen.has(k))return;seen.add(k);E.push([i,j]);}));
   if(n===1){tables[0].x=Math.round(W/2-S[0].w/2);tables[0].y=Math.round(H/2-S[0].h/2);return;}
-  const C=Math.max(2,Math.ceil(Math.sqrt(n*1.4))),R=Math.ceil(n/C)+1,CELLS=C*R,GX=110,GY=90;
+  const C=Math.max(2,Math.ceil(Math.sqrt(n*1.4))),R=Math.ceil(n/C)+1,CELLS=C*R,GX=72,GY=60;
   // posiciones a partir de qué tabla va en cada celda (las filas y columnas vacías no ocupan sitio)
   const place=(slot,out)=>{const cw=new Array(C).fill(0),rh=new Array(R).fill(0);
     for(let i=0;i<n;i++){const s=slot[i],r=(s/C)|0,c=s%C;if(S[i].w>cw[c])cw[c]=S[i].w;if(S[i].h>rh[r])rh[r]=S[i].h;}

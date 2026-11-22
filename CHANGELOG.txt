@@ -41,6 +41,13 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.4.0  (22/11/2026)
+--------------------
+- La jerarquia sale siempre en el E-R (se quita el ajuste para ocultarla).
+- Jerarquias en el relacional y el DED: una FK que es toda la PK se puede marcar como subtipo (sin triangulo); al pasar al E-R sale la jerarquia.
+- Distribuir deja las cosas mas juntas.
+- La nota de cada version se anade al final de su enunciado.
+
 v4.3.1  (19/11/2026)
 --------------------
 - Examen: el profesor entra con su usuario o con el correo de su cuenta de siempre.

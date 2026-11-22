@@ -1,11 +1,11 @@
 /* ===================== Utilidades ===================== */
-const VERSION='4.3.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.4.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
 let uidN=0; const uid=(p='n')=>p+Date.now().toString(36)+(uidN++).toString(36)+Math.random().toString(36).slice(2,6);
-const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x==='pmin')o.pmin=1;else if(x==='cas')o.cas=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
-const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&o.pmin&&'pmin',o.fk&&o.cas&&'cas',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
+const parseF=s=>{const o={};(s||'').split(' ').forEach(x=>{if(x==='pk')o.pk=1;else if(x==='null')o.nul=1;else if(x==='uq')o.uq=1;else if(x==='pmin')o.pmin=1;else if(x==='cas')o.cas=1;else if(x==='isa')o.isa=1;else if(x.startsWith('fk:'))o.fk=x.slice(3);});return o;};
+const joinF=o=>[o.pk&&'pk',o.nul&&'null',o.uq&&'uq',o.fk&&o.pmin&&'pmin',o.fk&&o.cas&&'cas',o.fk&&o.isa&&'isa',o.fk&&('fk:'+o.fk)].filter(Boolean).join(' ');
 const lc=s=>String(s||'').trim().toLowerCase();
 const VIEWS={enun:'Enunciado',bo:'Boceto',er:'E-R',rel:'Relacional',ded:'DED',sql:'SQL',test:'Probar'};
 const TYPES=['INT','SMALLINT','TINYINT','VARCHAR(45)','VARCHAR(100)','CHAR(9)','DATE','TIME','DATETIME','DECIMAL(8,2)','TEXT','BOOLEAN'];
@@ -219,7 +219,7 @@ function isaToTables(er,X,tables,byEnt,notes,uniqueCol,pkCols){
       tables.splice(tables.indexOf(ST),1);byEnt[o.sup.id]=null;continue;}
     o.subs.forEach(s=>{const T=byEnt[s.id];if(!T||T===ST)return;
       const own=T.c.map(c=>{const g=parseF(c[2]);if(g.pk){g.pk=0;g.uq=1;}return[c[0],c[1],joinF(g)];});
-      T.c=[];pkCols(ST).forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],joinF({pk:1,fk:ST.n})]));own.forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],c[2]]));});
+      T.c=[];pkCols(ST).forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],joinF({pk:1,cas:1,isa:1,fk:ST.n})]));own.forEach(c=>T.c.push([uniqueCol(T,c[0]),c[1],c[2]]));});
   }
 }
 // Copia las notas de un diagrama a otro (al pasar Boceto → E-R → Relacional → DED), sin repetirlas, a la derecha de lo que haya
@@ -418,7 +418,7 @@ class Editor{
       CH=(b,f)=>act&&!(f&&/bo2er/.test(f))?'':`</div><div class="tgroup chain" role="group" aria-label="Pasar entre diagramas">${act?'':b}${f}`,
       ERDP=act?'':`</div><div class="tgroup erdp" role="group" aria-label="ERDPlus"><span class="tlab">ERDPlus</span>${B('erdplus','Exportar','','copy','Guarda tu E-R en un archivo .erdplus que se abre en erdplus.com')}${B('erdplus-import','Importar','','open','Abre un archivo .erdplus y lo pasa a tu E-R')}`;
     if(this.isBo) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las entidades en el lienzo')+CH('',CB('bo2er','Pasar al E-R','Crea en el E-R las entidades que falten, con sus atributos, para terminarlas allí',1));
-    else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(st.showIsa!==false?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+ERDP+CH(CB('er2bo','Actualizar el boceto','Añade al boceto las entidades, atributos y líneas del E-R que le falten (no borra nada)'),CB('er2rel','Pasar al relacional','Va al relacional y crea las tablas a partir de este E-R',1));
+    else if(this.isER) h+=B('ent','Entidad','tool','ent','Pulsa para añadir una entidad, o arrástrala hasta donde la quieras')+B('rel','Relación','tool','rel','Pulsa para añadir una relación, o arrástrala hasta donde la quieras')+B('attr','Atributo','tool','attr','Pulsa para añadir un atributo a lo seleccionado, o arrástralo encima de una entidad')+B('connect','Unir','tool','link','Une dos elementos (también: Mayús + clic)',this.connect)+(true?B('isa','Jerarquía','tool','isa','Generalización / especialización (ISA): pulsa con el supertipo seleccionado, o arrastra el triángulo encima de él'):'')+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Coloca entidades, relaciones y atributos para que se vean bien')+ERDP+CH(CB('er2bo','Actualizar el boceto','Añade al boceto las entidades, atributos y líneas del E-R que le falten (no borra nada)'),CB('er2rel','Pasar al relacional','Va al relacional y crea las tablas a partir de este E-R',1));
     else h+=B('table','Tabla','tool','table','Pulsa para añadir una tabla, o arrástrala hasta donde la quieras')+B('relate','Relacionar','tool','relate','Relaciona dos tablas (también: Mayús + clic)',this.connect)+B('note','Nota','tool','note','Pulsa para añadir una nota, o arrástrala hasta donde la quieras')+'</div><div class="tgroup">'+B('distribute','Distribuir','','dist','Ordena las tablas: arriba las que no dependen de nadie y debajo las que les apuntan con su clave ajena')+'</div><div class="tgroup">'+B('fromer','Traer de mi E-R','','fromer','Crea aquí las tablas a partir del E-R')+(this.mode==='ded'?B('copyrel','Traer mi relacional','','copy','Copia aquí las tablas del relacional'):'')+B('easy','Modo fácil','toggle','easy','Activado: al pasar desde el E-R también se pasan las relaciones (claves ajenas y tablas N:M)',this.easy)+(this.mode==='rel'?ERDP+CH(CB('rel2er','Actualizar el E-R','Crea en el E-R las entidades, atributos y relaciones que falten a partir de estas tablas'),CB('rel2ded','Pasar al DED','Va al DED y copia allí estas tablas',1)):CH(CB('ded2rel','Actualizar el relacional','Copia estas tablas (con sus claves ajenas) al relacional'),CB('ded2sql','Pasar al SQL','Va al SQL y genera el script a partir de este DED',1)));
     const dfo=this.app&&this.app.diff&&this.app.diff.p===this.p;
     h+=`</div><div class="tgroup">${B('clear','Vaciar '+VIEWS[this.mode],'danger','clear','Borra todo este diagrama')}</div><span class="tspace"></span>${B('find','Buscar','','find','Buscar en el diagrama (Ctrl+F)')}${dfo?`<button class="ebtn dfchip" data-act="cleardiff" title="Verde: solo en el tuyo · ámbar: distinto. Pulsa para quitar las marcas.">Comparando con «${esc(this.app.diff.with)}» ✕</button>`:''}${B('toggleenun',this.sideName(),'','enun','Mostrar u ocultar el panel de al lado (enunciado u otro diagrama)',this.showEnun)}`;
@@ -522,7 +522,7 @@ class Editor{
       this.selLink=s.pa.id+'|'+s.t.n;this.save();this.render();this.renderInsp();toast(`Ahora la FK está en «${s.pa.n}» y apunta a «${s.t.n}».`);return;}
     if(['nul','uq','pk'].includes(k)){this.snap();const on=!s.cols.every(c=>parseF(c[2])[k]);s.cols.forEach(c=>{const f=parseF(c[2]);if(on)f[k]=1;else delete f[k];if(k==='pk'&&on)delete f.nul;if(k==='nul'&&on)delete f.pk;c[2]=joinF(f);});
       this.save();this.render();this.renderInsp();}}
-  fkSet(k,on){const s=this.fkSel();if(!s)return;this.snap();s.cols.forEach(c=>{const f=parseF(c[2]);if(on)f[k]=1;else delete f[k];if(k==='pk'&&on)delete f.nul;if(k==='nul'&&on)delete f.pk;if(k==='uq'&&on&&s.cols.length>1)delete f.uq;c[2]=joinF(f);});
+  fkSet(k,on){const s=this.fkSel();if(!s)return;this.snap();s.cols.forEach(c=>{const f=parseF(c[2]);if(on)f[k]=1;else delete f[k];if(k==='pk'&&on)delete f.nul;if(k==='nul'&&on)delete f.pk;if(k==='uq'&&on&&s.cols.length>1)delete f.uq;if(k==='isa'&&on){f.pk=1;f.cas=1;delete f.nul;delete f.pmin;}c[2]=joinF(f);});
     if(k==='uq'&&on&&s.cols.length>1)toast('Con una FK de varias columnas, la 1:1 se marca con UNIQUE en el SQL.','warn');this.save();this.render();this.renderInsp();}
   toggleAssoc(n){this.snap();if(n.f.as){const X=this.X(),bad=X.linksOf(n.id).filter(l=>isRel(X.other(l,n.id)));if(bad.length){this.m.links=this.m.links.filter(l=>!bad.includes(l));toast(`Se han quitado ${bad.length} línea(s) que la unían a otras relaciones.`);}delete n.f.as;}else n.f.as=1;this.save();this.render();this.renderInsp();}
   connectNodes(aId,bId){
@@ -751,7 +751,7 @@ class Editor{
       edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(n&&this.isER&&isEnt(n)){const X=this.X();I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir atributo',()=>this.addAttr(n));
       I('Entidad débil',()=>{this.snap();n.k=n.k==='weak'?'ent':'weak';this.save();this.render();this.renderInsp();},{check:n.k==='weak'});
-      if(Settings.get().showIsa!==false){const own=this.m.nodes.find(i=>isIsa(i)&&X.superOf(i)===n);I(own?'Añadir subtipo a su jerarquía':'Crear jerarquía (subtipos)',()=>{if(own)this.addSubtype(own);else{this.selIds=new Set([n.id]);this.create('isa');}});}
+      if(true){const own=this.m.nodes.find(i=>isIsa(i)&&X.superOf(i)===n);I(own?'Añadir subtipo a su jerarquía':'Crear jerarquía (subtipos)',()=>{if(own)this.addSubtype(own);else{this.selIds=new Set([n.id]);this.create('isa');}});}
       edit();I('Borrar',()=>this.deleteSel(),{danger:true,key:K('del')});}
     else if(n&&this.isER&&isRel(n)){I('Renombrar',()=>this.rename(),{key:K('rename')});I('Añadir atributo',()=>this.addAttr(n));
       I('Identificadora',()=>{this.snap();n.k=n.k==='idrel'?'rel':'idrel';this.save();this.render();this.renderInsp();},{check:n.k==='idrel'});
@@ -1205,10 +1205,13 @@ class Editor{
         (ded?(()=>{const sb=(k,v,on,t)=>`<button class="segb" data-fkset="${k}" data-v="${v}" aria-pressed="${on}">${t}</button>`,uq0=has('uq'),nul=s.cols.some(c=>parseF(c[2]).nul),pk=has('pk'),pmin=has('pmin');
           // si la FK es toda la clave primaria de su tabla, no se puede repetir: el máximo es 1 aunque no esté marcada como única (igual que en el dibujo)
           const tpk=(s.t.c||[]).filter(c=>parseF(c[2]).pk),wholePK=tpk.length>0&&tpk.length===s.cols.length&&s.cols.every(c=>parseF(c[2]).pk),uq=uq0||wholePK;
-          return `<div class="in-sub">Cardinalidades</div>`+(wholePK?`<p class="in-p warn">«${esc(s.cols.map(c=>c[0]).join(', '))}» es <b>toda</b> la clave primaria de «${esc(s.t.n)}», así que no se puede repetir: cada «${esc(s.pa.n)}» sale como mucho una vez (máximo 1). Si «${esc(s.t.n)}» es la tabla de una relación N:M, le falta la otra clave ajena dentro de la clave primaria.</p>`:'')+`
+          return `<div class="in-sub">Cardinalidades</div>`+(wholePK&&!has('isa')?`<p class="in-p warn">«${esc(s.cols.map(c=>c[0]).join(', '))}» es <b>toda</b> la clave primaria de «${esc(s.t.n)}», así que no se puede repetir: cada «${esc(s.pa.n)}» sale como mucho una vez (máximo 1). Si «${esc(s.t.n)}» es la tabla de una relación N:M, le falta la otra clave ajena dentro de la clave primaria.</p>`:'')+`
           <div class="cq"><div class="in-q"><b class="qe">${esc(s.pa.n)}</b> ¿cuántas/os <b class="qe">${esc(s.t.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg">${sb('uq',1,uq,'1')}${wholePK?'<button class="segb" disabled title="Es toda la clave primaria: no se puede repetir">N</button>':sb('uq',0,!uq,'N')}</div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('pmin',0,!pmin,'0')}${sb('pmin',1,pmin,'1')}</div></div><div class="cres">junto a «${esc(s.t.n)}»: <b class="cd">(${pmin?'1':'0'},${uq?'1':'N'})</b></div></div>
           <div class="cq"><div class="in-q"><b class="qe">${esc(s.t.n)}</b> ¿cuántas/os <b class="qe">${esc(s.pa.n)}</b> puede tener como…</div><div class="cardrow"><span>máximo</span><div class="seg"><button class="segb" aria-pressed="true" data-fkn="1">1</button><button class="segb" aria-pressed="false" data-fkn="N" title="Para N en los dos lados hace falta una tabla intermedia">N</button></div></div><div class="cardrow"><span>mínimo</span><div class="seg">${sb('nul',1,nul,'0')}${sb('nul',0,!nul,'1')}</div></div><div class="cres">junto a «${esc(s.pa.n)}»: <b class="cd">(${nul?'0':'1'},1)</b></div></div>
           <div class="in-sub">Línea</div><div class="seg wide">${sb('pk',1,pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg>Continua')}${sb('pk',0,!pk,'<svg width="22" height="6" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Discontinua')}</div><p class="in-p">${pk?'Identificadora: la FK forma parte de la PK.':'No identificadora: la FK es una columna normal.'}</p>`;})():'')+
+        (()=>{const tpk=(s.t.c||[]).filter(c=>parseF(c[2]).pk),whole=tpk.length>0&&tpk.length===s.cols.length&&s.cols.every(c=>parseF(c[2]).pk);if(!whole&&!has('isa'))return '';
+          const isa=has('isa'),b=(v,on,t)=>`<button class="segb" data-fkset="isa" data-v="${v}" aria-pressed="${on}">${t}</button>`;
+          return `<div class="in-sub">Jerarquía</div><div class="seg wide">${b(0,!isa,'Relación 1 a 1 normal')}${b(1,isa,`Subtipo de «${esc(s.pa.n)}»`)}</div><p class="in-p">${isa?`«${esc(s.t.n)}» es un tipo de «${esc(s.pa.n)}»: hereda su clave (PK y FK a la vez). Aquí no se dibuja el triángulo; al pasar al E-R sale la jerarquía.`:`Si «${esc(s.t.n)}» es un tipo de «${esc(s.pa.n)}» (un directivo es un empleado), márcalo como subtipo: al pasar al E-R sale la jerarquía.`}</p>`;})()+
         (()=>{const cas=has('cas'),b=(v,on,t)=>`<button class="segb" data-fkset="cas" data-v="${v}" aria-pressed="${on}">${t}</button>`;
           return `<div class="in-sub">Al borrar una fila de «${esc(s.pa.n)}»</div><div class="seg wide">${b(0,!cas,'No se deja si tiene filas')}${b(1,cas,'Se borran también (CASCADE)')}</div><p class="in-p">${cas?`Entidad débil: si se borra un «${esc(s.pa.n)}», se borran solos sus «${esc(s.t.n)}». En el SQL: <code>ON DELETE CASCADE</code>.`:'Lo normal. Márcalo en CASCADE si es una entidad débil.'}</p>`;})()+
         `<div class="in-actions"><button class="ebtn danger" data-fkact="del">${GL.clear||''}<span>Quitar la relación</span></button></div>`;}
@@ -1318,8 +1321,8 @@ class Editor{
     this.m.links.forEach(l=>{if(isEnt(X.N[l.a])&&isEnt(X.N[l.b])&&l.a!==l.b)join([l.a,l.b]);}); // líneas directas del boceto
     const supOf={};isas.forEach(i=>{const s=X.superOf(i);if(!s)return;X.subsOf(i).forEach(e=>{supOf[e.id]=s.id;join([s.id,e.id]);});});
     const nAtt=o=>X.attrsOf(o).length,maxA=Math.max(60,...attrs.map(a=>a.w));
-    const cellW=this.isBo?Math.max(110,...ents.map(e=>e.w))+170:Math.max(110,...ents.map(e=>e.w))+2*(maxA+34)+140;
-    const cellH=this.isBo?Math.max(40,...ents.map(e=>e.h))+130:Math.max(...ents.map(e=>nAtt(e)>4?250:200),200)+140;
+    const cellW=this.isBo?Math.max(110,...ents.map(e=>e.w))+120:Math.max(110,...ents.map(e=>e.w))+2*(maxA+24)+70;
+    const cellH=this.isBo?Math.max(40,...ents.map(e=>e.h))+90:Math.max(...ents.map(e=>nAtt(e)>4?220:180),180)+85;
     // 1) entidades en la cuadrícula
     const done=new Set(),byDeg=(a,b)=>adj.get(b.id).size-adj.get(a.id).size||nAtt(b)-nAtt(a);
     let ox=0,oy=0,rowH=0;const ROWMAX=4;
@@ -1382,7 +1385,7 @@ class Editor{
       [...list].sort((a,b)=>(b.f.k||b.f.p?1:0)-(a.f.k||a.f.p?1:0)).forEach((a,idx)=>{
         let best=null;
         for(let ring=0;ring<4&&!best;ring++)for(let s=0;s<72;s++){const ang=-Math.PI/2+s*Math.PI/36;
-          const rx=o.w/2+a.w/2+(isAtt(o)?14:22)+ring*44,ry=o.h/2+13+(isAtt(o)?18:30)+ring*34;
+          const rx=o.w/2+a.w/2+(isAtt(o)?12:16)+ring*38,ry=o.h/2+12+(isAtt(o)?14:22)+ring*30;
           const x=o.x+Math.cos(ang)*rx,y=o.y+Math.sin(ang)*ry;if(!free(a,x,y))continue;
           const toLine=lines.length?Math.min(...lines.map(l=>angd(ang,l))):Math.PI,toUsed=used.length?Math.min(...used.map(u=>angd(ang,u))):Math.PI;
           if(toLine<0.45)continue;
@@ -1473,7 +1476,7 @@ class Editor{
       const xs=boxes.map(b=>b.x),ys=boxes.map(b=>b.y),cx=xs.length?(Math.min(...xs)+Math.max(...xs))/2:0,cy=ys.length?(Math.min(...ys)+Math.max(...ys))/2:0;
       let dx=W/2,dy=H/2;if(!wasEmpty&&er.nodes.length){const ex=er.nodes.map(n=>n.x),ey=er.nodes.map(n=>n.y);dx=(Math.min(...ex)+Math.max(...ex))/2;dy=Math.max(...ey)+320+(ys.length?(Math.max(...ys)-Math.min(...ys))*0.8:0);}
       const addAttr=(o,c,fl)=>{const X=erIdx(er);if(X.attrsOf(o).some(a=>lc(a.n)===lc(c.n)))return;const nn={id:uid(),k:'attr',n:c.n,x:o.x,y:o.y,f:fl};ed2.size(nn);er.nodes.push(nn);er.links.push({id:uid(),a:o.id,b:nn.id,c:null,mn:null,mx:null});ed2.size(o);if(!wasEmpty)ed2.placeAttr(o,nn);na++;};
-      boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=(pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk))||cs.some(c=>c.f.fk&&c.f.cas);let e=eBy[lc(t.n)];
+      boxes.forEach(({t,x,y})=>{const cs=C(t),pk=cs.filter(c=>c.f.pk),weak=!cs.some(c=>c.f.isa)&&((pk.some(c=>c.f.fk)&&pk.some(c=>!c.f.fk))||cs.some(c=>c.f.fk&&c.f.cas));let e=eBy[lc(t.n)];
         if(!e){e={id:uid(),k:weak?'weak':'ent',n:t.n,x:Math.round(dx+(x-cx)*1.6),y:Math.round(dy+(y-cy)*1.6),f:{}};er.nodes.push(e);eBy[lc(t.n)]=e;ne++;}
         cs.filter(c=>!c.f.fk).forEach(c=>{const fl={};if(c.f.pk){if(weak)fl.p=1;else fl.k=1;}if(c.f.nul&&!c.f.pk)fl.o=1;if(c.f.uq&&!c.f.pk)fl.u=1;addAttr(e,c,fl);});});
       const relNames=er.nodes.filter(isRel).map(r=>r.n),has=(A,B)=>{const X=erIdx(er);return er.nodes.some(r=>isRel(r)&&(()=>{const es=X.ends(r).map(x=>x.e.id);return es.length===2&&es.includes(A.id)&&es.includes(B.id)&&(A!==B||es[0]===es[1]);})());};
@@ -1481,7 +1484,13 @@ class Editor{
       const mkRel=(name,ends,k)=>{const r={id:uid(),k:k||'rel',n:this.uniqueName(name,relNames),x:Math.round(ends.reduce((s,x)=>s+x[0].x,0)/ends.length),y:Math.round(ends.reduce((s,x)=>s+x[0].y,0)/ends.length),f:{}};
         if(ends.length===2&&ends[0][0]===ends[1][0]){r.x+=170;r.y-=100;}relNames.push(r.n);er.nodes.push(r);ends.forEach(([e,mn,mx])=>er.links.push(lk(r,e,mn,mx)));nr++;return r;};
       const base=LANG()==='en'?'relationship':'relacion';
-      ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE)return;if(!replace&&has(E,PE))return;
+      // subtipos (FK marcada como jerarquía): se juntan en un triángulo por supertipo
+      const subsBy=new Map();
+      ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE||!cs.every(c=>c.f.isa))return;if(!subsBy.has(PE))subsBy.set(PE,[]);subsBy.get(PE).push(E);});});
+      subsBy.forEach((subs,PE)=>{const X=erIdx(er);let i=er.nodes.find(n=>isIsa(n)&&X.superOf(n)===PE);
+        if(!i){i={id:uid(),k:'isa',n:'',x:Math.round(subs.reduce((s,e)=>s+e.x,0)/subs.length),y:Math.round((PE.y+Math.min(...subs.map(e=>e.y)))/2),f:{tot:false,dis:true,map:'each'}};if(Math.abs(i.y-PE.y)<60)i.y=PE.y+90;er.nodes.push(i);er.links.push({id:uid(),a:i.id,b:PE.id,c:null,mn:null,mx:null,sup:1});nr++;}
+        const have=new Set(erIdx(er).subsOf(i).map(e=>e.id));subs.forEach(e=>{if(!have.has(e.id))er.links.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null});});});
+      ents.forEach(t=>{const E=eBy[lc(t.n)];refs(C(t)).forEach(({P,cs})=>{const PE=eBy[lc(P.n)];if(!PE)return;if(cs.every(c=>c.f.isa))return;if(!replace&&has(E,PE))return;
         const uq=cs.every(c=>c.f.uq)||(cs.every(c=>c.f.pk)&&C(t).filter(c=>c.f.pk).length===cs.length),nul=cs.some(c=>c.f.nul),pm=cs.every(c=>c.f.pmin)?'1':'0',ident=E.k==='weak'&&cs.every(c=>c.f.pk);
         mkRel(base,CARD_PART()?[[E,nul?'0':'1','1'],[PE,pm,uq?'1':'N']]:[[E,pm,uq?'1':'N'],[PE,nul?'0':'1','1']],ident?'idrel':'rel');});});
       src.filter(isLink).forEach(t=>{const rs=refs(C(t).filter(c=>c.f.pk)),ends=rs.map(({P})=>eBy[lc(P.n)]).filter(Boolean);if(ends.length<2)return;

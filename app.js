@@ -62,6 +62,9 @@ function captureSVG(p){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W2}" height="${H2}" viewBox="0 0 ${W2} ${H2}"><style>${SVG_CSS}.h1{font:600 24px 'Segoe UI',Arial,sans-serif;fill:#22211F}.h2{font:14px 'Segoe UI',Arial,sans-serif;fill:#6B6A64}.h3{font:600 16px 'Segoe UI',Arial,sans-serif;fill:#22211F}.sep{stroke:#22211F;stroke-width:1.2}.frame{fill:#FFFFFF;stroke:#E2E0DB}</style><rect width="${W2}" height="${H2}" fill="#F6F5F2"/>${body}</svg>`;
   return {svg,w:W2,h:H2};
 }
+function verNota(enun,i,old,nw){const L=n=>(LANG()==='en'?'Version ':'Versión ')+(i+1)+': '+String(n).trim();let t=String(enun||'').replace(/\s+$/,'');
+  if(String(old).trim()){const o=L(old);if(t.endsWith(o))t=t.slice(0,-o.length).replace(/\s+$/,'');}
+  if(String(nw).trim())t=(t?t+'\n\n':'')+L(nw);return t;}
 const VSEND={enun:['el enunciado','el enunciado','el enunciado'],bo:['el boceto','el boceto','el boceto'],er:['el E-R','el E-R','el E-R'],rel:['el relacional','el relacional','el relacional'],ded:['el DED','el DED','el DED'],sql:['el SQL','el SQL','el SQL']};
 async function captureProject(p){
   const c=captureSVG(p);if(!c)return null;
@@ -233,6 +236,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.4':['The hierarchy (supertype and subtypes) is always shown in the E-R: it can no longer be hidden.','Hierarchies in the relational model and the DSD: click the line of an FK that is the whole key and mark it as «Subtype of…». No triangle is drawn (the line stays 1 to 0..1), but going to the E-R brings the hierarchy back. And when an E-R with a hierarchy goes to tables, the subtypes come already marked.','«Arrange» keeps things closer together.','What you write in «What changes in version…» is added at the end of that version\'s statement and updated when you change it.'],
   '4.3.1':['Exam: the teacher can sign in with the username or with the email of an existing teacher account.'],
   '4.3':['Versions of the same exercise: «Duplicate › Make another version» creates version 2 (3, 4…) inside the same project. Each version has its own folder (Version 1, Version 2…) with its statement, E-R, relational, DSD and SQL. Switch between them with the buttons above the tabs and write what changes in each one.',
     '«Copy the E-R (or sketch, relational, DSD, SQL, statement) to another version»: it asks first and then you change by hand whatever is different. If two versions have exactly the same statement, the app warns you.',
@@ -255,6 +259,10 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.4: la jerarquía (supertipo y subtipos) sale siempre en el E-R: ya no se puede ocultar.',
+  '4.4: jerarquías en el relacional y el DED: pincha la línea de una FK que es toda la clave y márcala como «Subtipo de…». No se dibuja el triángulo (la línea queda 1 a 0..1), pero al pasar al E-R sale la jerarquía. Y al pasar un E-R con jerarquía a tablas, los subtipos ya salen marcados.',
+  '4.4: «Distribuir» deja las cosas más juntas.',
+  '4.4: lo que escribes en «Qué cambia en la versión…» se añade al final del enunciado de esa versión y se actualiza al cambiarlo.',
   '4.3.1: examen: el profesor puede entrar con su usuario o con el correo de su cuenta de siempre.',
   '4.3: versiones del mismo ejercicio: «Duplicar › Hacer otra versión» crea la versión 2 (3, 4…) dentro del mismo proyecto. Cada versión tiene su carpeta (Version 1, Version 2…) con su enunciado, E-R, relacional, DED y SQL. Se cambia de una a otra con los botones encima de las pestañas y se escribe qué cambia en cada una.',
   '4.3: «Pasar el E-R (o el boceto, el relacional, el DED, el SQL o el enunciado) a otra versión»: pregunta antes y luego cambias a mano lo que sea distinto. Si dos versiones tienen exactamente el mismo enunciado, la app te avisa.',
@@ -611,7 +619,6 @@ const App={
       h=H('Atajos de teclado','Pulsa «Cambiar» y después la combinación que quieras (por ejemplo Ctrl+Mayús+E). Esc cancela.')+KEY_NAMES.map(([g,rows])=>`<p class="set-g">${g}</p>`+rows.map(([a,l])=>`<div class="set-row"><div class="set-lab"><b>${l}</b></div><div class="keyrow">${this._capKey===a?'<span class="keycap wait">Pulsa la combinación…</span>':K[a]?`<span class="keycap">${kb(K[a]==='Delete'?'Supr':K[a])}</span>`:'<span class="keycap none">Sin atajo</span>'}<button class="ebtn" data-m="key-set" data-k="${a}">Cambiar</button>${K[a]?`<button class="ebtn" data-m="key-clear" data-k="${a}" title="Quitar el atajo" aria-label="Quitar el atajo">✕</button>`:''}</div></div>`).join('')).join('')+
         `<div class="set-row"><div class="set-lab"><b>Volver a los de siempre</b></div><button class="ebtn danger" data-m="keys-reset">Restablecer atajos</button></div>`;}
     else if(sec==='lienzo'){h=H('Lienzo')+seg('cardMode','Cómo se lee la cardinalidad (mín,máx) del E-R','La pareja que pones junto a una entidad. Se usa al pasar a tablas, a ERDPlus, a Workbench y en el quiz.',[['part','Cuántas veces participa esa entidad'],['otro','Cuántas de esa entidad tiene la otra']])+seg('lines','Líneas del relacional y del DED','En ángulo: solo tramos horizontales y verticales, más limpio.',[['straight','Rectas'],['ortho','En ángulo']])+
-        tog('showIsa','Botón «Jerarquía» (ISA) en el E-R','Generalización / especialización. Si no lo usas, quítalo de la barra.')+
         tog('boDiamond','Rombo en las líneas del Boceto','Un rombo pequeño, sin texto, en el centro de cada línea del Boceto (como en el E-R).')+
         tog('showType','Tipo de relación debajo del rombo','Muestra 1:1, 1:N o N:M en cada relación.')+tog('showCardQ','Marcar las cardinalidades que faltan','Pone (?,?) en las líneas que aún no tienen máximo y mínimo.')+
         tog('grid','Mostrar la cuadrícula de puntos','')+tog('snap','Ajustar a la cuadrícula al mover','Los elementos se colocan de 20 en 20 para que queden alineados (también al moverlos con las flechas).')+
@@ -908,7 +915,9 @@ const App={
       ${p.act?this.actBar(p):`<div class="ph-acts"><div class="ph-grp" role="group" aria-label="Exportar"><span class="ph-lab">Exportar</span>${B('capture','Ejercicio','','Guarda una imagen con el E-R, el relacional y el DED en la subcarpeta Captura')}${B('export','Código','','Genera un código para pasar el proyecto a otra persona')}</div><div class="ph-grp" role="group" aria-label="Proyecto">${B('compare','Comparar','','Compara este proyecto con otro (o con un código) y te dice qué cambia')}${B('dup','Duplicar','','Duplicar el proyecto o hacer otra versión del mismo ejercicio')}${B('reveal','Abrir carpeta')}</div><div class="ph-grp" role="group" aria-label="Borrar">${B('clearproj','Vaciar','danger','Borra todos los diagramas sin borrar el proyecto')}${this.solo?'':B('delproj','Eliminar','danger')}</div></div>`}</header>${this.verBar(p)}
       <div class="vtabs" role="tablist">${Object.entries(VIEWS).filter(([v])=>!p.act||(p.act.show||[]).includes(v)).map(([v,l])=>`<button class="vtab" role="tab" data-view="${v}" aria-selected="${this.view===v}">${ICO[v]}<span>${l}</span></button>`).join('')}</div>
       <div class="view" id="view"></div>`;
-    const vn=document.getElementById('vnota');if(vn)vn.addEventListener('input',e=>{p.vers[p.vcur||0].nota=e.target.value;this.touch(p);});
+    // lo que cambia en la versión se escribe también al final de su enunciado («Versión 2: …») y se actualiza al cambiar la nota
+    const vn=document.getElementById('vnota');if(vn)vn.addEventListener('input',e=>{const i=p.vcur||0,old=p.vers[i].nota||'';p.vers[i].nota=e.target.value;p.enun=verNota(p.enun,i,old,e.target.value);this.touch(p);
+      const et=document.getElementById('enun');if(et&&et.value!==p.enun){et.value=p.enun;et.dispatchEvent(new Event('input'));}});
     document.getElementById('pname').addEventListener('input',e=>{p.name=e.target.value.trim()||'Sin nombre';const nm=document.querySelector(`.pf[data-pid="${p._id}"] .nm`);if(nm)nm.textContent=p.name;const tp=document.getElementById('tbproj');if(tp)tp.textContent=p.name;if(this.solo)document.title=p.name+' · Modelado Bases';this.renameSoon(p);});
     const v=document.getElementById('view');
     if(p.act&&!(p.act.show||[]).includes(this.view)){this.view='enun';return this.renderMain();}

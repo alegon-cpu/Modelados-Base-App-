@@ -612,10 +612,17 @@ const EN={
 "No se puede borrar la única versión.":"The only version cannot be deleted.",
 "Este proyecto no tiene versiones.":"This project has no versions.",
 // 4.0
-"← Volver a mi examen":"← Back to my exam"
+"← Volver a mi examen":"← Back to my exam",
+// 4.0
+"Jerarquía":"Hierarchy",
+"Relación 1 a 1 normal":"Normal 1 to 1 relationship"
 };
 // Textos con partes variables
 const EN_RX=[
+[/^Subtipo de «(.+)»$/,"Subtype of «$1»"],
+[/^«(.+)» es un tipo de «(.+)»: hereda su clave \(PK y FK a la vez\)\. Aquí no se dibuja el triángulo; al pasar al E-R sale la jerarquía\.$/,"«$1» is a kind of «$2»: it inherits its key (PK and FK at the same time). The triangle is not drawn here; the hierarchy appears when you go to the E-R."],
+[/^Si «(.+)» es un tipo de «(.+)» \(un directivo es un empleado\), márcalo como subtipo: al pasar al E-R sale la jerarquía\.$/,"If «$1» is a kind of «$2» (a manager is an employee), mark it as a subtype: the hierarchy appears when you go to the E-R."],
+
 [/^Duplicar «(.+)»$/,"Duplicate «$1»"],
 [/^Dentro de este mismo ejercicio: se crea la versión (\d+) copiando la que tienes abierta\. Cada versión va en su carpeta \(Version 1, Version 2…\) con su enunciado, E-R, relacional, DED y SQL\.$/,"Inside this same exercise: version $1 is created by copying the one you have open. Each version goes in its own folder (Version 1, Version 2…) with its statement, E-R, relational, DSD and SQL."],
 [/^Qué cambia en la versión (\d+)…?$/,"What changes in version $1…"],
