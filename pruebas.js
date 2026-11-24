@@ -50,7 +50,7 @@ const Pruebas={
     this.out(p,`<div class="tst-ok"><b>Base de datos de prueba creada</b> con ${sc.order.length} tablas.${sc.warn.length?`<ul class="plist">${sc.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}<details><summary>Ver el CREATE TABLE usado (SQLite)</summary><pre>${esc(script)}</pre></details></div>`);
   },
   fill(p){const st=this.st(p);if(!st)return;const n=Settings.get().sampleRows||5,data=sampleRows(st.sc,n),sql=insertsSQL(st.sc,data,'sqlite');
-    try{st.db.exec('BEGIN;'+sql+'COMMIT;');}catch(e){try{st.db.exec('ROLLBACK;');}catch(x){}this.out(p,`<div class="tst-err"><b>No se pudieron meter los datos de ejemplo.</b><p>${esc(explainSQLite(e.message))}</p></div>`);return;}
+    try{st.db.exec('BEGIN;PRAGMA defer_foreign_keys = ON;'+sql+'COMMIT;');}catch(e){try{st.db.exec('ROLLBACK;');}catch(x){}this.out(p,`<div class="tst-err"><b>No se pudieron meter los datos de ejemplo.</b><p>${esc(explainSQLite(e.message))}</p></div>`);return;}
     this.refresh(p);this.out(p,`<div class="tst-ok"><b>Datos de ejemplo añadidos</b> (hasta ${n} filas por tabla).${data.warn.length?`<ul class="plist">${data.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}<details><summary>Ver los INSERT</summary><pre>${esc(sql)}</pre></details></div>`);},
   empty(p){const st=this.st(p);if(!st)return;st.db.run('PRAGMA foreign_keys = OFF;');[...st.sc.order].reverse().forEach(t=>{try{st.db.run(`DELETE FROM ${qidD(t.n,'sqlite')}`);}catch(e){}});st.db.run('PRAGMA foreign_keys = ON;');this.refresh(p);this.out(p,`<div class="tst-ok">Datos borrados. Las tablas siguen creadas.</div>`);},
   fkCheck(p){const st=this.st(p);if(!st)return;const rows=[];

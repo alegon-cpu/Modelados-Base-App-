@@ -83,12 +83,18 @@ function toERDPlus(er){
   er.nodes.forEach(n=>ids[n.id]=next++);
   er.nodes.filter(isEnt).forEach(n=>shapes.push({type:'Entity',details:{name:n.n,type:n.k==='weak'?'weak':'regular',x:X0(n),y:Y0(n),id:ids[n.id]}}));
   er.nodes.filter(isAtt).forEach(n=>{const f=n.f||{};
-    shapes.push({type:'Attribute',details:{name:n.n,isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id]}});
+    shapes.push({type:'Attribute',details:{name:n.n+(f.u&&!f.k&&!f.p&&!/\(U\)\s*$/i.test(n.n)?' (U)':''),isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id]}});
     const ow=X.ownerOf(n);if(ow)connectors.push({type:'Connector',details:{id:next++},source:ids[n.id],destination:ids[ow.id]});});
   er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r),ea=hereEnds(en);
     const slots=ea.map((x,i)=>({slotIndex:i,minimum:'',maximum:'',participation:x.mn==='1'?'mandatory':'optional',cardinality:x.mx==='1'?'one':'many',role:'',entityId:ids[x.e.id]}));
     shapes.push({type:'Relationship',details:{name:r.n,isIdentifying:r.k==='idrel',x:X0(r),y:Y0(r),slots,id:ids[r.id]}});
     en.forEach((x,i)=>connectors.push({type:'RelationshipConnector',details:{slotIndex:i,id:next++},source:ids[x.e.id],destination:ids[r.id]}));});
+  // Jerarquías: ERDPlus no tiene triángulo. Cada subtipo se une a su supertipo con una relación 1:1 «es»
+  // (el supertipo puede serlo o no: opcional; el subtipo siempre es uno: obligatorio). Al importar se vuelve a montar.
+  er.nodes.filter(isIsa).forEach(i=>{const P=X.superOf(i);if(!P)return;X.subsOf(i).forEach(S=>{const rid=next++;
+    shapes.push({type:'Relationship',details:{name:'es',isIdentifying:false,x:Math.round((X0(P)+X0(S))/2+(P.w-80)/2),y:Math.round((Y0(P)+Y0(S))/2),
+      slots:[{slotIndex:0,minimum:'',maximum:'',participation:'optional',cardinality:'one',role:'',entityId:ids[P.id]},{slotIndex:1,minimum:'',maximum:'',participation:'mandatory',cardinality:'one',role:'',entityId:ids[S.id]}],id:rid}});
+    connectors.push({type:'RelationshipConnector',details:{slotIndex:0,id:next++},source:ids[P.id],destination:rid},{type:'RelationshipConnector',details:{slotIndex:1,id:next++},source:ids[S.id],destination:rid});});});
   const width=Math.max(800,...er.nodes.map(n=>X0(n)+n.w+60)),height=Math.max(600,...er.nodes.map(n=>Y0(n)+n.h+60));
   return JSON.stringify({version:2,www:'erdplus.com',shapes,connectors,width,height});
 }
@@ -236,6 +242,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.5':["«Easy mode» also in the E-R toolbar: turn it on there and the relationships go along to the relational model and the DSD.", "ERDPlus: importing no longer loses relationship attributes. Hierarchies are exported as 1:1 «es» relationships and the triangle comes back on import. A unique attribute is exported as «DNI (U)».", "E-R to tables: an FK pointing to a weak entity always gets its full key. Multivalued tables delete in cascade.", "Relational to E-R: multivalued tables come back as multivalued attributes, and each relationship gets its name back from the FK (CodDep_pertenece → «pertenece»).", "SQL or Workbench to DSD: a table whose PK is the FK to another is recognised as a hierarchy subtype.", "E-R to sketch: attribute types and relationship verbs go to the sketch and come back to the E-R.", "Test: sample data works even when two tables point at each other. MySQL sample data adds SET FOREIGN_KEY_CHECKS.", "Arrange: attributes no longer land on lines or cardinalities, and the subtypes of a hierarchy sit in a row under their supertype.", "Column types are guessed better (Capacidad, Creditos, Horas → INT; Email → VARCHAR(100); Duracion → TIME…).", "New theory: «Several relationships between the same entities» and «ERDPlus and MySQL Workbench step by step». Hierarchies have an example of the three ways to convert them."],
   '4.4.1':['DSD: a composite foreign key (for example Numero + CodCam to Etapa) is drawn with a single line. If a table has two foreign keys to the same table (departure and arrival), each one has its own line and is changed separately.','When going from the E-R to tables, if there are several 1:N relationships between the same two entities, each foreign key gets the name of its relationship (codLoc_salida, codLoc_llegada).'],
   '4.4':['The hierarchy (supertype and subtypes) is always shown in the E-R: it can no longer be hidden.','Hierarchies in the relational model and the DSD: click the line of an FK that is the whole key and mark it as «Subtype of…». No triangle is drawn (the line stays 1 to 0..1), but going to the E-R brings the hierarchy back. And when an E-R with a hierarchy goes to tables, the subtypes come already marked.','«Arrange» keeps things closer together.','What you write in «What changes in version…» is added at the end of that version\'s statement and updated when you change it.'],
   '4.3.1':['Exam: the teacher can sign in with the username or with the email of an existing teacher account.'],
@@ -260,6 +267,16 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.5: «Modo fácil» también en la barra del E-R: lo activas ahí y al pasar al relacional y al DED ya van las relaciones.',
+  '4.5: ERDPlus: al importar ya no se pierden los atributos de las relaciones (Nota en «matricula»). Las jerarquías se exportan como relaciones 1:1 «es» y al importar vuelve el triángulo. Un atributo único se exporta como «DNI (U)».',
+  '4.5: E-R a tablas: una FK que apunta a una entidad débil lleva siempre su clave completa (antes podía salir solo la parcial según el orden). Las tablas de los multivaluados borran en cascada.',
+  '4.5: relacional a E-R: las tablas de un multivaluado (Profesor_Telefono) vuelven como atributo multivaluado, no como entidad débil, y cada relación recupera su nombre a partir de la FK (CodDep_pertenece → «pertenece»).',
+  '4.5: SQL o Workbench al DED: una tabla cuya PK es la FK a otra se reconoce como subtipo de una jerarquía.',
+  '4.5: E-R al boceto: pasan los tipos de cada atributo (clave, único, opcional, multivaluado…) y el verbo de cada relación, que vuelve al pasar otra vez al E-R.',
+  '4.5: Probar: los datos de ejemplo funcionan aunque dos tablas se apunten entre sí (Profesor y Departamento). En los datos para MySQL se añade SET FOREIGN_KEY_CHECKS.',
+  '4.5: Distribuir: los atributos ya no caen encima de las líneas ni de las cardinalidades, y los subtipos de una jerarquía quedan en fila debajo de su supertipo.',
+  '4.5: los tipos de las columnas se adivinan mejor (Capacidad, Créditos, Horas → INT; Email → VARCHAR(100); Duración → TIME…).',
+  '4.5: teoría nueva: «Varias relaciones entre las mismas entidades» (salida y llegada, FK compuesta) y «ERDPlus y MySQL Workbench paso a paso». Las jerarquías tienen un ejemplo de sus tres formas de pasar a tablas.',
   '4.4.1: DED: una clave ajena compuesta (por ejemplo Numero + CodCam hacia Etapa) se dibuja con una sola línea. Si una tabla tiene dos claves ajenas a la misma tabla (salida y llegada), cada una tiene su línea y se cambia por separado.',
   '4.4.1: al pasar del E-R a tablas, si hay varias relaciones 1:N entre las mismas dos entidades, cada clave ajena lleva el nombre de su relación (codLoc_salida, codLoc_llegada).',
   '4.4: la jerarquía (supertipo y subtipos) sale siempre en el E-R: ya no se puede ocultar.',

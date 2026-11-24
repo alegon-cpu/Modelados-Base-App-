@@ -112,7 +112,7 @@ function sampleValue(t,c,i,R){
   return cut(/CHAR\(\d+\)$/.test(ty)&&!/VARCHAR/.test(ty)?String.fromCharCode(65+(i%26)).repeat(Math.max(1,len)):`${c.n} ${i+1}`);
 }
 function sampleRows(sc,n=5){
-  const rows={},warn=[];
+  const rows={},warn=[],later=[];
   sc.order.forEach(t=>{
     const R=rng(t.n),out=[],seen=new Set(),uqSeen={};
     const fkByCol={};t.fks.forEach(f=>f.cs.forEach((c,j)=>fkByCol[lc(c)]={f,j}));
@@ -121,7 +121,8 @@ function sampleRows(sc,n=5){
       const row={},chosen=new Map();
       t.cols.forEach(c=>{const fk=fkByCol[lc(c.n)];
         if(fk){const par=rows[lc(fk.f.par.n)]||(fk.f.par===t?out:null);
-          if(!par||!par.length){row[c.n]=c.nn?(fk.f.par===t?(out.length+1):1):null;return;}
+          // la tabla padre aún no tiene filas (las tablas se apuntan entre sí): se rellena al final con una fila de verdad
+          if(!par||!par.length){row[c.n]=c.nn?(fk.f.par===t?(out.length+1):1):null;if(c.nn&&fk.f.par!==t)later.push({row,f:fk.f,i:out.length});return;}
           if(!chosen.has(fk.f)){let r=par[Math.floor(R()*par.length)];if(fk.f.par===t&&!c.nn&&out.length===0)r=null;chosen.set(fk.f,r);}
           const r=chosen.get(fk.f);row[c.n]=r?r[fk.f.ref[fk.j]]:null;return;}
         if(c.pk&&t.pk.length===1&&/INT|NUMBER/i.test(c.ty)){row[c.n]=out.length+1;return;}
@@ -136,7 +137,8 @@ function sampleRows(sc,n=5){
       seen.add(key);out.push(row);}
     if(out.length<n)warn.push(`«${t.n}»: solo caben ${out.length} filas distintas con los datos de las tablas a las que apunta.`);
     rows[lc(t.n)]=out;});
-  return {rows,warn};
+  later.forEach(({row,f,i})=>{const par=rows[lc(f.par.n)];if(!par||!par.length)return;const r=par[i%par.length];f.cs.forEach((c,j)=>row[c]=r[f.ref[j]]);});
+  return {rows,warn,cyc:later.length>0};
 }
 function sqlLit(v,d){
   if(v==null)return 'NULL';
@@ -147,8 +149,11 @@ function sqlLit(v,d){
 }
 function insertsSQL(sc,data,d){
   const Q=s=>qidD(s,d);let out='';
+  // tablas que se apuntan entre sí: hay que meter las filas antes de que exista la del padre
+  const cyc=data.cyc&&(d==='mysql'||d==='mariadb');if(cyc)out+='SET FOREIGN_KEY_CHECKS = 0;\n\n';
   sc.order.forEach(t=>{const rs=data.rows[lc(t.n)]||[];if(!rs.length)return;
     out+=`-- ${t.n}\n`+rs.map(r=>`INSERT INTO ${Q(t.n)} (${t.cols.map(c=>Q(c.n)).join(', ')}) VALUES (${t.cols.map(c=>sqlLit(r[c.n],d)).join(', ')});`).join('\n')+'\n\n';});
+  if(cyc)out+='SET FOREIGN_KEY_CHECKS = 1;\n';
   return out;
 }
 // Mensajes de SQLite explicados

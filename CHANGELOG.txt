@@ -41,6 +41,19 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.5.0  (24/11/2026)
+--------------------
+- «Modo fácil» también en la barra del E-R: lo activas ahí y al pasar al relacional y al DED ya van las relaciones.
+- ERDPlus: al importar ya no se pierden los atributos de las relaciones (Nota en «matricula»). Las jerarquías se exportan como relaciones 1:1 «es» y al importar vuelve el triángulo. Un atributo único se exporta como «DNI (U)».
+- E-R a tablas: una FK que apunta a una entidad débil lleva siempre su clave completa (antes podía salir solo la parcial según el orden). Las tablas de los multivaluados borran en cascada.
+- relacional a E-R: las tablas de un multivaluado (Profesor_Telefono) vuelven como atributo multivaluado, no como entidad débil, y cada relación recupera su nombre a partir de la FK (CodDep_pertenece → «pertenece»).
+- SQL o Workbench al DED: una tabla cuya PK es la FK a otra se reconoce como subtipo de una jerarquía.
+- E-R al boceto: pasan los tipos de cada atributo (clave, único, opcional, multivaluado…) y el verbo de cada relación, que vuelve al pasar otra vez al E-R.
+- Probar: los datos de ejemplo funcionan aunque dos tablas se apunten entre sí (Profesor y Departamento). En los datos para MySQL se añade SET FOREIGN_KEY_CHECKS.
+- Distribuir: los atributos ya no caen encima de las líneas ni de las cardinalidades, y los subtipos de una jerarquía quedan en fila debajo de su supertipo.
+- los tipos de las columnas se adivinan mejor (Capacidad, Créditos, Horas → INT; Email → VARCHAR(100); Duración → TIME…).
+- teoría nueva: «Varias relaciones entre las mismas entidades» (salida y llegada, FK compuesta) y «ERDPlus y MySQL Workbench paso a paso». Las jerarquías tienen un ejemplo de sus tres formas de pasar a tablas.
+
 v4.4.1  (24/11/2026)
 --------------------
 - DED: una FK compuesta es una sola linea; varias FK a la misma tabla se ven y se editan por separado.

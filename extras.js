@@ -45,13 +45,16 @@ function fromERDPlus(text){
   const byId={},notes=[];
   shapes.forEach(s=>{const dt=s.details||{},x=+dt.x||0,y=+dt.y||0,t=ty(s);
     if(t==='entity')byId[dt.id]={id:uid(),k:/weak/i.test(String(dt.type||''))?'weak':'ent',n:String(dt.name||'Entidad'),x:x+60,y:y+20,f:{}};
-    else if(t==='attribute')byId[dt.id]={id:uid(),k:'attr',n:String(dt.name||'atributo'),x:x+45,y:y+15,
-      f:{k:!!(dt.isUnique||dt.isPrimaryKey||dt.isKey),o:!!dt.isOptional,d:!!dt.isDerived,m:!!dt.isMultivalued,c:!!dt.isComposite}};
+    else if(t==='attribute'){const nm=String(dt.name||'atributo'),u=/\s*\(U\)\s*$/i.test(nm);// «DNI (U)»: único (ERDPlus no tiene esa marca)
+      byId[dt.id]={id:uid(),k:'attr',n:u?nm.replace(/\s*\(U\)\s*$/i,''):nm,x:x+45,y:y+15,
+      f:{k:!!(dt.isUnique||dt.isPrimaryKey||dt.isKey),o:!!dt.isOptional,d:!!dt.isDerived,m:!!dt.isMultivalued,c:!!dt.isComposite,...(u?{u:true}:{})}};}
     else if(t==='relationship')byId[dt.id]={id:uid(),k:dt.isIdentifying?'idrel':'rel',n:String(dt.name||'relacion'),x:x+50,y:y+30,f:{},_slots:Array.isArray(dt.slots)?dt.slots:[]};
     else if((t==='label'||t==='text'||t==='note')&&(dt.name||dt.text))notes.push({id:uid(),k:'note',x,y,w:180,c:'y',text:String(dt.name||dt.text)});});
   const nodes=Object.values(byId),links=[];
   if(!nodes.length)throw new Error('No he encontrado entidades, relaciones ni atributos en el archivo.');
   cons.forEach(c=>{const s=byId[c.source],t=byId[c.destination],det=c.details||{};if(!s||!t)return;
+    // primero los atributos: un atributo puede colgar de una relación (Nota en «matricula») y no se debe perder
+    if(isAtt(s)||isAtt(t)){const at=isAtt(s)&&!(isAtt(t)&&det&&det.type==='attr-parent')?s:t,ow=at===s?t:s;links.push({id:uid(),a:ow.id,b:at.id,c:null,mn:null,mx:null});return;}
     if(isRel(s)||isRel(t)){const r=isRel(s)?s:t,e=r===s?t:s;if(!isEnt(e))return;
       const eid=r===s?c.destination:c.source,sl=r._slots;
       const slot=sl.find(x=>x.slotIndex===det.slotIndex&&(x.entityId==null||x.entityId===eid))||sl.find(x=>x.entityId===eid)||null;
@@ -61,6 +64,14 @@ function fromERDPlus(text){
   // ERDPlus guarda junto a cada entidad cuántas veces participa ella: en modo «otro» se intercambian las dos puntas
   if(!CARD_PART()){const byR={};links.forEach(l=>{const r=nodes.find(n=>n.id===l.a);if(r&&isRel(r))(byR[r.id]=byR[r.id]||[]).push(l);});Object.values(byR).forEach(ls=>{if(ls.length!==2)return;const [A,B]=ls;[A.mn,B.mn]=[B.mn,A.mn];[A.mx,B.mx]=[B.mx,A.mx];[A,B].forEach(l=>l.c=l.mn&&l.mx?`(${l.mn},${l.mx})`:null);});}
   nodes.forEach(n=>delete n._slots);
+  // Jerarquías: ERDPlus no tiene triángulo; la app las exporta como relaciones 1:1 llamadas «es» (supertipo opcional, subtipo
+  // obligatorio). Al importarlas se vuelve a montar la jerarquía.
+  {const sup=new Map(),drop=new Set();nodes.filter(n=>isRel(n)&&/^\s*(es|es[ _]una?|isa|is[ _]a)\s*$/i.test(n.n)).forEach(r=>{const ls=links.filter(l=>l.a===r.id);
+      if(ls.length!==2||!ls.every(l=>l.mx==='1')||links.some(l=>l.a===r.id&&!ls.includes(l))||links.some(l=>l.b===r.id))return;const sm=CARD_PART()?'0':'1',S=ls.find(l=>l.mn===sm),B=ls.find(l=>l!==S);if(!S||!B||B.mn===sm||S.b===B.b)return;
+      if(!sup.has(S.b))sup.set(S.b,[]);sup.get(S.b).push(B.b);drop.add(r.id);});
+    if(drop.size){for(let i=nodes.length-1;i>=0;i--)if(drop.has(nodes[i].id))nodes.splice(i,1);for(let i=links.length-1;i>=0;i--)if(drop.has(links[i].a))links.splice(i,1);
+      sup.forEach((subs,sid)=>{const P=nodes.find(n=>n.id===sid),S=subs.map(id=>nodes.find(n=>n.id===id));const i={id:uid(),k:'isa',n:'',x:Math.round(S.reduce((a,e)=>a+e.x,0)/S.length),y:Math.round((P.y+Math.min(...S.map(e=>e.y)))/2),f:{tot:false,dis:true,map:'each'}};
+        nodes.push(i);links.push({id:uid(),a:i.id,b:P.id,c:null,mn:null,mx:null,sup:1});S.forEach(e=>links.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null}));});}}
   // En una entidad débil, la clave es parcial
   const X=erIdx({nodes,links});nodes.filter(isAtt).forEach(a=>{const ow=X.ownerOf(a);if(ow&&ow.k==='weak'&&a.f.k){a.f.k=false;a.f.p=true;}});
   const all=[...nodes,...notes],x0=Math.min(...all.map(n=>n.x)),x1=Math.max(...all.map(n=>n.x)),y0=Math.min(...all.map(n=>n.y)),y1=Math.max(...all.map(n=>n.y));
@@ -121,7 +132,11 @@ function parseSQL(text){
     if(!tb.cols.length)warn.push(`La tabla «${tb.n}» no tiene columnas.`);
     if(!tb.cols.some(c=>c.pk||pk.has(lc(c.n))))warn.push(`La tabla «${tb.n}» no tiene clave primaria.`);
     return {id:uid(),n:tb.n,x:0,y:0,_par:[...new Set(Object.values(fkOf))].filter(n=>lc(n)!==lc(tb.n)),
+      // subtipo de una jerarquía: su PK es exactamente una FK a toda la PK de otra tabla (y tiene columnas propias)
+      _isa:(()=>{const pks=tb.cols.filter(c=>c.pk||pk.has(lc(c.n))).map(c=>lc(c.n));if(!pks.length||pks.length===tb.cols.length)return false;const f=tb.fks.find(f=>f.cols.length===pks.length&&f.cols.every(c=>pks.includes(lc(c))));if(!f)return false;const ref=get(f.ref);if(!ref||ref===tb)return false;
+        const rp=ref.cols.filter(c=>c.pk||(ref.pk||[]).map(lc).includes(lc(c.n)));return rp.length===pks.length;})(),
       c:tb.cols.map(c=>{const isPk=c.pk||pk.has(lc(c.n));return [c.n,c.type||'VARCHAR(45)',joinF({pk:isPk?1:0,nul:(!isPk&&!c.nn)?1:0,uq:(!isPk&&(c.uq||uq.has(lc(c.n))))?1:0,fk:fkOf[lc(c.n)]||null,cas:casOf[lc(c.n)]||0})];})};});
+  out.forEach(t=>{if(t._isa)t.c.forEach(c=>{const f=parseF(c[2]);if(f.pk&&f.fk){f.isa=1;c[2]=joinF(f);}});delete t._isa;});
   layoutSmart(out);out.forEach(t=>delete t._par);
   return {tables:out,warn:[...new Set(warn)]};
 }

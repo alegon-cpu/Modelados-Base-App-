@@ -615,7 +615,11 @@ const EN={
 "← Volver a mi examen":"← Back to my exam",
 // 4.0
 "Jerarquía":"Hierarchy",
-"Relación 1 a 1 normal":"Normal 1 to 1 relationship"
+"Relación 1 a 1 normal":"Normal 1 to 1 relationship",
+// 4.0
+"Activado: al pasar el E-R al relacional (y de ahí al DED) también se pasan las relaciones: claves ajenas y tablas N:M":"On: when the E-R goes to the relational model (and from there to the DSD) the relationships go too: foreign keys and N:M tables",
+"Varias relaciones entre las mismas entidades":"Several relationships between the same entities",
+"ERDPlus y MySQL Workbench paso a paso":"ERDPlus and MySQL Workbench step by step"
 };
 // Textos con partes variables
 const EN_RX=[

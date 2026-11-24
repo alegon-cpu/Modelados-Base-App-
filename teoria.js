@@ -113,6 +113,12 @@ Cada comunidad ¿cuántas provincias tiene? Como mínimo <b>1</b> y como máximo
 <h4>Al pasar a tablas</h4><ul><li><b>Una tabla por entidad</b> (vale siempre): cada subtipo tiene como PK la del supertipo, que también es FK hacia él.</li>
 <li><b>Todo en el supertipo</b>: una sola tabla con las columnas de todos (las de los subtipos pueden quedar vacías) y una columna <i>tipo</i>. Cómodo si los subtipos tienen pocos atributos.</li>
 <li><b>Solo los subtipos</b>: cada subtipo copia las columnas del supertipo. Solo si la jerarquía es <b>total</b> (si no, se perderían los que no son de ningún subtipo).</li></ul>
+<h4>Ejemplo: Empleado (DNI, Nombre) con Directivo (Departamento), Técnico (Máquina) y Comercial (Comisión)</h4>
+<table class="th-tab"><tr><th>Opción</th><th>Tablas</th></tr>
+<tr><td>Una tabla por entidad</td><td>Empleado(<u>DNI</u>, Nombre)<br>Directivo(<u><i>DNI</i></u>, Departamento)<br>Tecnico(<u><i>DNI</i></u>, Maquina)<br>Comercial(<u><i>DNI</i></u>, Comision)</td></tr>
+<tr><td>Todo en el supertipo</td><td>Empleado(<u>DNI</u>, Nombre, Puesto, Departamento (O), Maquina (O), Comision (O))</td></tr>
+<tr><td>Solo los subtipos</td><td>Directivo(<u>DNI</u>, Nombre, Departamento)<br>Tecnico(<u>DNI</u>, Nombre, Maquina)<br>Comercial(<u>DNI</u>, Nombre, Comision)</td></tr></table>
+<p>En el <b>DED</b> la primera opción se ve como líneas <b>continuas 1 a 0..1</b> desde Empleado a cada subtipo (el DNI del subtipo es PK y FK). En el DED no se dibuja el triángulo.</p>
 <p class="th-tip">En la app: selecciona el supertipo y pulsa «Jerarquía»; después «Añadir subtipo». En su panel eliges total/parcial, exclusiva/solapada y cómo pasarla a tablas.</p>`},
 
 {id:'ternarias',t:'Relaciones ternarias',k:'ternaria tres entidades cardinalidad grado n-aria',h:`
@@ -141,6 +147,20 @@ Cada comunidad ¿cuántas provincias tiene? Como mínimo <b>1</b> y como máximo
 <tr><td>Entidad <b>débil</b></td><td>Su tabla lleva la PK de la fuerte como FK, y su PK es esa FK + la clave parcial.</td></tr>
 <tr><td>Relación <b>reflexiva</b></td><td>Igual que su tipo (1:N o N:M), pero la FK se renombra (CodJefe → Empleado).</td></tr>
 <tr><td>Relación <b>ternaria</b></td><td>Tabla nueva con las PK de las tres entidades.</td></tr></table>`},
+
+{id:'varias',t:'Varias relaciones entre las mismas entidades',k:'varias relaciones mismas entidades dos fk misma tabla salida llegada rol fk compuesta una linea',h:`
+<p>Dos entidades pueden estar unidas por <b>más de una relación</b>, cada una con su significado. Ejemplo de los caminos: una <i>Etapa</i> <b>sale de</b> una <i>Localidad</i>, <b>llega a</b> otra y <b>pasa por</b> varias.</p>
+${thER('Etapa','salida','Localidad',{ca:'(1,1)',cb:'(0,N)'})}${thER('Etapa','llegada','Localidad',{ca:'(1,1)',cb:'(0,N)'})}
+<p>Cada relación <b>se pasa por separado</b>, con su regla de siempre:</p>
+<table class="th-tab"><tr><th>Relación</th><th>Tipo</th><th>En las tablas</th></tr>
+<tr><td>salida</td><td>1:N</td><td>Una FK en <i>Etapa</i>: <b>CodLoc_salida</b> → Localidad</td></tr>
+<tr><td>llegada</td><td>1:N</td><td>Otra FK en <i>Etapa</i>: <b>CodLoc_llegada</b> → Localidad</td></tr>
+<tr><td>recorrido</td><td>N:M</td><td>Tabla <i>recorrido</i>(<u>CodCam, Numero, CodLoc</u>)</td></tr></table>
+<div class="th-code">Etapa(<u>CodCam, Numero</u>, NumKm, <i>CodLoc_salida</i>, <i>CodLoc_llegada</i>)<br>recorrido(<u><i>CodCam, Numero</i>, <i>CodLoc</i></u>)</div>
+<h4>Nombres de las FK</h4><p>Las dos FK no pueden llamarse igual. Ponles el nombre del <b>papel</b> que hacen (salida, llegada, jefe, origen…). La app lo hace sola al pasar a tablas: la PK del padre + el nombre de la relación.</p>
+<h4>En el DED</h4><ul><li>Salen <b>dos líneas</b> entre Etapa y Localidad: una por cada FK.</li>
+<li>Una <b>FK compuesta</b> (<i>CodCam + Numero</i> hacia Etapa) es <b>una sola</b> clave ajena: se dibuja con <b>una</b> línea, aunque tenga dos columnas.</li></ul>
+<p class="th-tip">En la app: pincha cada línea del DED para ver qué columnas forman esa FK y cambiar sus cardinalidades por separado.</p>`},
 
 {id:'relacional',t:'Modelo relacional',k:'relacional tabla pk fk clave ajena flecha notacion',h:`
 <p>El modelo relacional se escribe como una lista de tablas con sus columnas:</p>
@@ -191,6 +211,28 @@ CREATE TABLE Matricula (<br>&nbsp;&nbsp;DNI CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Cod
 <ul><li><code>NOT NULL</code>: obligatoria. <code>NULL</code>: puede quedar vacía.</li><li><code>PRIMARY KEY</code>, <code>UNIQUE</code>, <code>FOREIGN KEY … REFERENCES</code>.</li>
 <li>Una tabla con FK se crea <b>después</b> de la tabla a la que apunta. Si dos tablas se apuntan entre sí, la FK se añade al final con <code>ALTER TABLE … ADD FOREIGN KEY</code>.</li></ul>
 <div class="th-tip">En la pestaña SQL puedes hacer lo contrario: pegar un script con <code>CREATE TABLE</code> y pulsar «Dibujar desde este SQL» para ver su DED y su relacional.</div>`},
+
+{id:'herramientas',t:'ERDPlus y MySQL Workbench paso a paso',k:'erdplus workbench herramienta case exportar importar diagrama referencial forward engineer identificadora no identificadora',h:`
+<p>En clase el E-R se pasa a <b>ERDPlus</b> y el DED a <b>MySQL Workbench</b>. La app trabaja con los dos.</p>
+<h4>ERDPlus (E-R y diagrama referencial)</h4><ol>
+<li>En la pestaña E-R pulsa <b>ERDPlus › Exportar</b>: se guarda un archivo que se abre en erdplus.com.</li>
+<li>En ERDPlus, cada atributo tiene sus casillas: <i>Unique</i> (clave, sale subrayado), <i>Multivalued</i>, <i>Optional</i>, <i>Composite</i>, <i>Derived</i>.</li>
+<li>En cada relación, cada entidad tiene <i>Cardinality</i> (One / Many) y <i>Participation</i> (Mandatory / Optional): es el (mín,máx) de la app.</li>
+<li>Para el <b>diagrama referencial</b>, en ERDPlus conviertes el E-R a esquema relacional (<i>Convert to Relational Schema</i>): salen las tablas con la PK subrayada y una flecha por cada FK.</li>
+<li>Para volver a la app: guarda el diagrama de ERDPlus y en la app pulsa <b>ERDPlus › Importar</b>.</li></ol>
+<p class="th-tip">ERDPlus no tiene marca de «único» ni triángulo de jerarquía. La app exporta un atributo único como «DNI (U)» y cada subtipo como una relación 1:1 llamada «es». Al importar lo vuelve a montar.</p>
+<h4>MySQL Workbench (DED y SQL)</h4><ol>
+<li><i>File › New Model</i> y luego <i>Add Diagram</i>. Cada tabla se crea con la herramienta de tabla y se le ponen columnas y tipos.</li>
+<li>Las relaciones se hacen con las herramientas de la izquierda:
+<table class="th-tab"><tr><th>Herramienta</th><th>Línea</th><th>Cuándo</th></tr>
+<tr><td>1:n identificadora</td><td>continua</td><td>La FK entra en la PK del hijo: entidad débil, tablas de N:M.</td></tr>
+<tr><td>1:n no identificadora</td><td>discontinua</td><td>La FK es una columna normal: relación 1:N.</td></tr>
+<tr><td>1:1 identificadora</td><td>continua</td><td>Subtipo de una jerarquía: su PK es la FK.</td></tr>
+<tr><td>1:1 no identificadora</td><td>discontinua</td><td>Relación 1:1 (la FK queda UNIQUE).</td></tr>
+<tr><td>n:m identificadora</td><td>continua</td><td>Crea sola la tabla intermedia.</td></tr></table></li>
+<li>Para sacar el SQL: <i>Database › Forward Engineer</i> (crea la base de datos) o <i>File › Export › Forward Engineer SQL CREATE Script</i> (guarda el .sql).</li>
+<li>Para llevarlo a la app: en la pestaña SQL, <b>Importar .mwb / .sql</b>. Se dibujan el DED y el relacional.</li></ol>
+<p class="th-tip">Al revés también: en la app, «Pasar al SQL» y <b>Exportar .sql</b>. Ese archivo se abre en Workbench con <i>File › Open SQL Script</i> y se ejecuta, o se importa con <i>Database › Reverse Engineer</i> para tener el diagrama.</p>`},
 
 {id:'errores',t:'Errores típicos',k:'errores fallos comunes consejos revisar',h:`
 <ul class="th-list"><li><b>Poner la FK en el lado equivocado</b> de una 1:N: siempre va en el lado de los «muchos».</li>
@@ -311,6 +353,12 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <p>Example: a student <i>enrols</i> in a subject (N:M). If each enrolment is also <i>marked</i> by a teacher, «Enrolment» becomes an associative entity joined to Teacher with another relationship.</p>
 <h4>Cardinality</h4><p>As always: in «marks», next to Teacher (1,1) because each enrolment is marked by one teacher, and next to Enrolment (0,N) because a teacher marks many.</p>
 <h4>To tables</h4><p>It becomes a table with its name whose <b>PK is the keys of its entities</b>, plus its attributes. Its relationships with other entities are converted as usual, treating it as one more entity: here it receives the teacher's key as FK.</p>
+<h4>Example: Empleado (DNI, Nombre) with Directivo (Departamento), Tecnico (Maquina) and Comercial (Comision)</h4>
+<table class="th-tab"><tr><th>Option</th><th>Tables</th></tr>
+<tr><td>One table per entity</td><td>Empleado(<u>DNI</u>, Nombre)<br>Directivo(<u><i>DNI</i></u>, Departamento)<br>Tecnico(<u><i>DNI</i></u>, Maquina)<br>Comercial(<u><i>DNI</i></u>, Comision)</td></tr>
+<tr><td>Everything in the supertype</td><td>Empleado(<u>DNI</u>, Nombre, Puesto, Departamento (O), Maquina (O), Comision (O))</td></tr>
+<tr><td>Only the subtypes</td><td>Directivo(<u>DNI</u>, Nombre, Departamento)<br>Tecnico(<u>DNI</u>, Nombre, Maquina)<br>Comercial(<u>DNI</u>, Nombre, Comision)</td></tr></table>
+<p>In the <b>DSD</b> the first option shows as <b>solid 1 to 0..1</b> lines from Empleado to each subtype (the subtype's DNI is PK and FK). The triangle is not drawn in the DSD.</p>
 <p class="th-tip">In the app: select the relationship and turn on «Associative entity» (also in the right-click menu). Then join it to another entity with Shift + click: the relationship is created in the middle.</p>`},
 
 {id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`
@@ -323,6 +371,20 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <tr><td><b>N:M</b> relationship</td><td>A new table with both entities' PKs as FKs; together they form its PK. The relationship's attributes go here.</td></tr>
 <tr><td><b>Weak</b> entity</td><td>Its table takes the strong entity's PK as an FK, and its PK is that FK + the partial key.</td></tr>
 <tr><td><b>Recursive</b> relationship</td><td>Like its type (1:N or N:M), but the FK is renamed (ManagerId → Employee).</td></tr><tr><td><b>Ternary</b> relationship</td><td>A new table with the PKs of the three entities.</td></tr></table>`},
+{id:'varias',t:'Several relationships between the same entities',k:'several relationships same entities two fk same table departure arrival role composite fk one line',h:`
+<p>Two entities can be joined by <b>more than one relationship</b>, each with its own meaning. In the trails example: a <i>Stage</i> <b>starts at</b> a <i>Town</i>, <b>ends at</b> another and <b>passes through</b> several.</p>
+${thER('Etapa','salida','Localidad',{ca:'(1,1)',cb:'(0,N)'})}${thER('Etapa','llegada','Localidad',{ca:'(1,1)',cb:'(0,N)'})}
+<p>Each relationship <b>is converted on its own</b>, with the usual rule:</p>
+<table class="th-tab"><tr><th>Relationship</th><th>Type</th><th>In the tables</th></tr>
+<tr><td>salida</td><td>1:N</td><td>An FK in <i>Etapa</i>: <b>CodLoc_salida</b> → Localidad</td></tr>
+<tr><td>llegada</td><td>1:N</td><td>Another FK in <i>Etapa</i>: <b>CodLoc_llegada</b> → Localidad</td></tr>
+<tr><td>recorrido</td><td>N:M</td><td>Table <i>recorrido</i>(<u>CodCam, Numero, CodLoc</u>)</td></tr></table>
+<div class="th-code">Etapa(<u>CodCam, Numero</u>, NumKm, <i>CodLoc_salida</i>, <i>CodLoc_llegada</i>)<br>recorrido(<u><i>CodCam, Numero</i>, <i>CodLoc</i></u>)</div>
+<h4>FK names</h4><p>The two FKs cannot have the same name. Name them after the <b>role</b> they play (departure, arrival, boss, origin…). The app does it when converting to tables: the parent's PK + the relationship name.</p>
+<h4>In the DSD</h4><ul><li>There are <b>two lines</b> between Etapa and Localidad: one per FK.</li>
+<li>A <b>composite FK</b> (<i>CodCam + Numero</i> to Etapa) is <b>a single</b> foreign key: it is drawn with <b>one</b> line, even though it has two columns.</li></ul>
+<p class="th-tip">In the app: click each DSD line to see which columns make up that FK and change its cardinalities separately.</p>`},
+
 {id:'relacional',t:'Relational model',k:'relational table pk fk foreign key arrow notation',h:`
 <p>The relational model is written as a list of tables with their columns:</p>
 <div class="th-code">Student(<u>StudentId</u>, Name, Surname, BirthDate)<br>Course(<u>CourseCode</u>, Name, Hours)<br>Enrolment(<u>StudentId</u>, <u>CourseCode</u>, Grade)</div>
@@ -360,6 +422,28 @@ CREATE TABLE Enrolment (<br>&nbsp;&nbsp;StudentId CHAR(9) NOT NULL,<br>&nbsp;&nb
 <p>In the SQL tab choose the system and the app adapts the types for you.</p>
 <h4>Constraints</h4><ul><li><code>NOT NULL</code>: mandatory. <code>NULL</code>: may be empty.</li><li><code>PRIMARY KEY</code>, <code>UNIQUE</code>, <code>FOREIGN KEY … REFERENCES</code>.</li>
 <li>A table with an FK is created <b>after</b> the table it points to. If two tables point to each other, the FK is added at the end with <code>ALTER TABLE … ADD FOREIGN KEY</code>.</li></ul>`},
+{id:'herramientas',t:'ERDPlus and MySQL Workbench step by step',k:'erdplus workbench case tool export import referential diagram forward engineer identifying non-identifying',h:`
+<p>In class the E-R goes to <b>ERDPlus</b> and the DSD to <b>MySQL Workbench</b>. The app works with both.</p>
+<h4>ERDPlus (E-R and referential diagram)</h4><ol>
+<li>In the E-R tab click <b>ERDPlus › Export</b>: you get a file that opens in erdplus.com.</li>
+<li>In ERDPlus each attribute has its boxes: <i>Unique</i> (key, underlined), <i>Multivalued</i>, <i>Optional</i>, <i>Composite</i>, <i>Derived</i>.</li>
+<li>In each relationship, each entity has <i>Cardinality</i> (One / Many) and <i>Participation</i> (Mandatory / Optional): that is the app's (min,max).</li>
+<li>For the <b>referential diagram</b>, convert the E-R to a relational schema in ERDPlus (<i>Convert to Relational Schema</i>): you get the tables with the PK underlined and one arrow per FK.</li>
+<li>To come back to the app: save the ERDPlus diagram and click <b>ERDPlus › Import</b> in the app.</li></ol>
+<p class="th-tip">ERDPlus has no «unique» mark and no hierarchy triangle. The app exports a unique attribute as «DNI (U)» and each subtype as a 1:1 relationship called «es». On import it rebuilds them.</p>
+<h4>MySQL Workbench (DSD and SQL)</h4><ol>
+<li><i>File › New Model</i> and then <i>Add Diagram</i>. Create each table with the table tool and add its columns and types.</li>
+<li>Relationships are made with the tools on the left:
+<table class="th-tab"><tr><th>Tool</th><th>Line</th><th>When</th></tr>
+<tr><td>1:n identifying</td><td>solid</td><td>The FK goes into the child's PK: weak entity, N:M tables.</td></tr>
+<tr><td>1:n non-identifying</td><td>dashed</td><td>The FK is a normal column: 1:N relationship.</td></tr>
+<tr><td>1:1 identifying</td><td>solid</td><td>Subtype of a hierarchy: its PK is the FK.</td></tr>
+<tr><td>1:1 non-identifying</td><td>dashed</td><td>1:1 relationship (the FK is UNIQUE).</td></tr>
+<tr><td>n:m identifying</td><td>solid</td><td>Creates the junction table by itself.</td></tr></table></li>
+<li>To get the SQL: <i>Database › Forward Engineer</i> (creates the database) or <i>File › Export › Forward Engineer SQL CREATE Script</i> (saves the .sql).</li>
+<li>To bring it into the app: in the SQL tab, <b>Import .mwb / .sql</b>. The DSD and the relational model are drawn.</li></ol>
+<p class="th-tip">The other way too: in the app, «Go to SQL» and <b>Export .sql</b>. Open that file in Workbench with <i>File › Open SQL Script</i> and run it, or import it with <i>Database › Reverse Engineer</i> to get the diagram.</p>`},
+
 {id:'errores',t:'Common mistakes',k:'mistakes errors tips review',h:`
 <ul class="th-list"><li><b>Putting the FK on the wrong side</b> of a 1:N: it always goes on the «many» side.</li><li><b>Forgetting the junction table</b> of an N:M: two tables cannot be joined N:M directly.</li>
 <li><b>Attributes in the wrong place:</b> the grade of an enrolment goes on the relationship, not on Student.</li><li><b>Storing derived data</b> (age, total) when it can be calculated.</li>
