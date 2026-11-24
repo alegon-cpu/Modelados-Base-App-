@@ -236,6 +236,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.4.1':['DSD: a composite foreign key (for example Numero + CodCam to Etapa) is drawn with a single line. If a table has two foreign keys to the same table (departure and arrival), each one has its own line and is changed separately.','When going from the E-R to tables, if there are several 1:N relationships between the same two entities, each foreign key gets the name of its relationship (codLoc_salida, codLoc_llegada).'],
   '4.4':['The hierarchy (supertype and subtypes) is always shown in the E-R: it can no longer be hidden.','Hierarchies in the relational model and the DSD: click the line of an FK that is the whole key and mark it as «Subtype of…». No triangle is drawn (the line stays 1 to 0..1), but going to the E-R brings the hierarchy back. And when an E-R with a hierarchy goes to tables, the subtypes come already marked.','«Arrange» keeps things closer together.','What you write in «What changes in version…» is added at the end of that version\'s statement and updated when you change it.'],
   '4.3.1':['Exam: the teacher can sign in with the username or with the email of an existing teacher account.'],
   '4.3':['Versions of the same exercise: «Duplicate › Make another version» creates version 2 (3, 4…) inside the same project. Each version has its own folder (Version 1, Version 2…) with its statement, E-R, relational, DSD and SQL. Switch between them with the buttons above the tabs and write what changes in each one.',
@@ -259,6 +260,8 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.4.1: DED: una clave ajena compuesta (por ejemplo Numero + CodCam hacia Etapa) se dibuja con una sola línea. Si una tabla tiene dos claves ajenas a la misma tabla (salida y llegada), cada una tiene su línea y se cambia por separado.',
+  '4.4.1: al pasar del E-R a tablas, si hay varias relaciones 1:N entre las mismas dos entidades, cada clave ajena lleva el nombre de su relación (codLoc_salida, codLoc_llegada).',
   '4.4: la jerarquía (supertipo y subtipos) sale siempre en el E-R: ya no se puede ocultar.',
   '4.4: jerarquías en el relacional y el DED: pincha la línea de una FK que es toda la clave y márcala como «Subtipo de…». No se dibuja el triángulo (la línea queda 1 a 0..1), pero al pasar al E-R sale la jerarquía. Y al pasar un E-R con jerarquía a tablas, los subtipos ya salen marcados.',
   '4.4: «Distribuir» deja las cosas más juntas.',

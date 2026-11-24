@@ -41,6 +41,12 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.4.1  (24/11/2026)
+--------------------
+- DED: una FK compuesta es una sola linea; varias FK a la misma tabla se ven y se editan por separado.
+- E-R a tablas: varias relaciones 1:N entre las mismas entidades dan FK con el nombre de su relacion.
+- SQL: varias FK compuestas a la misma tabla.
+
 v4.4.0  (22/11/2026)
 --------------------
 - La jerarquia sale siempre en el E-R (se quita el ajuste para ocultarla).
