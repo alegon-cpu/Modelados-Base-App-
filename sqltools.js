@@ -32,7 +32,7 @@ function schemaOf(src,fromRel){
   Object.values(S).forEach(t=>{const groups={};t.cols.forEach(c=>{if(c.fk){const k=lc(c.fk);(groups[k]=groups[k]||[]).push(c);}});
     Object.entries(groups).forEach(([k,g])=>{const par=S[k];if(!par){warn.push(`${t.n}: la FK apunta a «${g[0].fk}», que no existe.`);return;}
       const pk=par.cols.filter(c=>c.pk);if(!pk.length){warn.push(`${t.n}: «${par.n}» no tiene clave primaria a la que apuntar.`);return;}
-      if(g.length===pk.length&&pk.length>1)t.fks.push({cs:g.map(c=>c.n),par,ref:pk.map(c=>c.n),cas:g.some(c=>c.cas)});
+      if(pk.length>1&&g.length%pk.length===0)for(let i=0;i<g.length;i+=pk.length){const p=g.slice(i,i+pk.length);t.fks.push({cs:p.map(c=>c.n),par,ref:pk.map(c=>c.n),cas:p.some(c=>c.cas)});}
       else g.forEach(c=>{const same=pk.find(x=>lc(x.n)===lc(c.n))||pk.find(x=>lc(c.n).startsWith(lc(x.n)))||pk[0];t.fks.push({cs:[c.n],par,ref:[same.n],cas:c.cas});});});});
   const order=[],state={};
   const visit=t=>{const k=lc(t.n);if(state[k])return;state[k]=1;t.fks.forEach(f=>{if(f.par!==t&&!state[lc(f.par.n)])visit(f.par);});state[k]=2;order.push(t);};

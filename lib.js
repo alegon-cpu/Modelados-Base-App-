@@ -124,14 +124,19 @@ function routeOrtho(A,B,off){
 const unitV=(p,q)=>{const l=Math.hypot(q[0]-p[0],q[1]-p[1])||1;return[(q[0]-p[0])/l,(q[1]-p[1])/l];};
 function endLabel(P,u,txt){const n=[-u[1],u[0]],lp=[P[0]+u[0]*20+n[0]*12,P[1]+u[1]*20+n[1]*12],an=n[0]<-.35?'end':n[0]>.35?'start':'middle';
   return `<text x="${f1(lp[0])}" y="${f1(lp[1]+4)}" text-anchor="${an}" class="card">${txt}</text>`;}
+// Claves ajenas de una tabla agrupadas: una FK compuesta (CodCam, CodEta → Etapa) es UNA relación, y dos FK a la misma
+// tabla (codLoc_sale_de, codLoc_llega_a → Localidad) son DOS. Se corta en trozos del tamaño de la PK de la tabla padre.
+function fkGroups(t,T){const g={},out=[];t.cols.forEach(c=>{if(c.fk&&T[c.fk])(g[c.fk]=g[c.fk]||[]).push(c);});
+  Object.entries(g).forEach(([pn,cs])=>{const n=Math.max(1,T[pn].cols.filter(x=>x.pk).length),k=Math.ceil(cs.length/n);
+    for(let i=0;i<k;i++)out.push({pa:T[pn],cs:cs.slice(i*n,i*n+n),key:(t.id||t.n)+'|'+pn+(k>1?'#'+i:'')});});return out;}
 function drawDED(d){
   const T=prepTables(d); let LK='',BX='',MK='';
-  const links=[]; d.t.forEach(t=>t.cols.forEach(c=>{if(c.fk&&T[c.fk])links.push({ch:t,pa:T[c.fk],c});}));
+  const links=[]; d.t.forEach(t=>fkGroups(t,T).forEach(G=>{const cs=G.cs;links.push({ch:t,pa:G.pa,key:G.key,n:cs.length,c:{pk:cs.every(x=>x.pk),pmin:cs.every(x=>x.pmin),nul:cs.some(x=>x.nul),uq:cs.length===1&&cs[0].uq,fk:G.pa.n}});}));
   const pairs={}; links.forEach(l=>{const k=[l.ch.n,l.pa.n].sort().join('|');(pairs[k]=pairs[k]||[]).push(l);});
   Object.values(pairs).forEach(arr=>arr.forEach((l,j)=>l.off=(j-(arr.length-1)/2)*26));
   links.forEach(l=>{
-    const {ch,pa,c}=l, key=(ch.id||ch.n)+'|'+c.fk, dash=(c.pk?'':' dash')+(d.selFk===key?' lsel':''), HIT=s=>d.hit?s.replace(/class="lk[^"]*"/,`class="hitl" fill="none" data-fk="${esc(key).replace(/"/g,'&quot;')}"`):'';
-    const childOne=(c.pk&&ch.cols.filter(x=>x.pk).length===1)||c.uq;
+    const {ch,pa,c,key}=l, dash=(c.pk?'':' dash')+(d.selFk===key?' lsel':''), HIT=s=>d.hit?s.replace(/class="lk[^"]*"/,`class="hitl" fill="none" data-fk="${esc(key).replace(/"/g,'&quot;')}"`):'';
+    const childOne=(c.pk&&ch.cols.filter(x=>x.pk).length===l.n)||c.uq;
     if(ch===pa){
       const x2=ch.x+ch.w,y2=ch.y+ch.h;
       const sp=`<path d="M${x2-34},${y2} V${y2+26} H${x2+26} V${y2-34} H${x2}" class="lk${dash}"/>`;LK+=sp+HIT(sp);
@@ -169,7 +174,7 @@ function drawRef(d,fixed){
     t.ry=t.y+18; t.rh=t.cols.length*RH+8;
     t.rowY=i=>t.ry+4+i*RH+RH/2;
   });
-  let LN='',BX='';
+  let LN='',BX='';const KEY=new Map();d.t.forEach(t=>fkGroups(t,T).forEach(G=>G.cs.forEach(c=>KEY.set(c,G.key))));
   d.t.forEach(t=>t.cols.forEach((c,i)=>{
     if(!c.fk||!T[c.fk])return; const pa=T[c.fk], pi=Math.max(0,pa.cols.findIndex(x=>x.pk));
     const sy=t.rowY(i), ey=pa.rowY(pi);
@@ -178,7 +183,7 @@ function drawRef(d,fixed){
     else if(pa.x>=t.x+t.rw){const mx=(t.x+t.rw+pa.x)/2;pts=d.ortho?[[t.x+t.rw,sy],[mx,sy],[mx,ey],[pa.x,ey]]:[[t.x+t.rw,sy],[t.x+t.rw+14,sy],[pa.x-16,ey],[pa.x,ey]];ex=pa.x;dir=1;}
     else if(pa.x+pa.rw<=t.x){const mx=(t.x+pa.x+pa.rw)/2;pts=d.ortho?[[t.x,sy],[mx,sy],[mx,ey],[pa.x+pa.rw,ey]]:[[t.x,sy],[t.x-14,sy],[pa.x+pa.rw+16,ey],[pa.x+pa.rw,ey]];ex=pa.x+pa.rw;dir=-1;}
     else {const xl=Math.min(t.x,pa.x)-18;pts=[[t.x,sy],[xl,sy],[xl,ey],[pa.x,ey]];ex=pa.x;dir=1;}
-    const key=(t.id||t.n)+'|'+c.fk,PP=pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ');
+    const key=KEY.get(c)||((t.id||t.n)+'|'+c.fk),PP=pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ');
     LN+=`<polyline points="${PP}" class="rarr${d.selFk===key?' lsel':''}"/>`+(d.hit?`<polyline points="${PP}" class="hitl" fill="none" data-fk="${esc(key).replace(/"/g,'&quot;')}"/>`:'');
     LN+=`<polygon points="${ex},${ey} ${ex-8*dir},${ey-4.5} ${ex-8*dir},${ey+4.5}" class="rhead"/>`;
   }));

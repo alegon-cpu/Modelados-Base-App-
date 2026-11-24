@@ -154,7 +154,7 @@ function erToTables(er,easy){
       pkCols(parent).forEach(c=>t.c.push([c[0],c[1],joinF({pk:1,fk:parent.n})]));t.c.push([a.n,guessType(a.n,{}),joinF({pk:1})]);tables.push(t);});
     const rattrs0=r=>flat(r,{d:0,m:[]}).map(c=>[c[0],c[1],joinF({nul:parseF(c[2]).nul})]);
     // pmin: cada fila del padre tiene al menos una hija (mínimo 1 de ese lado); cas: entidad débil, al borrar el padre se borran sus filas (ON DELETE CASCADE)
-    const addFK=(child,parent,{pk,uq,nul,suffix,pmin,cas})=>{const pc=pkCols(parent);let at=0;pc.forEach(c=>{let name=c[0];if(child.c.some(x=>lc(x[0])===lc(name)))name=uniqueCol(child,c[0]+'_'+(suffix||parent.n));
+    const addFK=(child,parent,{pk,uq,nul,suffix,pmin,cas,always})=>{const pc=pkCols(parent);let at=0;pc.forEach(c=>{let name=c[0];if(always||child.c.some(x=>lc(x[0])===lc(name)))name=uniqueCol(child,c[0]+'_'+(suffix||parent.n));
       const col=[name,c[1],joinF({pk:pk?1:0,uq:(uq&&pc.length===1)?1:0,nul:nul?1:0,fk:parent.n,pmin:pmin?1:0,cas:cas?1:0})];
       // si la FK entra en la PK (identificación), va delante: PRIMARY KEY (CodNave, Numero)
       if(pk&&cas)child.c.splice(at++,0,col);else child.c.push(col);});};
@@ -181,7 +181,9 @@ function erToTables(er,easy){
         const childNode=er.nodes.find(n=>n.id===(child===TA?A.e.id:B.e.id));
         const hasIdent=n=>X.linksOf(n.id).some(l=>{const o=X.other(l,n.id);return o&&o.k==='idrel';});
         const weak=!self&&!!childNode&&childNode.k==='weak'&&(ident||!hasIdent(childNode)),weakChild=ident&&weak;
-        addFK(child,parent,{pk:!!weakChild,uq:manyA===manyB,nul:parentEnd.mn==='0'&&!weak,suffix:self?r.n:parent.n,pmin:childEnd&&childEnd.mn==='1',cas:weak});
+        // varias relaciones 1:N entre las mismas dos entidades (sale_de, llega_a): cada FK lleva el nombre de su relación (codLoc_sale_de, codLoc_llega_a)
+        const multi=!self&&er.nodes.filter(isRel).filter(o=>o!==r&&!isAssoc(o)&&(()=>{const s=new Set(X.ends(o).map(x=>x.e.id));return s.size===2&&s.has(A.e.id)&&s.has(B.e.id);})()).some(o=>{const oe=X.ends(o);return oe.length===2&&!oe.every(x=>x.mx==='N');});
+        addFK(child,parent,{pk:!!weakChild,uq:manyA===manyB,nul:parentEnd.mn==='0'&&!weak,suffix:(self||multi)&&r.n?r.n.replace(/\s+/g,'_'):parent.n,always:multi&&!!r.n,pmin:childEnd&&childEnd.mn==='1',cas:weak});
         rattrs.forEach(c=>child.c.push([uniqueCol(child,c[0]),c[1],c[2]]));
       } else { // ternaria o más
         const t={id:uid(),n:r.n,x:0,y:0,c:[],_mid:en.map(x=>byEnt[x.e.id])};
@@ -509,10 +511,13 @@ class Editor{
     if(focus)this.focusName();
   }
   /* ---------- Relaciones entre tablas (flecha del relacional / línea del DED) ---------- */
-  fkSel(){if(!this.selLink||this.isER)return null;const i=this.selLink.lastIndexOf('|'),tid=this.selLink.slice(0,i),pn=this.selLink.slice(i+1);
-    const t=this.m.t.find(x=>x.id===tid),pa=this.m.t.find(x=>x.n===pn);if(!t||!pa)return null;const cols=t.c.filter(c=>parseF(c[2]).fk===pn);return cols.length?{t,pa,cols}:null;}
+  // selLink: «idTabla|TablaPadre» o «idTabla|TablaPadre#2» cuando la tabla tiene varias FK a la misma tabla (ver fkGroups)
+  fkSel(){if(!this.selLink||this.isER)return null;const i=this.selLink.lastIndexOf('|'),tid=this.selLink.slice(0,i);let pn=this.selLink.slice(i+1),gi=0;
+    const h=pn.lastIndexOf('#');if(h>0&&/^\d+$/.test(pn.slice(h+1))){gi=+pn.slice(h+1);pn=pn.slice(0,h);}
+    const t=this.m.t.find(x=>x.id===tid),pa=this.m.t.find(x=>x.n===pn);if(!t||!pa)return null;const all=t.c.filter(c=>parseF(c[2]).fk===pn),n=Math.max(1,pa.c.filter(c=>parseF(c[2]).pk).length);
+    let cols=all.slice(gi*n,gi*n+n);if(!cols.length)cols=all.slice(0,n);return cols.length?{t,pa,cols}:null;}
   fkRemove(){const s=this.fkSel();if(!s)return null;const fl=parseF(s.cols[0][2]);
-    s.t.c=s.t.c.filter(c=>{const f=parseF(c[2]);if(f.fk!==s.pa.n)return true;if(f.pk){delete f.fk;c[2]=joinF(f);return true;}return false;});return fl;}
+    s.t.c=s.t.c.filter(c=>{if(!s.cols.includes(c))return true;const f=parseF(c[2]);if(f.pk){delete f.fk;c[2]=joinF(f);return true;}return false;});return fl;}
   fkAct(k){const s=this.fkSel();if(!s){this.selLink=null;this.renderInsp();return;}
     if(k==='del'){this.snap();this.fkRemove();this.selLink=null;this.save();this.render();this.renderInsp();toast(`Relación quitada: «${s.t.n}» ya no apunta a «${s.pa.n}».`);return;}
     if(k==='swap'){const pk=s.t.c.filter(c=>parseF(c[2]).pk&&parseF(c[2]).fk!==s.pa.n);
