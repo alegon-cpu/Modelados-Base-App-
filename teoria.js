@@ -266,7 +266,7 @@ CREATE TABLE Matricula (<br>&nbsp;&nbsp;DNI CHAR(9) NOT NULL,<br>&nbsp;&nbsp;Cod
 <li>En cada relación, cada entidad tiene <i>Cardinality</i> (One / Many) y <i>Participation</i> (Mandatory / Optional): es el (mín,máx) de la app.</li>
 <li>Para el <b>diagrama referencial</b>, en ERDPlus conviertes el E-R a esquema relacional (<i>Convert to Relational Schema</i>): salen las tablas con la PK subrayada y una flecha por cada FK.</li>
 <li>Para volver a la app: guarda el diagrama de ERDPlus y en la app pulsa <b>ERDPlus › Importar</b>.</li></ol>
-<p class="th-tip">ERDPlus no tiene marca de «único» ni triángulo de jerarquía. La app exporta un atributo único como «DNI (U)» y cada subtipo como una relación 1:1 llamada «es». Al importar lo vuelve a montar.</p>
+<p class="th-tip">ERDPlus no tiene marca de «único»: la app lo exporta como «DNI (U)». Al exportar eliges el formato <b>nuevo</b> (la jerarquía sale con el supertipo propio de ERDPlus, círculo d/o) o el <b>antiguo</b> (cada subtipo como relación 1:1 «es»). Al importar se leen los dos y vuelve el triángulo. ERDPlus no tiene relaciones ternarias.</p>
 <h4>MySQL Workbench (DED y SQL)</h4><ol>
 <li><i>File › New Model</i> y luego <i>Add Diagram</i>. Cada tabla se crea con la herramienta de tabla y se le ponen columnas y tipos.</li>
 <li>Las relaciones se hacen con las herramientas de la izquierda:
@@ -522,7 +522,7 @@ CREATE TABLE Enrolment (<br>&nbsp;&nbsp;StudentId CHAR(9) NOT NULL,<br>&nbsp;&nb
 <li>In each relationship, each entity has <i>Cardinality</i> (One / Many) and <i>Participation</i> (Mandatory / Optional): that is the app's (min,max).</li>
 <li>For the <b>referential diagram</b>, convert the E-R to a relational schema in ERDPlus (<i>Convert to Relational Schema</i>): you get the tables with the PK underlined and one arrow per FK.</li>
 <li>To come back to the app: save the ERDPlus diagram and click <b>ERDPlus › Import</b> in the app.</li></ol>
-<p class="th-tip">ERDPlus has no «unique» mark and no hierarchy triangle. The app exports a unique attribute as «DNI (U)» and each subtype as a 1:1 relationship called «es». On import it rebuilds them.</p>
+<p class="th-tip">ERDPlus has no «unique» mark: the app exports it as «DNI (U)». When exporting you choose the <b>new</b> format (the hierarchy uses ERDPlus's own supertype, d/o circle) or the <b>old</b> one (each subtype as a 1:1 «es» relationship). Importing reads both and the triangle comes back. ERDPlus has no ternary relationships.</p>
 <h4>MySQL Workbench (DSD and SQL)</h4><ol>
 <li><i>File › New Model</i> and then <i>Add Diagram</i>. Create each table with the table tool and add its columns and types.</li>
 <li>Relationships are made with the tools on the left:

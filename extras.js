@@ -37,6 +37,8 @@ const Settings={
 /* ===================== Importar desde ERDPlus ===================== */
 function fromERDPlus(text){
   let d;try{d=JSON.parse(String(text||'').replace(/^\uFEFF/,''));}catch(e){throw new Error('El archivo no es un diagrama de ERDPlus válido.');}
+  // formato actual de ERDPlus (nodes/edges): se pasa al antiguo y sigue igual
+  if(d&&d.data&&Array.isArray(d.data.nodes)){if(d.diagramType&&d.diagramType!==1&&!d.data.nodes.some(n=>n.type==='Entity'))throw new Error('Ese archivo es un modelo relacional de ERDPlus. Aquí se importan diagramas E-R. Para tablas: en ERDPlus genera el SQL y pégalo en la pestaña SQL («Dibujar desde este SQL»).');d=erdNewToOld(d);}
   const shapes=Array.isArray(d&&d.shapes)?d.shapes:[],cons=Array.isArray(d&&d.connectors)?d.connectors:[];
   if(!shapes.length)throw new Error('El archivo de ERDPlus no tiene ningún elemento.');
   const ty=s=>String(s.type||'').toLowerCase();
@@ -47,7 +49,7 @@ function fromERDPlus(text){
     if(t==='entity')byId[dt.id]={id:uid(),k:/weak/i.test(String(dt.type||''))?'weak':'ent',n:String(dt.name||'Entidad'),x:x+60,y:y+20,f:{}};
     else if(t==='attribute'){const nm=String(dt.name||'atributo'),u=/\s*\(U\)\s*$/i.test(nm);// «DNI (U)»: único (ERDPlus no tiene esa marca)
       byId[dt.id]={id:uid(),k:'attr',n:u?nm.replace(/\s*\(U\)\s*$/i,''):nm,x:x+45,y:y+15,
-      f:{k:!!(dt.isUnique||dt.isPrimaryKey||dt.isKey),o:!!dt.isOptional,d:!!dt.isDerived,m:!!dt.isMultivalued,c:!!dt.isComposite,...(u?{u:true}:{})}};}
+      f:{k:!!(dt.isUnique||dt.isPrimaryKey||dt.isKey)&&!dt.isPartial,...(dt.isPartial?{p:true}:{}),o:!!dt.isOptional,d:!!dt.isDerived,m:!!dt.isMultivalued,c:!!dt.isComposite,...(u?{u:true}:{})}};}
     else if(t==='relationship')byId[dt.id]={id:uid(),k:dt.isIdentifying?'idrel':'rel',n:String(dt.name||'relacion'),x:x+50,y:y+30,f:{},_slots:Array.isArray(dt.slots)?dt.slots:[]};
     else if((t==='label'||t==='text'||t==='note')&&(dt.name||dt.text))notes.push({id:uid(),k:'note',x,y,w:180,c:'y',text:String(dt.name||dt.text)});});
   const nodes=Object.values(byId),links=[];
@@ -64,6 +66,10 @@ function fromERDPlus(text){
   // ERDPlus guarda junto a cada entidad cuántas veces participa ella: en modo «otro» se intercambian las dos puntas
   if(!CARD_PART()){const byR={};links.forEach(l=>{const r=nodes.find(n=>n.id===l.a);if(r&&isRel(r))(byR[r.id]=byR[r.id]||[]).push(l);});Object.values(byR).forEach(ls=>{if(ls.length!==2)return;const [A,B]=ls;[A.mn,B.mn]=[B.mn,A.mn];[A.mx,B.mx]=[B.mx,A.mx];[A,B].forEach(l=>l.c=l.mn&&l.mx?`(${l.mn},${l.mx})`:null);});}
   nodes.forEach(n=>delete n._slots);
+  // jerarquías nativas del ERDPlus actual
+  (d._isa||[]).forEach(z=>{const P=byId[z.sup],S=z.subs.map(i=>byId[i]).filter(Boolean);if(!P||!S.length)return;
+    const i={id:uid(),k:'isa',n:'',x:Math.round(S.reduce((a,e)=>a+e.x,0)/S.length),y:Math.round((P.y+Math.min(...S.map(e=>e.y)))/2),f:{tot:!!z.tot,dis:z.dis!==false,map:'each'}};if(Math.abs(i.y-P.y)<50)i.y=P.y+90;
+    nodes.push(i);links.push({id:uid(),a:i.id,b:P.id,c:null,mn:null,mx:null,sup:1});S.forEach(e=>links.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null}));});
   // Jerarquías: ERDPlus no tiene triángulo; la app las exporta como relaciones 1:1 llamadas «es» (supertipo opcional, subtipo
   // obligatorio). Al importarlas se vuelve a montar la jerarquía.
   {const sup=new Map(),drop=new Set();nodes.filter(n=>isRel(n)&&/^\s*(es|es[ _]una?|isa|is[ _]a)\s*$/i.test(n.n)).forEach(r=>{const ls=links.filter(l=>l.a===r.id);

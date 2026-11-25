@@ -41,6 +41,12 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.7.0  (25/11/2026)
+--------------------
+- ERDPlus: «Exportar» deja elegir el formato nuevo de erdplus.com (el de ahora) o el antiguo. En el nuevo, la jerarquía sale con el supertipo propio de ERDPlus (círculo d/o, total o parcial), no como relaciones «es».
+- ERDPlus: al importar se leen los dos formatos, el nuevo y el antiguo, y vuelve la jerarquía con su triángulo.
+- E-R: relación exclusiva. Selecciona la entidad y en «Relación exclusiva» marca las relaciones en las que participa en una o en otra: se dibuja el arco que cruza sus líneas.
+
 v4.6.0  (25/11/2026)
 --------------------
 - símbolo de la jerarquía a elegir en Ajustes › Lienzo: triángulo ES, como en los apuntes (círculo arriba = total, arco abajo = exclusiva) o como ERDPlus (círculo con d u o, doble línea = total).

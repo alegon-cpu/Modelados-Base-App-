@@ -13,7 +13,7 @@ const EN={
 'Falta elegir la carpeta':'Choose a folder first','Proyectos':'Projects','Sin nombre':'Untitled','Modelado Bases':'Modelado Bases',
 // Panel
 'Propiedades':'Properties','Selecciona algo para editarlo.':'Select something to edit it.','Nombre':'Name','Texto':'Text','Color':'Color','Ancho':'Width','Estrecha':'Narrow','Normal':'Normal','Ancha':'Wide',
-'Amarilla':'Yellow','Azul':'Blue','Verde':'Green','Rosa':'Pink','Tipo':'Type','Cardinalidades':'Cardinalities','Atributos':'Attributes','Partes':'Parts','Columnas':'Columns','Columna':'Column',
+'Amarilla':'Yellow','Azul':'Blue','Verde':'Green','Rosa':'Pink','Tipo':'Type','Cardinalidades':'Cardinalities','Relación exclusiva':'Exclusive relationship','relación':'relationship','Atributos':'Attributes','Partes':'Parts','Columnas':'Columns','Columna':'Column',
 'Alinear':'Align','Repartir':'Distribute','Línea':'Line','Clave primaria':'Primary key','Clave parcial':'Partial key','Opcional':'Optional','Derivado':'Derived','Multivaluado':'Multivalued','Compuesto':'Composite',
 'Subrayado':'Underlined','Subrayado discontinuo':'Dashed underline','Puede quedar vacío':'Can be empty','Se calcula, no se guarda':'Calculated, not stored','Varios valores':'Several values','Formado por partes':'Made of parts',
 'Entidad débil':'Weak entity','Doble rectángulo':'Double rectangle','Identificadora':'Identifying','Doble rombo':'Double diamond','Sin atributos todavía.':'No attributes yet.',
@@ -636,6 +636,7 @@ const EN={
 };
 // Textos con partes variables
 const EN_RX=[
+[/^Marca las relaciones en las que «(.+)» participa en una o en otra, nunca en las dos\. Se dibuja un arco que cruza sus líneas\.$/,"Tick the relationships in which «$1» takes part in one or the other, never both. An arc crossing their lines is drawn."],
 [/^«(.+)» es parcial: en cada subtipo sus columnas propias admiten NULL\.$/,"«$1» is partial: in each subtype its own columns allow NULL."],
 
 [/^Subtipo de «(.+)»$/,"Subtype of «$1»"],

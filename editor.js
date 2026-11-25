@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='4.6.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.7.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -390,7 +390,7 @@ class Editor{
       if(narrower&&this.p&&this.p._views)this.keepSelVisible();this.applyView();});this._ro.observe(this.cv);}
     this.insp.addEventListener('focusin',()=>{this.editing=false;});
     this.insp.addEventListener('input',e=>{const t=e.target;if(t.type==='checkbox'||t.tagName==='SELECT')return;if(!this.editing){this.snap();this.editing=true;}this.apply(t);this.save();this.render();this.markDup();});
-    this.insp.addEventListener('change',e=>{const t=e.target;if(!(t.type==='checkbox'||t.tagName==='SELECT')||t.dataset.pendchk)return;this.snap();this.apply(t);this.save();this.render();this.renderInsp();});
+    this.insp.addEventListener('change',e=>{const t=e.target;if(!(t.type==='checkbox'||t.tagName==='SELECT')||t.dataset.pendchk||t.dataset.exc)return;this.snap();this.apply(t);this.save();this.render();this.renderInsp();});
     this.insp.addEventListener('keydown',e=>this.onInspKey(e));
     this._hlDraw=hlWire(this.enT,el.querySelector('.ed-en .hlback'),()=>this.p,()=>this.app.touch(this.p));
     hlBind(el.querySelector('.ed-en .hlbar'),this.enT,()=>this.p,()=>{this.app.touch(this.p);this._hlDraw();});
@@ -1072,6 +1072,7 @@ class Editor{
         if(!crowTag&&(r.k||r.p)){const w=r.t.trim().length*CH;s+=`<line x1="${f1(tx)}" y1="${f1(y+2.5)}" x2="${f1(tx+w)}" y2="${f1(y+2.5)}" class="ul${r.p?' p':''}"/>`;}
         return s;}).join('');
       if(isEnt(n)){
+        if(!bo&&Array.isArray(n.f.exc)&&n.f.exc.length>=2)g+=this.excArc(n);
         if(bo&&(n.f.at||[]).length){g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" class="ent${dup}"/><path d="M${f1(x0)},${f1(y0+30)} H${f1(x0+n.w)}" class="ent hd"/><text x="${n.x}" y="${f1(y0+20)}" text-anchor="middle" class="tb">${esc(n.n)}</text>`;
           let row=0;n.f.at.forEach((a,i)=>{const t=boTy(n,a),nm=atNm(a),sb=atSub(a),y=y0+34+row*20,tx=x0+10,w=nm.length*CH;let bx=tx+w+8;row+=1+sb.length;
             let subs='';g+=`<g class="boat" data-boat="${i}"><rect x="${f1(x0+3)}" y="${f1(y)}" width="${f1(n.w-6)}" height="19" rx="3" class="boat-bg"/><text x="${f1(tx)}" y="${f1(y+14)}" class="tx${t.k||t.p?' txk':''}${t.d?' bo-der':''}">${esc(nm)}</text>`;
@@ -1273,7 +1274,9 @@ class Editor{
         <p class="in-p">Si lo rellenas, la tabla del supertipo lleva esa columna (como hace ERDPlus por defecto).</p>
         <div class="in-sub">Al pasar a tablas</div><div class="optcol">${[['each','Una tabla por entidad','Cada subtipo lleva la PK del supertipo (como PK y FK). Vale siempre.'],['up','Todo en la tabla del supertipo','Las columnas de los subtipos van al supertipo (pueden quedar vacías) y se añade «tipo».'],['down','Solo las tablas de los subtipos','Cada subtipo copia las columnas del supertipo. Si es parcial, sus columnas propias admiten NULL.']].map(([v,t,sub])=>`<button class="opt" data-isa="map" data-v="${v}" aria-pressed="${(f.map||'each')===v}"><b>${t}</b><small>${sub}</small></button>`).join('')}</div>`+lockChk(one);}
     else if(this.isER&&one){const X=this.X(),n=one;
-      if(isEnt(n)){const isub=X.isaOfSub(n);h+=head('Entidad')+nameF('name',n.n,'Nombre')+chk('weak','Entidad débil',n.k==='weak','weak','Doble rectángulo')+(isub&&X.superOf(isub)?`<p class="in-p">Subtipo de <button class="lnk" data-goto="${isub.id}">${esc(X.superOf(isub).n)}</button>: hereda su clave, no necesita PK propia.</p>`:'')+this.attrList(n)+lockChk(n);}
+      if(isEnt(n)){const isub=X.isaOfSub(n),myr=X.linksOf(n.id).map(l=>X.other(l,n.id)).filter(r=>r&&isRel(r)),ex=new Set(n.f.exc||[]);
+        const excH=myr.length>=2?`<div class="in-sub">Relación exclusiva</div><p class="in-p">Marca las relaciones en las que «${esc(n.n)}» participa en una o en otra, nunca en las dos. Se dibuja un arco que cruza sus líneas.</p><div class="alist">${myr.map(r=>`<label class="chk"><input type="checkbox" data-exc="${r.id}"${ex.has(r.id)?' checked':''}> ${esc(r.n||'relación')}</label>`).join('')}</div>`:'';
+        h+=head('Entidad')+nameF('name',n.n,'Nombre')+chk('weak','Entidad débil',n.k==='weak','weak','Doble rectángulo')+(isub&&X.superOf(isub)?`<p class="in-p">Subtipo de <button class="lnk" data-goto="${isub.id}">${esc(X.superOf(isub).n)}</button>: hereda su clave, no necesita PK propia.</p>`:'')+this.attrList(n)+excH+lockChk(n);}
       else if(isRel(n)){const t=X.relType(n),ne=X.ends(n).length;h+=head('Relación'+(t?` <span class="badge">${t}</span>`:''))+nameF('name',n.n,'Nombre')+chk('idrel','Identificadora',n.k==='idrel','idrel','Doble rombo')+chk('as','Entidad asociativa',!!n.f.as,'ent','Rectángulo alrededor del rombo: se puede relacionar con otras entidades')+(t==='N:M'||ne>2||n.f.as||n.f.own?`<label class="fld">Clave propia de su tabla <small>(opcional, p. ej. CodDetFac)</small><input type="text" data-f="own" value="${escA(n.f.own||'')}" placeholder="Las FK juntas" spellcheck="false"></label><p class="in-p">Vacío: la clave de la tabla son las FK juntas. Con un nombre: esa columna es la clave y las FK quedan como columnas normales.</p>`:'')+`<div class="in-sub">Cardinalidades</div>`+this.cardBlock(n)+(ne===2?`<p class="in-p">¿Ternaria? Une una tercera entidad a la relación con Mayús + clic.</p>`:'')+this.attrList(n)+lockChk(n);}
       else{const ow=X.ownerOf(n),f=n.f;h+=head('Atributo')+nameF('name',n.n,'Nombre')+(ow?`<p class="in-p">De <button class="lnk" data-goto="${ow.id}">${esc(ow.n)}</button></p>`:`<p class="in-p warn">No está unido a nada. Usa Mayús + clic en su entidad.</p>`)+
         `<div class="in-sub">Tipo</div>`+chk('f-k','Clave primaria',f.k,'key','Subrayado')+(ow&&ow.k==='weak'||f.p?chk('f-p','Clave parcial',f.p,'partial','Subrayado discontinuo'):'')+(f.k||f.p?'':chk('f-u','Único',f.u,'uq','No se puede repetir: UNIQUE en el SQL'))+chk('f-o','Opcional',f.o,'opt','Puede quedar vacío')+chk('f-d','Derivado',f.d,'deriv','Se calcula, no se guarda')+chk('f-m','Multivaluado',f.m,'multi','Varios valores')+chk('f-c','Compuesto',f.c,'comp','Formado por partes')+(f.c?this.attrList(n):'')+lockChk(n);}}
@@ -1294,8 +1297,17 @@ class Editor{
     this.insp.innerHTML=h;
     if(this.ro)this.insp.querySelectorAll('input,select,textarea,button:not(.pinb):not([data-goto])').forEach(x=>{x.disabled=true;});
     this.insp.querySelectorAll('[data-pendchk]').forEach(i=>i.addEventListener('change',()=>{this.pend[i.dataset.pendchk]=i.checked;}));
+    this.insp.querySelectorAll('[data-exc]').forEach(i=>i.addEventListener('change',()=>{const n=this.single();if(!n||!isEnt(n))return;this.snap();const s=new Set(n.f.exc||[]);if(i.checked)s.add(i.dataset.exc);else s.delete(i.dataset.exc);
+      n.f.exc=[...s];if(!n.f.exc.length)delete n.f.exc;this.save();this.render();this.renderInsp();}));
     this.markDup();
   }
+  // Relación exclusiva: arco que cruza las líneas de la entidad hacia las relaciones elegidas (participa en una u otra)
+  excArc(n){const X=this.X(),rs=n.f.exc.map(id=>X.N[id]).filter(r=>r&&isRel(r)&&X.ends(r).some(x=>x.e===n));if(rs.length<2)return '';
+    const R=Math.hypot(n.w,n.h)/2+16,ang=rs.map(r=>Math.atan2(r.y-n.y,r.x-n.x)).sort((a,b)=>a-b);
+    let gi=ang.length-1,gap=ang[0]+2*Math.PI-ang[ang.length-1];for(let i=0;i<ang.length-1;i++)if(ang[i+1]-ang[i]>gap){gap=ang[i+1]-ang[i];gi=i;}
+    let a0=ang[(gi+1)%ang.length],a1=ang[gi];if(a1<a0)a1+=2*Math.PI;a0-=0.12;a1+=0.12;const P=a=>[n.x+R*Math.cos(a),n.y+R*Math.sin(a)];
+    const [x0,y0]=P(a0),[x1,y1]=P(a1),big=a1-a0>Math.PI?1:0;
+    return `<path d="M${f1(x0)} ${f1(y0)} A${f1(R)} ${f1(R)} 0 ${big} 1 ${f1(x1)} ${f1(y1)}" class="excarc"/>`;}
   apply(el){
     const f=el.dataset.f;if(!f||el.dataset.pendchk)return;
     const sn=this.single();if(f==='lock'){this.setLock(sn,el.checked);return;}if(isNote(sn)){if(f==='ntext')sn.text=el.value;return;}

@@ -75,7 +75,7 @@ async function captureProject(p){
 }
 
 /* ===================== Exportar a ERDPlus ===================== */
-function toERDPlus(er){
+function toERDPlus(er,raw){
   const X=erIdx(er),shapes=[],connectors=[],ids={};let next=1;
   const ed=new Editor(null);er.nodes.forEach(n=>ed.size(n));
   const x0=Math.min(...er.nodes.map(n=>n.x-n.w/2))-60,y0=Math.min(...er.nodes.map(n=>n.y-n.h/2))-60;
@@ -83,20 +83,85 @@ function toERDPlus(er){
   er.nodes.forEach(n=>ids[n.id]=next++);
   er.nodes.filter(isEnt).forEach(n=>shapes.push({type:'Entity',details:{name:n.n,type:n.k==='weak'?'weak':'regular',x:X0(n),y:Y0(n),id:ids[n.id]}}));
   er.nodes.filter(isAtt).forEach(n=>{const f=n.f||{};
-    shapes.push({type:'Attribute',details:{name:n.n+(f.u&&!f.k&&!f.p&&!/\(U\)\s*$/i.test(n.n)?' (U)':''),isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id]}});
+    shapes.push({type:'Attribute',details:{name:n.n+(f.u&&!f.k&&!f.p&&!/\(U\)\s*$/i.test(n.n)?' (U)':''),isDerived:!!f.d,isMultivalued:!!f.m,isOptional:!!f.o,isComposite:!!f.c,isUnique:!!(f.k||f.p),x:X0(n),y:Y0(n),id:ids[n.id],...(raw&&f.p?{_partial:true}:{})}});
     const ow=X.ownerOf(n);if(ow)connectors.push({type:'Connector',details:{id:next++},source:ids[n.id],destination:ids[ow.id]});});
   er.nodes.filter(isRel).forEach(r=>{const en=X.ends(r),ea=hereEnds(en);
     const slots=ea.map((x,i)=>({slotIndex:i,minimum:'',maximum:'',participation:x.mn==='1'?'mandatory':'optional',cardinality:x.mx==='1'?'one':'many',role:'',entityId:ids[x.e.id]}));
-    shapes.push({type:'Relationship',details:{name:r.n,isIdentifying:r.k==='idrel',x:X0(r),y:Y0(r),slots,id:ids[r.id]}});
+    shapes.push({type:'Relationship',details:{name:r.n,isIdentifying:r.k==='idrel',x:X0(r),y:Y0(r),slots,id:ids[r.id],...(raw&&r.f&&r.f.as?{_as:true}:{})}});
     en.forEach((x,i)=>connectors.push({type:'RelationshipConnector',details:{slotIndex:i,id:next++},source:ids[x.e.id],destination:ids[r.id]}));});
   // Jerarquías: ERDPlus no tiene triángulo. Cada subtipo se une a su supertipo con una relación 1:1 «es»
   // (el supertipo puede serlo o no: opcional; el subtipo siempre es uno: obligatorio). Al importar se vuelve a montar.
   er.nodes.filter(isIsa).forEach(i=>{const P=X.superOf(i);if(!P)return;X.subsOf(i).forEach(S=>{const rid=next++;
-    shapes.push({type:'Relationship',details:{name:'es',isIdentifying:false,x:Math.round((X0(P)+X0(S))/2+(P.w-80)/2),y:Math.round((Y0(P)+Y0(S))/2),
+    shapes.push({type:'Relationship',details:{...(raw?{_isa:{sup:ids[P.id],sub:ids[S.id],tot:!!(i.f&&i.f.tot),dis:!(i.f&&i.f.dis===false)}}:{}),name:'es',isIdentifying:false,x:Math.round((X0(P)+X0(S))/2+(P.w-80)/2),y:Math.round((Y0(P)+Y0(S))/2),
       slots:[{slotIndex:0,minimum:'',maximum:'',participation:'optional',cardinality:'one',role:'',entityId:ids[P.id]},{slotIndex:1,minimum:'',maximum:'',participation:'mandatory',cardinality:'one',role:'',entityId:ids[S.id]}],id:rid}});
     connectors.push({type:'RelationshipConnector',details:{slotIndex:0,id:next++},source:ids[P.id],destination:rid},{type:'RelationshipConnector',details:{slotIndex:1,id:next++},source:ids[S.id],destination:rid});});});
   const width=Math.max(800,...er.nodes.map(n=>X0(n)+n.w+60)),height=Math.max(600,...er.nodes.map(n=>Y0(n)+n.h+60));
+  if(raw)return {shapes,connectors,width,height};
   return JSON.stringify({version:2,www:'erdplus.com',shapes,connectors,width,height});
+}
+// ERDPlus actual (desde 2025): {diagramType:1, data:{nodes, edges, viewport}} con nodos de React Flow.
+// Los atributos y los subtipos cuelgan de su dueño (parentId) con la posición relativa a él. La jerarquía es nativa:
+// la entidad general es «Supertype» (totalSpecialization, supertypeDefinition Disjointed/Overlapping) y cada subtipo se
+// une con una arista «Supertype». Cada relación guarda, para cada entidad, cuántas veces participa ella (como la app).
+// Las ternarias no existen en ERDPlus: se avisa y no se exportan.
+function toERDPlusNew(er,name){
+  const o=toERDPlus(er,true),uuid=()=>(crypto.randomUUID?crypto.randomUUID():'x'+Math.random().toString(16).slice(2)+Date.now().toString(16));
+  const S={},abs={},nodes=[],edges=[],warn=[];o.shapes.forEach(s=>{S[s.details.id]=s;});
+  const nid={};o.shapes.forEach(s=>nid[s.details.id]=uuid());
+  const isaShapes=o.shapes.filter(s=>s.details._isa),sup={},subOf={};
+  isaShapes.forEach(s=>{const z=s.details._isa;(sup[z.sup]=sup[z.sup]||{tot:z.tot,dis:z.dis,subs:[]}).subs.push(z.sub);subOf[z.sub]=z.sup;});
+  const base={isConnectable:false,isSelected:false},M={measured:{width:100,height:50},selected:false,dragging:false};
+  const pos=(s,par)=>{const x=+s.details.x||0,y=+s.details.y||0;abs[s.details.id]={x,y};return par?{x:x-abs[par].x,y:y-abs[par].y}:{x,y};};
+  // entidades: primero las que no son subtipo (un hijo tiene que ir después de su padre)
+  const ents=o.shapes.filter(s=>s.type==='Entity'),order=[...ents.filter(s=>!subOf[s.details.id]),...ents.filter(s=>subOf[s.details.id])];
+  order.forEach(s=>{const d=s.details,id=d.id,p=subOf[id];
+    if(p!=null){nodes.push({id:nid[id],parentId:nid[p],type:'Entity',position:pos(s,p),data:{label:d.name,...base,type:d.type==='weak'?'Weak':'Regular',parentId:nid[p]},...M});return;}
+    const sp=sup[id];nodes.push({id:nid[id],type:'Entity',position:pos(s),data:{label:d.name,type:sp?'Supertype':d.type==='weak'?'Weak':'Regular',...base,...(sp?{totalSpecialization:sp.tot,supertypeDefinition:sp.dis?'Disjointed':'Overlapping'}:{})},...M});});
+  Object.entries(sup).forEach(([p,sp])=>sp.subs.forEach(c=>edges.push({id:nid[p]+'->'+nid[c],type:'Supertype',source:nid[p],target:nid[c],data:{label:'Subtype Entity',isConnectable:false,type:'Regular',parentId:nid[p],isSelected:false,supertypeDefinition:sp.dis?'Disjointed':'Overlapping',totalSpecialization:sp.tot}})));
+  // relaciones (binarias y reflexivas)
+  o.shapes.filter(s=>s.type==='Relationship'&&!s.details._isa).forEach(s=>{const d=s.details,sl=d.slots||[];
+    if(sl.length!==2){warn.push(`«${d.name}» (${sl.length} entidades): ERDPlus no tiene relaciones ternarias.`);return;}
+    if(d._as)warn.push(`«${d.name}» es una entidad asociativa: en ERDPlus queda como relación normal.`);
+    const det=x=>({id:nid[x.entityId],minCardinality:x.participation==='mandatory'?'Mandatory':'Optional',maxCardinality:x.cardinality==='one'?'One':'Many'});
+    const self=sl[0].entityId===sl[1].entityId,a=det(sl[0]),b=det(sl[1]);
+    if(self){a.exactConstraints={role:''};b.exactConstraints={role:''};}
+    nodes.push({id:nid[d.id],type:'Relationship',position:pos(s),data:{label:d.name,sourceEntityDetails:a,targetEntityDetails:b,...(self?{isSelfReferencing:true}:{}),isIdentifying:!!d.isIdentifying,isSelected:false,isConnectable:true},...M});
+    if(self){const e=nid[sl[0].entityId],r=nid[d.id];edges.push({id:e+'->'+r,type:'SelfRelationship',source:e,target:r,data:{id:e+'->'+r,...a}},{id:e+'->'+r+'(2)',type:'SelfRelationship',source:e,target:r,data:{id:e+'->'+r+'(2)',...b}});}
+    else [a,b].forEach(x=>{const eid=nid[d.id]+'->'+x.id;edges.push({id:eid,type:'Relationship',source:nid[d.id],target:x.id,data:{id:eid,minCardinality:x.minCardinality,maxCardinality:x.maxCardinality}});});});
+  // atributos: cuelgan de su dueño (entidad, relación o atributo compuesto); los padres van antes que los hijos
+  const own={};o.connectors.filter(c=>c.type==='Connector').forEach(c=>{own[c.source]=c.destination;});
+  const atts=o.shapes.filter(s=>s.type==='Attribute'),done=new Set(Object.keys(abs).map(Number));let left=atts.slice(),guard=0;
+  while(left.length&&guard++<20){left=left.filter(s=>{const d=s.details,ow=own[d.id];if(ow!=null&&!done.has(ow)&&S[ow]&&!(S[ow].type==='Relationship'&&S[ow].details._isa))return true;
+    if(ow!=null&&!nodes.some(n=>n.id===nid[ow]))return false; // dueño no exportado
+    const t={Composite:!!d.isComposite,Derived:!!d.isDerived,Multivalued:!!d.isMultivalued,Optional:!!d.isOptional,Unique:!!d.isUnique&&!d._partial,...(d._partial?{'Partially Unique':true}:{})};
+    nodes.push({id:nid[d.id],...(ow!=null?{parentId:nid[ow]}:{}),type:'Attribute',position:pos(s,ow!=null?ow:null),data:{label:d.name,types:t,...base},...M});done.add(d.id);
+    if(ow!=null)edges.push({id:uuid(),type:'Attribute',source:nid[ow],target:nid[d.id]});return false;});}
+  return {text:JSON.stringify({diagramType:1,data:{nodes,edges,viewport:{x:0,y:0,zoom:1}},name:String(name||'Diagrama')}),warn};
+}
+// Lee el formato actual de ERDPlus y lo pasa al antiguo (shapes/connectors), que es el que sabe leer fromERDPlus
+function erdNewToOld(D){const d=D.data||{},N={},shapes=[],connectors=[],isa=[];let k=1;const num={};const id=x=>num[x]||(num[x]=k++);
+  (d.nodes||[]).forEach(n=>N[n.id]=n);
+  const absP=n=>{let x=+(n.position&&n.position.x)||0,y=+(n.position&&n.position.y)||0,p=n.parentId?N[n.parentId]:null,g=0;while(p&&g++<20){x+=+(p.position&&p.position.x)||0;y+=+(p.position&&p.position.y)||0;p=p.parentId?N[p.parentId]:null;}return{x,y};};
+  const ty=t=>{if(!t)return{};if(Array.isArray(t)){const o={};t.forEach(x=>o[x]=true);return o;}return t;};
+  const rel=new Set();(d.nodes||[]).forEach(n=>{const dt=n.data||{},P=absP(n),lab=String(dt.label||'').trim();
+    if(n.type==='Entity')shapes.push({type:'Entity',details:{name:lab||'Entidad',type:/weak/i.test(dt.type||'')?'weak':'regular',x:P.x,y:P.y,id:id(n.id)}});
+    else if(n.type==='Attribute'){const t=ty(dt.types);shapes.push({type:'Attribute',details:{name:lab||'atributo',isUnique:!!(t.Unique||t.Key),isPartial:!!t['Partially Unique'],isOptional:!!t.Optional,isDerived:!!t.Derived,isMultivalued:!!t.Multivalued,isComposite:!!t.Composite,x:P.x,y:P.y,id:id(n.id)}});
+      if(n.parentId&&N[n.parentId])connectors.push({type:'Connector',details:{id:k++},source:id(n.id),destination:id(n.parentId)});}
+    else if(n.type==='Relationship'){rel.add(n.id);let sd=[dt.sourceEntityDetails,dt.targetEntityDetails].filter(x=>x&&x.id&&N[x.id]);
+      // sin datos en el nodo: se sacan de las aristas (relación → entidad), que también llevan min y max
+      if(sd.length<2)sd=(d.edges||[]).filter(e=>/Relationship/.test(e.type||'')&&(e.source===n.id||e.target===n.id)).map(e=>{const o=e.source===n.id?e.target:e.source,ed=e.data||{};return N[o]&&N[o].type==='Entity'?{id:o,minCardinality:ed.minCardinality,maxCardinality:ed.maxCardinality}:null;}).filter(Boolean);
+      const slots=sd.map((x,i)=>({slotIndex:i,participation:/mandatory/i.test(x.minCardinality||'')?'mandatory':x.minCardinality?'optional':'',cardinality:/one/i.test(x.maxCardinality||'')?'one':x.maxCardinality?'many':'',entityId:id(x.id)}));
+      shapes.push({type:'Relationship',details:{name:lab||'relacion',isIdentifying:!!dt.isIdentifying,x:P.x,y:P.y,slots,id:id(n.id)}});
+      slots.forEach(s=>connectors.push({type:'RelationshipConnector',details:{slotIndex:s.slotIndex,id:k++},source:s.entityId,destination:id(n.id)}));}});
+  // atributos unidos solo por arista (sin parentId)
+  (d.edges||[]).forEach(e=>{const s=N[e.source],t=N[e.target];if(!s||!t)return;if(t.type==='Attribute'&&!t.parentId)connectors.push({type:'Connector',details:{id:k++},source:id(t.id),destination:id(s.id)});});
+  // jerarquías nativas
+  const sup={};(d.edges||[]).forEach(e=>{if(!/^(Supertype|Subtype)$/.test(e.type||''))return;const p=N[e.source],c=N[e.target];if(!p||!c||p.type!=='Entity'||c.type!=='Entity')return;
+    const ed=e.data||{},pd=p.data||{};const z=sup[p.id]||(sup[p.id]={sup:id(p.id),subs:[],tot:!!(pd.totalSpecialization??ed.totalSpecialization),dis:(pd.supertypeDefinition||ed.supertypeDefinition||'Disjointed')!=='Overlapping'});z.subs.push(id(c.id));});
+  // subtipos sin arista pero con parentId a una entidad «Supertype»
+  (d.nodes||[]).forEach(n=>{if(n.type!=='Entity'||!n.parentId)return;const p=N[n.parentId];if(!p||p.type!=='Entity')return;const pd=p.data||{};
+    const z=sup[p.id]||(sup[p.id]={sup:id(p.id),subs:[],tot:!!pd.totalSpecialization,dis:(pd.supertypeDefinition||'Disjointed')!=='Overlapping'});if(!z.subs.includes(id(n.id)))z.subs.push(id(n.id));});
+  return {version:2,shapes,connectors,_isa:Object.values(sup)};
 }
 
 /* ===================== Código para exportar / importar ===================== */
@@ -242,6 +307,7 @@ const RESUMEN_EN=["Projects saved as folders in «Modelados BDD», wherever you 
 const parOf=f=>{f=String(f||'');const i=f.lastIndexOf('/');return i<0?'':f.slice(0,i);},leafOf=f=>String(f||'').slice(String(f||'').lastIndexOf('/')+1);
 // Novedades en inglés por versión (las nuevas; las antiguas están en CHANGELOG.txt)
 const NOV_EN={
+  '4.7':["ERDPlus: «Export» lets you choose the new erdplus.com format (the current one) or the old one. In the new one the hierarchy uses ERDPlus’s own supertype (d/o circle, total or partial), not «es» relationships.", "ERDPlus: importing reads both formats, new and old, and the hierarchy comes back with its triangle.", "E-R: exclusive relationship. Select the entity and under «Exclusive relationship» tick the relationships it takes part in one or the other: the arc crossing their lines is drawn."],
   '4.6':["Hierarchy symbol in Settings › Canvas: ES triangle, like the class notes (circle on top = total, arc below = exclusive) or like ERDPlus (circle with d or o, double line = total).", "Hierarchy: «Field that says the type» adds the Puesto column to the supertype, like ERDPlus. «Only the subtype tables» now also works when partial: their own columns allow NULL.", "N:M, ternary and associative: «Own key of its table» (for example CodDetFac) makes that column the PK and leaves the FKs as normal columns.", "New theory: «The three phases», «Kinds of relationships: regular, weak and exclusive» and «Derived and calculated attributes». Hierarchies: both notations and the four combinations. Queries: UNION and CASE WHEN, IFNULL and CONVERT.", "Fixed: the SQL examples in the queries theory were shown on a single line."],
   '4.5':["«Easy mode» also in the E-R toolbar: turn it on there and the relationships go along to the relational model and the DSD.", "ERDPlus: importing no longer loses relationship attributes. Hierarchies are exported as 1:1 «es» relationships and the triangle comes back on import. A unique attribute is exported as «DNI (U)».", "E-R to tables: an FK pointing to a weak entity always gets its full key. Multivalued tables delete in cascade.", "Relational to E-R: multivalued tables come back as multivalued attributes, and each relationship gets its name back from the FK (CodDep_pertenece → «pertenece»).", "SQL or Workbench to DSD: a table whose PK is the FK to another is recognised as a hierarchy subtype.", "E-R to sketch: attribute types and relationship verbs go to the sketch and come back to the E-R.", "Test: sample data works even when two tables point at each other. MySQL sample data adds SET FOREIGN_KEY_CHECKS.", "Arrange: attributes no longer land on lines or cardinalities, and the subtypes of a hierarchy sit in a row under their supertype.", "Column types are guessed better (Capacidad, Creditos, Horas → INT; Email → VARCHAR(100); Duracion → TIME…).", "New theory: «Several relationships between the same entities» and «ERDPlus and MySQL Workbench step by step». Hierarchies have an example of the three ways to convert them."],
   '4.4.1':['DSD: a composite foreign key (for example Numero + CodCam to Etapa) is drawn with a single line. If a table has two foreign keys to the same table (departure and arrival), each one has its own line and is changed separately.','When going from the E-R to tables, if there are several 1:N relationships between the same two entities, each foreign key gets the name of its relationship (codLoc_salida, codLoc_llegada).'],
@@ -268,6 +334,9 @@ const NOVEDADES_EN=["After updating, the app window always shows up in front (be
   'More settings: what opens first, tab when opening a project, recents, SQL (DBMS, DROP DATABASE, sample rows), saving images and «Export exercise» quality.',
   'The notation option is gone (always Chen again).'];
 const NOVEDADES=[
+  '4.7: ERDPlus: «Exportar» deja elegir el formato nuevo de erdplus.com (el de ahora) o el antiguo. En el nuevo, la jerarquía sale con el supertipo propio de ERDPlus (círculo d/o, total o parcial), no como relaciones «es».',
+  '4.7: ERDPlus: al importar se leen los dos formatos, el nuevo y el antiguo, y vuelve la jerarquía con su triángulo.',
+  '4.7: E-R: relación exclusiva. Selecciona la entidad y en «Relación exclusiva» marca las relaciones en las que participa en una o en otra: se dibuja el arco que cruza sus líneas.',
   '4.6: símbolo de la jerarquía a elegir en Ajustes › Lienzo: triángulo ES, como en los apuntes (círculo arriba = total, arco abajo = exclusiva) o como ERDPlus (círculo con d u o, doble línea = total).',
   '4.6: jerarquía: «Campo que dice el tipo» añade al supertipo la columna Puesto, como ERDPlus. «Solo las tablas de los subtipos» ya vale también si es parcial: sus columnas propias admiten NULL.',
   '4.6: N:M, ternarias y asociativas: «Clave propia de su tabla» (por ejemplo CodDetFac) hace esa columna la PK y deja las FK como columnas normales.',
@@ -1072,10 +1141,12 @@ const App={
     if(a==='cleardiff'){this.clearDiff();return;}
     if(a==='erdplus'){
       if(!p.er.nodes.length){toast('Tu E-R está vacío.');return;}
-      let txt;try{txt=toERDPlus(cleanModel(p.er,'er'));}catch(e){toast('No se pudo generar: '+e.message,'warn');return;}
+      this.modal(`<h3>Exportar a ERDPlus</h3><div class="dupopts"><button class="dupo" data-m="erd-new"><b>ERDPlus actual (recomendado)</b><small>El formato que guarda erdplus.com ahora. Las jerarquías salen con su símbolo propio (círculo d / o). No admite relaciones ternarias.</small></button><button class="dupo" data-m="erd-old"><b>Formato antiguo</b><small>El de las versiones anteriores de ERDPlus. Las jerarquías salen como relaciones 1:1 «es».</small></button></div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);return;}
+    if(a==='erdplus-old'||a==='erdplus-new'){
+      let txt,warn=[];try{if(a==='erdplus-new'){const r=toERDPlusNew(cleanModel(p.er,'er'),p.name);txt=r.text;warn=r.warn;}else txt=toERDPlus(cleanModel(p.er,'er'));}catch(e){toast('No se pudo generar: '+e.message,'warn');return;}
       if(p._rn){clearTimeout(p._rn);p._rn=null;await this.doRename(p);}
       const f=await this.run(()=>window.api.saveERDPlus(p.folder,p.name,txt));
-      if(f)this.modal(`<h3>Archivo para ERDPlus guardado</h3><p>Para abrirlo: entra en <b>erdplus.com</b>, crea o abre un diagrama y usa <b>Open</b> (o <b>Import</b>) para elegir este archivo:</p><div class="folder-demo" style="margin:0">${esc(f)}</div><div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
+      if(f)this.modal(`<h3>Archivo para ERDPlus guardado</h3>${warn.length?`<p class="in-p warn">${warn.map(esc).join('<br>')}</p>`:''}<p>Para abrirlo: entra en <b>erdplus.com</b> y usa <b>Import</b> (o <b>Open</b>) para elegir este archivo:</p><div class="folder-demo" style="margin:0">${esc(f)}</div><div class="mrow"><button class="ebtn" data-m="close">Cerrar</button><button class="ebtn pri" data-m="showfile" data-f="${escA(f)}">Mostrar en la carpeta</button></div>`);
       return;}
     if(a==='dup'){this.modal(`<h3>Duplicar «${esc(p.name)}»</h3><div class="dupopts">${this.solo?'':`<button class="dupo" data-m="dup-proj"><b>Duplicar el proyecto</b><small>Una copia aparte, con otro nombre, en la misma carpeta.</small></button>`}<button class="dupo" data-m="dup-ver"><b>Hacer otra versión</b><small>Dentro de este mismo ejercicio: se crea la versión ${(p.vers?p.vers.length:1)+1} copiando la que tienes abierta. Cada versión va en su carpeta (Version 1, Version 2…) con su enunciado, E-R, relacional, DED y SQL.</small></button></div><div class="mrow"><button class="ebtn" data-m="close">Cancelar</button></div>`);return;}
     if(a==='vset'){await this.setVer(p,+b.dataset.i);return;}
@@ -1224,6 +1295,7 @@ const App={
     if(k==='pk-go'){const sel=[...document.querySelectorAll('[data-pk]:checked')].map(x=>x.dataset.pk),list=this.projects.filter(p=>sel.includes(p.folder));if(!list.length)return;this._pick=sel;
       this.closeModal();if(b.dataset.kind==='cap'){await this.flushAll();await this.captureMany(list);}else this.showCode(list,list.length===1?'Código del proyecto «'+list[0].name+'»':'Código de '+list.length+' proyectos');return;}
     if(k.startsWith('ex-')){await EX.m(k,b);return;}
+    if(k==='erd-new'||k==='erd-old'){this.closeModal();await this.action({dataset:{act:k==='erd-new'?'erdplus-new':'erdplus-old'}});return;}
     if(k==='dup-proj'){this.closeModal();await this.action({dataset:{act:'dupproj'}});return;}
     if(k==='dup-ver'){this.closeModal();if(this.cur)await this.addVer(this.cur);return;}
     if(k==='vsend-to'){const p=this.cur;this.closeModal();if(p)this.sendVerAsk(p,b.dataset.k,+b.dataset.i);return;}
