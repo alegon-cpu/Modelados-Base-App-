@@ -41,6 +41,14 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.6.0  (25/11/2026)
+--------------------
+- símbolo de la jerarquía a elegir en Ajustes › Lienzo: triángulo ES, como en los apuntes (círculo arriba = total, arco abajo = exclusiva) o como ERDPlus (círculo con d u o, doble línea = total).
+- jerarquía: «Campo que dice el tipo» añade al supertipo la columna Puesto, como ERDPlus. «Solo las tablas de los subtipos» ya vale también si es parcial: sus columnas propias admiten NULL.
+- N:M, ternarias y asociativas: «Clave propia de su tabla» (por ejemplo CodDetFac) hace esa columna la PK y deja las FK como columnas normales.
+- teoría nueva: «Las tres fases: conceptual, lógico y físico» (con el refinamiento de Chen), «Tipos de relaciones: regular, débil y exclusiva» (existencia e identificación, por grado) y «Atributo derivado y atributo calculado». Jerarquías: las dos notaciones y las cuatro combinaciones. Consultas: UNION y CASE WHEN, IFNULL y CONVERT.
+- arreglado: los ejemplos de SQL de la teoría de consultas salían en una sola línea.
+
 v4.5.0  (24/11/2026)
 --------------------
 - «Modo fácil» también en la barra del E-R: lo activas ahí y al pasar al relacional y al DED ya van las relaciones.

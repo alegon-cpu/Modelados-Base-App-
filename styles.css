@@ -1408,3 +1408,4 @@ svg .bo-sub{fill:var(--muted)}
 .dupo{display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
 .dupo:hover{border-color:var(--accent)}
 .dupo small{color:var(--muted);font-size:12.5px;line-height:1.4}
+pre.th-code{white-space:pre}

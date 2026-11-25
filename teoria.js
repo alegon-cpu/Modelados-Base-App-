@@ -22,6 +22,22 @@ const TEORIA=[
 <li>Palabras como <i>cada, puede, al menos, varios, solo uno</i> → <b>cardinalidades</b>.</li>
 <li>Lo que «identifica» o «no se puede repetir» (DNI, código, matrícula) → <b>clave primaria</b>.</li></ul>`},
 
+{id:'diseno',t:'Las tres fases: conceptual, lógico y físico',k:'diseño conceptual logico fisico refinamiento chen dominio reglas entidad redundancia',h:`
+<table class="th-tab"><tr><th>Fase</th><th>Qué se hace</th><th>En clase</th></tr>
+<tr><td><b>1. Diseño conceptual</b></td><td>Representar la información de la empresa sin pensar en ningún programa.</td><td>Modelo E-R extendido (papel y ERDPlus).</td></tr>
+<tr><td><b>2. Diseño lógico</b></td><td>Pasar el E-R al modelo del gestor (relacional): tablas, PK y FK.</td><td>DED (Workbench) o diagrama referencial (ERDPlus).</td></tr>
+<tr><td><b>3. Diseño físico</b></td><td>Crear de verdad la base de datos en un gestor concreto.</td><td>Script SQL (CREATE DATABASE, CREATE TABLE…).</td></tr></table>
+<h4>Reglas que cumple toda entidad</h4><ul><li>Tiene existencia propia.</li><li>Cada ejemplar se distingue de los demás (por eso tiene identificador).</li><li>Todos sus ejemplares tienen los mismos atributos.</li></ul>
+<p><b>Dominio</b>: el conjunto de valores que puede tomar un atributo (por ejemplo, las notas de 0 a 10). Existe aunque no haya ninguna entidad.</p>
+<h4>Quitar redundancias</h4><ul><li>Un atributo que se calcula a partir de otros se quita o se marca como derivado.</li><li>Una relación que se puede «recorrer» por otro camino es redundante: se quita, comprobando que se sigue llegando de una entidad a la otra.</li></ul>
+<h4>Refinamiento de Chen (E-R → tablas)</h4>
+<table class="th-tab"><tr><th>En el E-R</th><th>Tablas</th></tr>
+<tr><td>1:1</td><td>Depende de las cardinalidades mínimas: la FK va al lado que participa obligatoriamente (y lleva UNIQUE).</td></tr>
+<tr><td>1:N</td><td>A(<u>a</u>, …) · B(<u>b</u>, …, <i>a</i>)</td></tr>
+<tr><td>1:N con B débil (identificación)</td><td>A(<u>a</u>, …) · B(<u><i>a</i>, b</u>, …)</td></tr>
+<tr><td>N:M</td><td>C(<u><i>a</i>, <i>b</i></u>, …) <b>o bien</b> C(<u>c</u>, <i>a</i>, <i>b</i>, …) con clave propia</td></tr>
+<tr><td>N-aria</td><td>D(<u><i>a</i>, <i>b</i>, <i>c</i></u>, …) o bien D(<u>d</u>, <i>a</i>, <i>b</i>, <i>c</i>, …)</td></tr></table>
+<p class="th-tip">En la app: en una N:M (o ternaria, o asociativa) escribe en «Clave propia de su tabla» el nombre, por ejemplo <i>CodDetFac</i>. La tabla tendrá esa PK y las FK quedarán como columnas normales.</p>`},
 {id:'boceto',t:'Boceto: pensar antes del E-R',k:'boceto esquema borrador entidades atributos compuesto relacion empezar',h:`
 <p>La pestaña <b>Boceto</b> (entre Enunciado y E-R) sirve para pensar el ejercicio antes de dibujar el E-R completo: escribes y el dibujo sale solo, con cada entidad y sus atributos.</p>
 <ol><li>Lee el enunciado y escribe arriba <b>una entidad por línea</b> con sus atributos: <code>Alumno; DNI, Nombre, FechaNac</code>.</li>
@@ -77,6 +93,16 @@ ${thER('Edificio','tiene','Aula',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
 <tr><td>${TH(GL.comp,'Compuesto')}</td><td>Elipse con otras elipses colgando</td><td>Formado por partes: Dirección = calle + número + ciudad.</td></tr></table>
 <div class="th-tip">La clave primaria debe ser algo que <b>nunca cambie y nunca se repita</b>. Si no hay nada así en el enunciado, inventa un código (CodCliente).</div>`},
 
+{id:'derivado',t:'Atributo derivado y atributo calculado',k:'derivado calculado almacenado trigger edad fecha nacimiento ejemplares prestados',h:`
+<table class="th-tab"><tr><th></th><th>Derivado</th><th>Calculado</th></tr>
+<tr><td>Se puede sacar de otros datos</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>¿Se guarda en la tabla?</td><td><b>Nunca</b>: se calcula con una consulta cuando hace falta</td><td><b>Se decide</b>: se guarda si el cálculo es costoso o se usa constantemente</td></tr>
+<tr><td>Dibujo</td><td>Óvalo con borde discontinuo</td><td>Óvalo normal (es un atributo almacenado)</td></tr>
+<tr><td>Si se guarda</td><td>—</td><td>Hay que mantenerlo <b>siempre</b> actualizado (por ejemplo, con un trigger)</td></tr></table>
+<h4>Ejemplos</h4><ul><li><b>Edad</b> (derivado): se guarda la FechaNacimiento y la edad se muestra con una consulta.</li>
+<li><b>Ejemplares prestados</b> de un libro (calculado y guardado): se suma 1 en cada préstamo para no recorrer miles de préstamos cada vez.</li>
+<li><b>Despachos ocupados</b> de un edificio (calculado, no guardado): se puede contar con una consulta y casi no se consulta.</li></ul>
+<p class="th-tip">En la app: «Derivado» dibuja el borde discontinuo y no se pasa a las tablas. Un calculado que se guarda es un atributo normal; puedes escribirlo en una nota para acordarte de que hay que actualizarlo.</p>`},
 {id:'relaciones',t:'Relaciones',k:'relacion rombo binaria reflexiva ternaria identificadora grado atributos de relacion',h:`
 <p>Una <b>relación</b> une entidades y se dibuja como un rombo con un verbo: <i>Alumno — se matricula — Curso</i>.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.rel,'Binaria')}<p>Une dos entidades. Es la más habitual.</p></div>
@@ -86,6 +112,19 @@ ${thER('Edificio','tiene','Aula',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
 <h4>Atributos en una relación</h4>
 <p>Si un dato no es de ninguna de las dos entidades, sino de que estén relacionadas, va en la relación. Ejemplo: la <i>nota</i> no es del alumno ni del curso: es de <i>la matrícula</i> de ese alumno en ese curso.</p>`},
 
+{id:'tiposrel',t:'Tipos de relaciones: regular, débil y exclusiva',k:'relacion regular debil existencia identificacion exclusiva nave lanzadera cascade',h:`
+<ul><li><b>Regular</b>: une dos entidades regulares.</li><li><b>Débil</b>: une una entidad regular con una débil. Puede ser de dos tipos:</li></ul>
+<table class="th-tab"><tr><th></th><th>Dependencia en existencia</th><th>Dependencia en identificación</th></tr>
+<tr><td>Qué significa</td><td>La lanzadera no tiene sentido sin su nave, pero se identifica sola (por su número).</td><td>Además, la lanzadera solo se identifica junto con su nave (nave 1 – lanzadera 1, nave 2 – lanzadera 1…).</td></tr>
+<tr><td>Dibujo</td><td>Doble rectángulo y rombo simple</td><td>Doble rectángulo y <b>doble rombo</b>; su clave es parcial (subrayado discontinuo)</td></tr>
+<tr><td>Tabla</td><td>Lanzadera(<u>Numero</u>, Capacidad, <i>CodNave</i>)</td><td>Lanzadera(<u><i>CodNave</i>, Numero</u>, Capacidad)</td></tr>
+<tr><td>FK</td><td colspan="2"><code>ON UPDATE NO ACTION ON DELETE CASCADE</code>: al borrar una nave se borran sus lanzaderas</td></tr></table>
+<div class="th-code">CREATE TABLE Lanzadera (<br>&nbsp;&nbsp;CodNave INT NOT NULL,<br>&nbsp;&nbsp;Numero INT NOT NULL,<br>&nbsp;&nbsp;Capacidad TINYINT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (CodNave, Numero),<br>&nbsp;&nbsp;FOREIGN KEY (CodNave) REFERENCES Nave(CodNave)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</div>
+<p class="th-tip">En la app: marca la entidad como «Entidad débil». Si su clave es propia (subrayado normal), deja la relación simple: dependencia en existencia. Si su clave es parcial, marca la relación como «Identificadora»: dependencia en identificación.</p>
+<h4>Relación exclusiva</h4><p>Una entidad participa en <b>una u otra</b> relación, pero no en las dos a la vez (por ejemplo, un pago lo hace un cliente <i>o</i> una empresa). Se dibuja con un arco que cruza las dos líneas. En las tablas quedan dos FK que admiten NULL, y solo una puede tener valor (se comprueba con un <code>CHECK</code>).</p>
+<h4>Según el grado (cuántas entidades asocia)</h4><ul><li><b>Binarias</b>: asocian dos entidades.</li><li><b>N-arias</b>: asocian N entidades, siendo N mayor que 2 (la ternaria es la de 3). Estas relaciones <b>no se dan en el modelo relacional</b>.</li><li><b>Reflexivas</b>: relacionan una entidad consigo misma.</li></ul>
+<p>El modelo relacional solo contempla las relaciones <b>reflexivas y binarias</b>. Por eso una N-aria se convierte en una tabla con las claves de todas sus entidades, y esa tabla se une a cada entidad con una relación binaria.</p>
+<p class="th-tip">En la app: una reflexiva es una relación con sus dos líneas a la misma entidad. Para una ternaria, une una tercera entidad a la relación con Mayús + clic.</p>`},
 {id:'cardinalidad',t:'Cardinalidad (máximo y mínimo)',k:'cardinalidad minimo maximo participacion 1:1 1:n n:m obligatoria opcional',h:`
 <p>En cada línea entre relación y entidad se pone una pareja <b>(mínimo, máximo)</b>. La pareja que está <b>junto a una entidad</b> dice <b>cuántas veces participa esa entidad</b> en la relación: con cuántos ejemplares de la otra se puede relacionar cada uno de ella.</p>
 <div class="th-ex"><b>Ejemplo:</b> Provincia —pertenece— Comunidad. Cada provincia ¿a cuántas comunidades pertenece? Como mínimo <b>1</b> y como máximo <b>1</b>: junto a Provincia va <b>(1,1)</b>.<br>
@@ -119,6 +158,13 @@ Cada comunidad ¿cuántas provincias tiene? Como mínimo <b>1</b> y como máximo
 <tr><td>Todo en el supertipo</td><td>Empleado(<u>DNI</u>, Nombre, Puesto, Departamento (O), Maquina (O), Comision (O))</td></tr>
 <tr><td>Solo los subtipos</td><td>Directivo(<u>DNI</u>, Nombre, Departamento)<br>Tecnico(<u>DNI</u>, Nombre, Maquina)<br>Comercial(<u>DNI</u>, Nombre, Comision)</td></tr></table>
 <p>En el <b>DED</b> la primera opción se ve como líneas <b>continuas 1 a 0..1</b> desde Empleado a cada subtipo (el DNI del subtipo es PK y FK). En el DED no se dibuja el triángulo.</p>
+<h4>Cómo se dibuja según dónde</h4>
+<table class="th-tab"><tr><th></th><th>Exclusiva</th><th>Total</th></tr>
+<tr><td>Apuntes (triángulo)</td><td>Arco debajo del triángulo (sin arco: inclusiva)</td><td>Círculo encima del triángulo (sin círculo: parcial)</td></tr>
+<tr><td>ERDPlus (círculo)</td><td><b>d</b> = <i>Disjointed</i> (con <b>o</b> = <i>Overlapping</i>, inclusiva)</td><td>Doble línea del supertipo al círculo</td></tr></table>
+<p>Las cuatro combinaciones: <b>exclusiva total</b>, <b>exclusiva parcial</b>, <b>inclusiva total</b> e <b>inclusiva parcial</b>. Total: al dar de alta un empleado hay que rellenar ya los datos de su puesto. Parcial: se puede dejar para después.</p>
+<p>ERDPlus añade al supertipo un campo que dice de qué subtipo es (por ejemplo <b>Puesto</b>). Con la posibilidad 2 («solo los subtipos») y jerarquía parcial, las columnas propias de cada subtipo admiten NULL.</p>
+<p class="th-tip">En la app: en <b>Ajustes › Lienzo › Símbolo de la jerarquía</b> eliges triángulo ES, el de los apuntes o el de ERDPlus. En la jerarquía, «Campo que dice el tipo» añade la columna Puesto al supertipo.</p>
 <p class="th-tip">En la app: selecciona el supertipo y pulsa «Jerarquía»; después «Añadir subtipo». En su panel eliges total/parcial, exclusiva/solapada y cómo pasarla a tablas.</p>`},
 
 {id:'ternarias',t:'Relaciones ternarias',k:'ternaria tres entidades cardinalidad grado n-aria',h:`
@@ -267,6 +313,22 @@ const TEORIA_EN=[
 <ul><li>Important <b>nouns</b> (student, course, order) → possible <b>entities</b>.</li><li><b>Data</b> about each thing (name, date, price) → <b>attributes</b>.</li>
 <li><b>Verbs</b> joining two things (a student <i>enrols in</i> courses) → <b>relationships</b>.</li><li>Words like <i>each, can, at least, several, only one</i> → <b>cardinalities</b>.</li>
 <li>Whatever «identifies» or «cannot repeat» (ID number, code, plate) → <b>primary key</b>.</li></ul>`},
+{id:'diseno',t:'The three phases: conceptual, logical and physical',k:'design conceptual logical physical chen refinement domain entity rules redundancy',h:`
+<table class="th-tab"><tr><th>Phase</th><th>What you do</th><th>In class</th></tr>
+<tr><td><b>1. Conceptual design</b></td><td>Represent the company's information without thinking about any program.</td><td>Extended E-R model (paper and ERDPlus).</td></tr>
+<tr><td><b>2. Logical design</b></td><td>Turn the E-R into the DBMS model (relational): tables, PK and FK.</td><td>DSD (Workbench) or referential diagram (ERDPlus).</td></tr>
+<tr><td><b>3. Physical design</b></td><td>Actually create the database in a specific DBMS.</td><td>SQL script (CREATE DATABASE, CREATE TABLE…).</td></tr></table>
+<h4>Rules every entity follows</h4><ul><li>It exists on its own.</li><li>Each instance can be told apart from the others (so it has an identifier).</li><li>All its instances have the same attributes.</li></ul>
+<p><b>Domain</b>: the set of values an attribute can take (for example marks from 0 to 10). It exists even if there is no entity.</p>
+<h4>Removing redundancy</h4><ul><li>An attribute computed from others is removed or marked as derived.</li><li>A relationship you can «travel» another way is redundant: remove it, checking you can still get from one entity to the other.</li></ul>
+<h4>Chen's refinement (E-R → tables)</h4>
+<table class="th-tab"><tr><th>In the E-R</th><th>Tables</th></tr>
+<tr><td>1:1</td><td>Depends on the minimum cardinalities: the FK goes to the side that takes part compulsorily (and is UNIQUE).</td></tr>
+<tr><td>1:N</td><td>A(<u>a</u>, …) · B(<u>b</u>, …, <i>a</i>)</td></tr>
+<tr><td>1:N with weak B (identification)</td><td>A(<u>a</u>, …) · B(<u><i>a</i>, b</u>, …)</td></tr>
+<tr><td>N:M</td><td>C(<u><i>a</i>, <i>b</i></u>, …) <b>or</b> C(<u>c</u>, <i>a</i>, <i>b</i>, …) with its own key</td></tr>
+<tr><td>N-ary</td><td>D(<u><i>a</i>, <i>b</i>, <i>c</i></u>, …) or D(<u>d</u>, <i>a</i>, <i>b</i>, <i>c</i>, …)</td></tr></table>
+<p class="th-tip">In the app: in an N:M (or ternary, or associative) type the name in «Own key of its table», for example <i>CodDetFac</i>. The table gets that PK and the FKs become normal columns.</p>`},
 {id:'boceto',t:'Sketch: think before the E-R',k:'sketch draft entities attributes composite relationship start',h:`
 <p>The <b>Sketch</b> tab (between Brief and E-R) is for thinking about the exercise before drawing the full E-R: you type and the drawing appears by itself, with each entity and its attributes.</p>
 <ol><li>Read the brief and write above <b>one entity per line</b> with its attributes: <code>Student; DNI, Name, BirthDate</code>.</li>
@@ -320,6 +382,16 @@ ${thER('Building','has','Classroom',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
 <tr><td>${TH(GL.multi,'Multivalued')}</td><td>Double ellipse</td><td>Can have several values: several phone numbers, several emails.</td></tr>
 <tr><td>${TH(GL.comp,'Composite')}</td><td>Ellipse with other ellipses hanging</td><td>Made of parts: Address = street + number + city.</td></tr></table>
 <div class="th-tip">The primary key must be something that <b>never changes and never repeats</b>. If there is nothing like that in the brief, make up a code (CustomerId).</div>`},
+{id:'derivado',t:'Derived attribute and calculated attribute',k:'derived calculated stored trigger age birth date borrowed copies',h:`
+<table class="th-tab"><tr><th></th><th>Derived</th><th>Calculated</th></tr>
+<tr><td>Can be obtained from other data</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Is it stored in the table?</td><td><b>Never</b>: computed with a query when needed</td><td><b>You decide</b>: stored if computing it is costly or it is used constantly</td></tr>
+<tr><td>Drawing</td><td>Dashed oval</td><td>Normal oval (it is a stored attribute)</td></tr>
+<tr><td>If stored</td><td>—</td><td>It must <b>always</b> be kept up to date (for example with a trigger)</td></tr></table>
+<h4>Examples</h4><ul><li><b>Age</b> (derived): the birth date is stored and the age is shown with a query.</li>
+<li><b>Borrowed copies</b> of a book (calculated and stored): add 1 on each loan so you don't go through thousands of loans every time.</li>
+<li><b>Occupied offices</b> in a building (calculated, not stored): it can be counted with a query and is rarely needed.</li></ul>
+<p class="th-tip">In the app: «Derived» draws the dashed border and is not taken to the tables. A stored calculated attribute is a normal attribute; you can write a note to remember it must be updated.</p>`},
 {id:'relaciones',t:'Relationships',k:'relationship diamond binary recursive ternary identifying degree attributes',h:`
 <p>A <b>relationship</b> joins entities and is drawn as a diamond with a verb: <i>Student — enrols in — Course</i>.</p>
 <div class="th-grid"><div class="th-card">${TH(GL.rel,'Binary')}<p>Joins two entities. The most common one.</p></div>
@@ -327,6 +399,19 @@ ${thER('Building','has','Classroom',{weak:1,id:1,ca:'(0,N)',cb:'(1,1)'})}
 <div class="th-card">${TH(GL.rel,'Ternary')}<p>Joins three entities at once, when the data only makes sense with all three: a <i>Doctor</i> prescribes a <i>Medicine</i> to a <i>Patient</i>.</p></div>
 <div class="th-card">${TH(GL.idrel,'Identifying')}<p>Double diamond. Joins a weak entity with the strong one that identifies it.</p></div></div>
 <h4>Attributes on a relationship</h4><p>If a piece of data belongs to neither entity but to the fact that they are related, it goes on the relationship. Example: the <i>grade</i> belongs not to the student nor to the course, but to <i>that student's enrolment in that course</i>.</p>`},
+{id:'tiposrel',t:'Kinds of relationships: regular, weak and exclusive',k:'relationship regular weak existence identification exclusive ship shuttle cascade',h:`
+<ul><li><b>Regular</b>: joins two regular entities.</li><li><b>Weak</b>: joins a regular entity with a weak one. Two kinds:</li></ul>
+<table class="th-tab"><tr><th></th><th>Existence dependency</th><th>Identification dependency</th></tr>
+<tr><td>Meaning</td><td>The shuttle makes no sense without its ship, but it is identified on its own (by its number).</td><td>Also, the shuttle is only identified together with its ship (ship 1 – shuttle 1, ship 2 – shuttle 1…).</td></tr>
+<tr><td>Drawing</td><td>Double rectangle and single diamond</td><td>Double rectangle and <b>double diamond</b>; its key is partial (dashed underline)</td></tr>
+<tr><td>Table</td><td>Lanzadera(<u>Numero</u>, Capacidad, <i>CodNave</i>)</td><td>Lanzadera(<u><i>CodNave</i>, Numero</u>, Capacidad)</td></tr>
+<tr><td>FK</td><td colspan="2"><code>ON UPDATE NO ACTION ON DELETE CASCADE</code>: deleting a ship deletes its shuttles</td></tr></table>
+<div class="th-code">CREATE TABLE Lanzadera (<br>&nbsp;&nbsp;CodNave INT NOT NULL,<br>&nbsp;&nbsp;Numero INT NOT NULL,<br>&nbsp;&nbsp;Capacidad TINYINT NOT NULL,<br>&nbsp;&nbsp;PRIMARY KEY (CodNave, Numero),<br>&nbsp;&nbsp;FOREIGN KEY (CodNave) REFERENCES Nave(CodNave)<br>&nbsp;&nbsp;&nbsp;&nbsp;ON UPDATE NO ACTION ON DELETE CASCADE<br>);</div>
+<p class="th-tip">In the app: mark the entity as «Weak entity». If its key is its own (normal underline), keep a single diamond: existence dependency. If its key is partial, mark the relationship as «Identifying»: identification dependency.</p>
+<h4>Exclusive relationship</h4><p>An entity takes part in <b>one or the other</b> relationship, but not both (for example, a payment is made by a customer <i>or</i> a company). It is drawn with an arc across both lines. In the tables there are two FKs that allow NULL, and only one may have a value (checked with a <code>CHECK</code>).</p>
+<h4>By degree (how many entities it joins)</h4><ul><li><b>Binary</b>: join two entities.</li><li><b>N-ary</b>: join N entities, N greater than 2 (ternary is 3). These relationships <b>do not exist in the relational model</b>.</li><li><b>Recursive</b>: join an entity with itself.</li></ul>
+<p>The relational model only has <b>recursive and binary</b> relationships. That is why an N-ary becomes a table with the keys of all its entities, and that table is joined to each entity with a binary relationship.</p>
+<p class="th-tip">In the app: a recursive relationship has both lines to the same entity. For a ternary, join a third entity to the relationship with Shift + click.</p>`},
 {id:'cardinalidad',t:'Cardinality (maximum and minimum)',k:'cardinality minimum maximum participation 1:1 1:n n:m mandatory optional',h:`
 <p>Each line between a relationship and an entity gets a pair <b>(minimum, maximum)</b>. In this app (as in ERD Plus) the pair <b>next to an entity</b> says <b>how many instances of that entity</b> each instance of the other one can have.</p>
 <div class="th-ex"><b>Example:</b> Pizzeria — how many Animatronics can it have at most? <b>Many (N)</b>. And at least? <b>None (0)</b>. Next to Animatronic goes <b>(0,N)</b>.<br>
@@ -359,6 +444,13 @@ Animatronic — how many Pizzerias can it have? At most <b>1</b> and at least <b
 <tr><td>Everything in the supertype</td><td>Empleado(<u>DNI</u>, Nombre, Puesto, Departamento (O), Maquina (O), Comision (O))</td></tr>
 <tr><td>Only the subtypes</td><td>Directivo(<u>DNI</u>, Nombre, Departamento)<br>Tecnico(<u>DNI</u>, Nombre, Maquina)<br>Comercial(<u>DNI</u>, Nombre, Comision)</td></tr></table>
 <p>In the <b>DSD</b> the first option shows as <b>solid 1 to 0..1</b> lines from Empleado to each subtype (the subtype's DNI is PK and FK). The triangle is not drawn in the DSD.</p>
+<h4>How it is drawn depending on where</h4>
+<table class="th-tab"><tr><th></th><th>Exclusive</th><th>Total</th></tr>
+<tr><td>Class notes (triangle)</td><td>Arc under the triangle (no arc: inclusive)</td><td>Circle above the triangle (no circle: partial)</td></tr>
+<tr><td>ERDPlus (circle)</td><td><b>d</b> = <i>Disjointed</i> (<b>o</b> = <i>Overlapping</i>, inclusive)</td><td>Double line from the supertype to the circle</td></tr></table>
+<p>The four combinations: <b>exclusive total</b>, <b>exclusive partial</b>, <b>inclusive total</b> and <b>inclusive partial</b>. Total: when an employee is registered, the data of their job must be filled in. Partial: it can be left for later.</p>
+<p>ERDPlus adds a field to the supertype that says which subtype it is (for example <b>Puesto</b>). With option 2 («only the subtypes») and a partial hierarchy, each subtype's own columns allow NULL.</p>
+<p class="th-tip">In the app: in <b>Settings › Canvas › Hierarchy symbol</b> choose the ES triangle, the class-notes one or the ERDPlus one. In the hierarchy, «Field that says the type» adds the Puesto column to the supertype.</p>
 <p class="th-tip">In the app: select the relationship and turn on «Associative entity» (also in the right-click menu). Then join it to another entity with Shift + click: the relationship is created in the middle.</p>`},
 
 {id:'paso',t:'From E-R to tables',k:'conversion relational rules fk junction table n:m 1:n 1:1 weak multivalued',h:`

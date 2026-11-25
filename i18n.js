@@ -619,10 +619,25 @@ const EN={
 // 4.0
 "Activado: al pasar el E-R al relacional (y de ahí al DED) también se pasan las relaciones: claves ajenas y tablas N:M":"On: when the E-R goes to the relational model (and from there to the DSD) the relationships go too: foreign keys and N:M tables",
 "Varias relaciones entre las mismas entidades":"Several relationships between the same entities",
-"ERDPlus y MySQL Workbench paso a paso":"ERDPlus and MySQL Workbench step by step"
+"ERDPlus y MySQL Workbench paso a paso":"ERDPlus and MySQL Workbench step by step",
+// 4.0
+"Símbolo de la jerarquía (supertipo)":"Hierarchy (supertype) symbol",
+"Triángulo ES":"ES triangle",
+"Apuntes":"Class notes",
+"Triángulo «ES» con (t,e); como en los apuntes (círculo arriba = total, arco abajo = exclusiva); o como ERDPlus (círculo con d u o; doble línea = total).":"«ES» triangle with (t,e); like the class notes (circle on top = total, arc below = exclusive); or like ERDPlus (circle with d or o; double line = total).",
+"Campo que dice el tipo":"Field that says the type",
+"(opcional, p. ej. Puesto)":"(optional, e.g. Puesto)",
+"Si lo rellenas, la tabla del supertipo lleva esa columna (como hace ERDPlus por defecto).":"If you fill it in, the supertype table gets that column (as ERDPlus does by default).",
+"Cada subtipo copia las columnas del supertipo. Si es parcial, sus columnas propias admiten NULL.":"Each subtype copies the supertype columns. If it is partial, its own columns allow NULL.",
+"Clave propia de su tabla":"Own key of its table",
+"(opcional, p. ej. CodDetFac)":"(optional, e.g. CodDetFac)",
+"Las FK juntas":"The FKs together",
+"Vacío: la clave de la tabla son las FK juntas. Con un nombre: esa columna es la clave y las FK quedan como columnas normales.":"Empty: the table key is the FKs together. With a name: that column is the key and the FKs become normal columns."
 };
 // Textos con partes variables
 const EN_RX=[
+[/^«(.+)» es parcial: en cada subtipo sus columnas propias admiten NULL\.$/,"«$1» is partial: in each subtype its own columns allow NULL."],
+
 [/^Subtipo de «(.+)»$/,"Subtype of «$1»"],
 [/^«(.+)» es un tipo de «(.+)»: hereda su clave \(PK y FK a la vez\)\. Aquí no se dibuja el triángulo; al pasar al E-R sale la jerarquía\.$/,"«$1» is a kind of «$2»: it inherits its key (PK and FK at the same time). The triangle is not drawn here; the hierarchy appears when you go to the E-R."],
 [/^Si «(.+)» es un tipo de «(.+)» \(un directivo es un empleado\), márcalo como subtipo: al pasar al E-R sale la jerarquía\.$/,"If «$1» is a kind of «$2» (a manager is an employee), mark it as a subtype: the hierarchy appears when you go to the E-R."],
