@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='4.7.0'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.7.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -415,12 +415,18 @@ class Editor{
     if(this.p!==p){this.hist=[];this.redo=[];}
     this.p=p;this.mode=mode;this.selIds=new Set();this.selLink=null;this.connect=false;this.from=null;this.pend=null;
     p._views=p._views||{};const first=!p._views[mode];if(first)p._views[mode]={x:0,y:0,z:1};
+    if(mode==='er'&&!this.ro&&p.er&&this.fixIsas().length)this.app.touch(p);
     if(mode==='bo')this.boFix();this.boZ.hidden=mode!=='bo';if(mode==='bo'&&this._boH)this._boH();this._boEd=false;this.boT.readOnly=this.ro;this.enT.readOnly=!!p.act;
     this.enP.hidden=!this.showEnun;this.main.classList.toggle('withenun',this.showEnun);this.enT.value=fixBullets(p.enun||'');if(this._hlDraw)this._hlDraw();this.renderSide();
     this.renderTools();this.render();this.renderInsp();
     if(first){if(this.hasContent())this.fit(true);else this.centerView();}else this.applyView();
   }
-  save(){this.app.touch(this.p);}
+  save(){if(this.mode==='er'){const ch=this.fixIsas();if(ch.length)toast(`«${ch.join('», «')}» es el supertipo: es la entidad que tiene la clave primaria.`);}this.app.touch(this.p);}
+  // Jerarquías: el supertipo es la entidad con clave primaria; los subtipos no tienen clave propia (la heredan). No depende de cuál esté más arriba.
+  // Solo se decide así si exactamente una de las entidades unidas al triángulo tiene clave; si se eligió a mano en el panel (f.supMan) se respeta.
+  isaKey(X,e){return X.attrsOf(e).some(a=>a.f&&a.f.k);}
+  fixIsas(){const X=this.X(),ch=[];(this.m.nodes||[]).filter(isIsa).forEach(i=>{if(i.f.supMan)return;const ls=X.linksOf(i.id).filter(l=>isEnt(X.other(l,i.id)));if(ls.length<2)return;
+    const ks=ls.filter(l=>this.isaKey(X,X.other(l,i.id)));if(ks.length!==1)return;const w=ks[0];if(w.sup&&ls.filter(l=>l.sup).length===1)return;ls.forEach(l=>{if(l===w)l.sup=1;else delete l.sup;});ch.push(X.other(w,i.id).n);});return ch;}
   plainM(){return cleanModel(this.m,this.mode);}
   snap(){this.hist.push({mode:this.mode,data:JSON.stringify(this.plainM())});if(this.hist.length>100)this.hist.shift();this.redo=this.redo.filter(h=>h.mode!==this.mode);}
   restore(stackFrom,stackTo){for(let k=stackFrom.length-1;k>=0;k--){if(stackFrom[k].mode===this.mode){const h=stackFrom.splice(k,1)[0];stackTo.push({mode:this.mode,data:JSON.stringify(this.plainM())});this.p[this.mode]=JSON.parse(h.data);this.selIds=new Set();this.selLink=null;this.pend=null;this.save();this.render();this.renderInsp();return true;}}return false;}
@@ -552,9 +558,12 @@ class Editor{
     if(isIsa(A)||isIsa(B)){const i=isIsa(A)?A:B,e=isIsa(A)?B:A;
       if(!isEnt(e)){toast('Una jerarquía solo se une a entidades.','warn');return;}
       if(L.some(l=>(l.a===i.id&&l.b===e.id)||(l.a===e.id&&l.b===i.id))){toast('Esos dos elementos ya están unidos.');return;}
-      const X=this.X();this.snap();const sup=!X.superOf(i)&&e.y<i.y;L.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null,...(sup?{sup:1}:{})});
-      this.save();this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();
-      toast(sup?`«${e.n}» es el supertipo de la jerarquía.`:`«${e.n}» es un subtipo.`);return;}
+      const X=this.X();this.snap();const cur=X.superOf(i),ek=this.isaKey(X,e),anyK=X.linksOf(i.id).some(l=>{const o=X.other(l,i.id);return isEnt(o)&&this.isaKey(X,o);});
+      // con clave primaria = supertipo; sin clave = subtipo. Si todavía nadie tiene clave, provisionalmente el que esté más arriba (se corrige al poner la clave)
+      const sup=i.f.supMan?false:ek?(!cur||!this.isaKey(X,cur)):(!cur&&!anyK&&e.y<i.y);if(sup&&cur)X.linksOf(i.id).forEach(l=>delete l.sup);
+      L.push({id:uid(),a:i.id,b:e.id,c:null,mn:null,mx:null,...(sup?{sup:1}:{})});const fx=this.fixIsas();this.app.touch(this.p);if(fx.length&&!sup){this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();toast(`«${e.n}» es un subtipo. «${fx[0]}» es el supertipo: es la que tiene la clave primaria.`);return;}this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();
+      this.selIds=new Set([i.id]);this.selLink=null;this.render();this.renderInsp();
+      toast(sup?(ek?`«${e.n}» es el supertipo de la jerarquía: tiene la clave primaria.`:`«${e.n}» va de momento como supertipo. Cuando pongas la clave primaria, el supertipo será la entidad que la tenga.`):anyK||cur?`«${e.n}» es un subtipo: no tiene clave propia, hereda la del supertipo.`:`«${e.n}» va de momento como subtipo. El supertipo será la entidad que tenga la clave primaria.`);return;}
     if(isRel(A)&&isRel(B)&&!(isAssoc(A)!==isAssoc(B))){toast(isAssoc(A)?'No se pueden unir dos entidades asociativas directamente: ponles una relación en medio.':'No se pueden unir dos relaciones entre sí.','warn');return;}
     const asEnt=n=>isEnt(n)||(isAssoc(n)&&this.X().ends(n).length>=2);
     if(asEnt(A)&&asEnt(B)&&!(isAssoc(A)&&isEnt(B)&&this.X().ends(A).length<2)){ // dos entidades: se crea la relación en medio
@@ -634,7 +643,7 @@ class Editor{
     const pc=e.target.closest('[data-pendc]');if(pc&&this.pend&&this.pend.ca){const c=this.pend['c'+pc.dataset.pendc],k=pc.dataset.k;c[k]=c[k]===pc.dataset.v?undefined:pc.dataset.v;this.renderInsp();return;}
     const pd=e.target.closest('[data-pend]');if(pd&&this.pend){const k=pd.dataset.pend,v=pd.dataset.v;if(k==='create'){this.createRelation();return;}if(k==='cancel'){this.pend=null;this.renderInsp();this.render();return;}this.pend[k]=k==='req'||k==='ident'?!this.pend[k]:v;this.renderInsp();return;}
     const io=e.target.closest('[data-isa]');if(io){const i=this.single();if(!isIsa(i))return;this.snap();const k=io.dataset.isa,v=io.dataset.v;
-      if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});}
+      if(k==='sup'){const X=this.X();X.linksOf(i.id).forEach(l=>{if(X.other(l,i.id).id===v)l.sup=1;else delete l.sup;});i.f.supMan=1;}
       else i.f[k]=v==='1'?true:v==='0'?false:v;this.save();this.render();this.renderInsp();return;}
     const bty=e.target.closest('[data-boty]');if(bty){const n=this.single(),[i,k]=bty.dataset.boty.split(':'),[ai,si]=i.split('.');if(n){const a=(n.f.at||[])[+ai];if(a!=null)this.boSetTy(n,a,k,si!=null?atSub(a)[+si]:undefined);}return;}
     const fs=e.target.closest('[data-fkset]');if(fs){this.fkSet(fs.dataset.fkset,fs.dataset.v==='1');return;}
@@ -1096,15 +1105,15 @@ class Editor{
           g+=`<text x="${n.x}" y="${n.y+4}" text-anchor="middle" class="tr">${esc(n.n)}</text>`;}
         else{g+=`<rect x="${f1(x0)}" y="${f1(y0)}" width="${f1(n.w)}" height="${n.h}" rx="${nt==='crow'?11:0}" class="dia${nt==='uml'?' assoc':''}"/><text x="${n.x}" y="${f1(y0+17)}" text-anchor="middle" class="tr">${esc(n.n)}</text>`;
           if(n.rows.length)g+=`<path d="M${f1(x0)},${f1(y0+24)} H${f1(x0+n.w)}" class="dia hd"/>`+rows(n.rows,y0+26,false);}}
-      else if(isIsa(n)){const h=n.h/2,w=n.w/2,nt=Settings.get().isaNot||'es',tot=!!n.f.tot,dis=n.f.dis!==false;
+      else if(isIsa(n)){const h=n.h/2,w=n.w/2,nt=Settings.get().isaNot||'es',tot=!!n.f.tot,dis=n.f.dis!==false,SS=this.X().superOf(n),s=SS&&SS.y>n.y?-1:1; // s=-1: el supertipo está debajo, el símbolo se da la vuelta
         if(nt==='erdplus'){ // ERDPlus: círculo con d (exclusiva, disjoint) u o (solapada, overlapping); total = doble línea hacia el supertipo
           const r=17;if(tot){const S=this.X().superOf(n);if(S){const dx=S.x-n.x,dy=S.y-n.y,d=Math.hypot(dx,dy)||1,ox=-dy/d*4,oy=dx/d*4;g+=`<line x1="${f1(n.x+ox+dx/d*r)}" y1="${f1(n.y+oy+dy/d*r)}" x2="${f1(S.x+ox)}" y2="${f1(S.y+oy)}" class="lk"/>`;}}
           g+=`<circle cx="${n.x}" cy="${n.y}" r="${r}" class="dia isa${dup}"/><text x="${n.x}" y="${f1(n.y+5)}" text-anchor="middle" class="tt">${dis?'d':'o'}</text>`;}
         else if(nt==='libro'){ // como en los apuntes: triángulo hacia abajo, círculo arriba si es total y arco abajo si es exclusiva
-          g+=`<polygon points="${n.x-w},${n.y-h} ${n.x+w},${n.y-h} ${n.x},${n.y+h}" class="dia isa${dup}"/>`;
-          if(tot)g+=`<circle cx="${n.x}" cy="${f1(n.y-h-7)}" r="6" class="dia isa"/>`;
-          if(dis)g+=`<path d="M${f1(n.x-20)} ${f1(n.y+h+2)} Q${n.x} ${f1(n.y+h+22)} ${f1(n.x+20)} ${f1(n.y+h+2)}" class="lk" fill="none"/>`;}
-        else{g+=`<polygon points="${n.x},${n.y-h} ${n.x+w},${n.y+h} ${n.x-w},${n.y+h}" class="dia isa${dup}"/><text x="${n.x}" y="${f1(n.y+h-8)}" text-anchor="middle" class="tt">${LANG()==='en'?'IS A':'ES'}</text>`;
+          g+=`<polygon points="${n.x-w},${n.y-s*h} ${n.x+w},${n.y-s*h} ${n.x},${n.y+s*h}" class="dia isa${dup}"/>`;
+          if(tot)g+=`<circle cx="${n.x}" cy="${f1(n.y-s*(h+7))}" r="6" class="dia isa"/>`;
+          if(dis)g+=`<path d="M${f1(n.x-20)} ${f1(n.y+s*(h+2))} Q${n.x} ${f1(n.y+s*(h+22))} ${f1(n.x+20)} ${f1(n.y+s*(h+2))}" class="lk" fill="none"/>`;}
+        else{g+=`<polygon points="${n.x},${n.y-s*h} ${n.x+w},${n.y+s*h} ${n.x-w},${n.y+s*h}" class="dia isa${dup}"/><text x="${n.x}" y="${f1(s>0?n.y+h-8:n.y-h+16)}" text-anchor="middle" class="tt">${LANG()==='en'?'IS A':'ES'}</text>`;
           TX+=`<text x="${f1(n.x+w+6)}" y="${f1(n.y+5)}" class="card isal">${esc(isaLabel(n.f))}</text>`;}}
       else{const key=n.f.k||n.f.p,cls='att'+(key?' key':'')+(n.f.d?' dr':'')+dup;
         if(n.f.m)g+=`<ellipse cx="${n.x}" cy="${n.y}" rx="${f1(n.rx+4)}" ry="17" class="${cls}"/>`;
@@ -1265,7 +1274,7 @@ class Editor{
     else if(isIsa(one)){const X=this.X(),sup=X.superOf(one),subs=X.subsOf(one),all=X.linksOf(one.id).map(l=>X.other(l,one.id)).filter(isEnt),f=one.f;
       const sb=(k,v,t,on)=>`<button class="segb" data-isa="${k}" data-v="${v}" aria-pressed="${on}">${t}</button>`;
       h+=head('Jerarquía (ISA)')+`<p class="in-p">Generalización / especialización. Etiqueta: <b>${esc(isaLabel(f))}</b></p>
-        <div class="in-sub">Supertipo (la entidad general, arriba)</div>${all.length?`<div class="seg wide">${all.map(e=>sb('sup',e.id,esc(e.n),sup===e)).join('')}</div>`:'<p class="in-p warn">Une el triángulo a la entidad general (Mayús + clic).</p>'}
+        <div class="in-sub">Supertipo (la entidad con la clave primaria)</div>${all.length?`<div class="seg wide">${all.map(e=>sb('sup',e.id,esc(e.n),sup===e)).join('')}</div>`:'<p class="in-p warn">Une el triángulo a la entidad general (Mayús + clic).</p>'}
         <div class="in-sub">Subtipos <span class="cnt">${subs.length}</span></div><div class="alist">${subs.map(e=>`<button class="aitem" data-goto="${e.id}">${GL.ent}<span>${esc(e.n)}</span></button>`).join('')||'<span class="in-p">Ninguno todavía.</span>'}</div>
         <button class="ebtn" data-act="addsub">${GL.ent}<span>Añadir subtipo</span></button>
         <div class="in-sub">Cobertura</div><div class="seg wide">${sb('tot','1','Total',!!f.tot)}${sb('tot','0','Parcial',!f.tot)}</div><p class="in-p">${f.tot?'Todo '+esc(sup?sup.n:'supertipo')+' es de algún subtipo.':'Puede haber '+esc(sup?sup.n:'supertipo')+' que no sea de ningún subtipo.'}</p>

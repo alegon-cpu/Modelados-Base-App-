@@ -41,6 +41,11 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.7.1  (26/11/2026)
+--------------------
+- jerarquías: el supertipo ya no depende de cuál esté más arriba. Es la entidad que tiene la clave primaria; las que no tienen clave propia son los subtipos (heredan la clave). Se corrige solo al unir el triángulo, al poner la clave y al abrir un proyecto.
+- jerarquías: si el supertipo está debajo de los subtipos, el triángulo (o el círculo d/o) se da la vuelta y apunta hacia él.
+
 v4.7.0  (25/11/2026)
 --------------------
 - ERDPlus: «Exportar» deja elegir el formato nuevo de erdplus.com (el de ahora) o el antiguo. En el nuevo, la jerarquía sale con el supertipo propio de ERDPlus (círculo d/o, total o parcial), no como relaciones «es».
