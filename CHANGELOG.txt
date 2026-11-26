@@ -41,6 +41,10 @@ ejercicio de bases de datos, todo en el mismo proyecto.
 HISTORIAL DE VERSIONES
 ======================
 
+v4.7.2  (26/11/2026)
+--------------------
+- tablas N:M hechas a mano: al marcar FK en una columna se elige sola la tabla a la que apunta (DNI → Profesor, IdCurso → Curso, CodEd y Numero → Aula). Antes todas apuntaban a la misma tabla y el DED las juntaba como si fuera una sola FK; ahora cada una es PK y FK a su tabla, con su línea.
+
 v4.7.1  (26/11/2026)
 --------------------
 - jerarquías: el supertipo ya no depende de cuál esté más arriba. Es la entidad que tiene la clave primaria; las que no tienen clave propia son los subtipos (heredan la clave). Se corrige solo al unir el triángulo, al poner la clave y al abrir un proyecto.

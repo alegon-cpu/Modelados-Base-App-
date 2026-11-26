@@ -1,5 +1,5 @@
 /* ===================== Utilidades ===================== */
-const VERSION='4.7.1'; // tiene que coincidir con package.json (build.sh lo comprueba)
+const VERSION='4.7.2'; // tiene que coincidir con package.json (build.sh lo comprueba)
 const W=6000,H=4000;          // tamaño de la zona de trabajo
 const ZMIN=0.2,ZMAX=3;
 const escA=v=>esc(v).replace(/"/g,'&quot;');
@@ -1330,9 +1330,17 @@ class Editor{
     if(f==='cname')c[0]=el.value;else if(f==='ctype')c[1]=el.value;
     else{const g=parseF(c[2]);
       if(f==='pk'||f==='uq')g[f]=el.checked?1:0;else if(f==='nn')g.nul=el.checked?0:1;
-      else if(f==='fk')g.fk=el.checked?(this.m.t.find(o=>o!==t)||t).n:null;else if(f==='fkt')g.fk=el.value;
+      else if(f==='fk')g.fk=el.checked?this.fkGuess(t,c[0]):null;else if(f==='fkt')g.fk=el.value;
       c[2]=joinF(g);}
   }
+  // Al marcar FK en una columna: a qué tabla apunta. Así en una tabla N:M cada columna (PK y FK a la vez) va a su tabla, no todas a la misma.
+  // 1) la tabla cuya PK tiene una columna con ese nombre (DNI → Profesor; DNI_jefe → Empleado); 2) la tabla cuyo nombre sale en la columna (IdCurso → Curso);
+  // 3) una tabla a la que todavía no apunte ninguna otra columna; 4) la primera.
+  fkGuess(t,name){const os=this.m.t.filter(o=>o!==t),nn=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),c0=nn(name),base=nn(String(name||'').replace(/_[^_]+$/,''));
+    const pkHas=(o,x)=>x&&o.c.some(c=>parseF(c[2]).pk&&nn(c[0])===x);
+    let o=os.find(o=>pkHas(o,c0))||os.find(o=>pkHas(o,base))||os.find(o=>{const tn=nn(o.n);return tn.length>2&&c0.includes(tn);});
+    if(!o){const used=new Set(t.c.map(c=>parseF(c[2]).fk).filter(Boolean));o=os.find(o=>!used.has(o.n)&&o.c.some(c=>parseF(c[2]).pk))||os[0];}
+    return (o||t).n;}
   align(k){
     const its=[...this.selIds].map(id=>this.node(id)).filter(Boolean);if(its.length<2)return;
     if((k==='dh'||k==='dv')&&its.length<3){toast('Para repartir hacen falta al menos 3 elementos.');return;}
